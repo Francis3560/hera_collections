@@ -1,0 +1,1116 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vizx Global Design System - Purple Premium Theme for Bag Store */
+/* All colors MUST be HSL for consistent theming */
+
+@layer base {
+  :root {
+    /* Core brand colors - Premium purple blend (#7C3AED + #A855F7) */
+    --primary: 269 90% 58%;        /* #7C3AED equivalent */
+    --primary-light: 270 90% 65%;  /* #A855F7 equivalent blend */
+    --primary-dark: 269 90% 48%;   /* Darker shade for hover states */
+    --primary-foreground: 0 0% 100%;
+
+    /* Neutral colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Secondary colors */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    /* Accent colors (using purple blend) */
+    --accent: 268 85% 60%;
+    --accent-foreground: 0 0% 98%;
+    --accent-hover: 268 85% 55%;
+
+    /* Muted colors */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Status colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+
+    /* Border and input */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 269 90% 58%;
+
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 269 90% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 269 90% 58%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+    --gradient-section: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--muted)));
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    --gradient-backdrop: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 2px 10px -2px hsl(var(--primary) / 0.1);
+    --shadow-medium: 0 8px 30px -4px hsl(var(--primary) / 0.15);
+    --shadow-strong: 0 20px 40px -8px hsl(var(--primary) / 0.2);
+    --shadow-glass: 0 8px 32px rgba(124, 58, 237, 0.1);
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.2);
+
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Dark mode colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Primary colors in dark mode */
+    --primary: 269 90% 65%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 270 90% 70%;
+    --primary-dark: 269 90% 55%;
+    
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    
+    /* Accent colors */
+    --accent: 268 85% 65%;
+    --accent-foreground: 0 0% 98%;
+    --accent-hover: 268 85% 60%;
+    
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 269 90% 65%;
+
+    /* Sidebar dark mode */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 269 90% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 269 90% 65%;
+
+    /* Dark mode gradients */
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    --gradient-backdrop: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling for navigation */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Glass morphism utilities */
+  .glass {
+    background: var(--gradient-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-glass);
+  }
+  
+  .glass-card {
+    @apply glass rounded-2xl p-6;
+  }
+  
+  /* Gradient utilities */
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .bg-gradient-section {
+    background: var(--gradient-section);
+  }
+  
+  /* Shadow utilities */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-strong {
+    box-shadow: var(--shadow-strong);
+  }
+
+  .shadow-elegant {
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+
+  .transition-spring {
+    transition: var(--transition-spring);
+  }
+  
+  /* Hover effects */
+  .hover-lift {
+    transition: var(--transition-smooth);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elegant);
+  }
+
+  .hover-scale {
+    transition: var(--transition-smooth);
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+  
+  /* Status indicators */
+  .status-online {
+    @apply bg-green-500;
+  }
+  
+  .status-offline {
+    @apply bg-gray-400;
+  }
+  
+  .status-away {
+    @apply bg-yellow-500;
+  }
+  
+  .status-busy {
+    @apply bg-red-500;
+  }
+  
+  /* Purple theme specific components */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium 
+           hover:bg-primary-dark transition-smooth shadow-soft hover:shadow-medium;
+  }
+  
+  .bag-card {
+    @apply bg-card border border-border rounded-xl p-4 hover-lift transition-smooth;
+  }
+  
+  .price-tag {
+    @apply text-primary font-bold text-lg;
+  }
+  
+  .category-badge {
+    @apply bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.7);
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Chat bubble animations */
+.chat-bubble-enter {
+  animation: chatBubbleEnter 0.3s ease-out;
+}
+
+@keyframes chatBubbleEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Notification badge pulse */
+.notification-pulse {
+  animation: notificationPulse 2s infinite;
+}
+
+@keyframes notificationPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Typing indicator */
+.typing-indicator {
+  animation: typingIndicator 1.4s infinite ease-in-out;
+}
+
+.typing-indicator:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingIndicator {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Add shimmer effect for product cards */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary) / 0.05),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Sale badge animation */
+.sale-badge {
+  @apply bg-primary text-white px-2 py-1 rounded-md font-bold text-sm;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+/* Featured Products specific styles */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Smooth card hover effects */
+.group:hover .group-hover\:scale-110 {
+  transform: scale(1.1);
+}
+
+/* Glass effect for stats banner */
+.stats-banner {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .stats-banner {
+  background: linear-gradient(135deg, 
+    rgba(0, 0, 0, 0.2) 0%, 
+    rgba(0, 0, 0, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Price animation */
+@keyframes price-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.price-pulse:hover {
+  animation: price-pulse 2s infinite;
+}
+
+/* Discount badge animation */
+@keyframes discount-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.discount-badge {
+  animation: discount-bounce 3s infinite;
+}
+
+/* Quick view modal backdrop */
+.quick-view-backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+}
+/* Bag Philosophy Specific Styles */
+
+/* Enhanced shimmer animation */
+@keyframes enhanced-shimmer {
+  0% {
+    transform: translateX(-100%) rotate(12deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(12deg);
+  }
+}
+
+.animate-shimmer {
+  animation: enhanced-shimmer 3s infinite;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Floating animation for decorative elements */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(120deg);
+  }
+  66% {
+    transform: translateY(10px) rotate(240deg);
+  }
+}
+
+.floating-element {
+  animation: float 20s infinite ease-in-out;
+}
+
+/* Gradient text animation */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, 
+    hsl(var(--primary)), 
+    hsl(var(--primary-light)), 
+    hsl(var(--primary))
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+/* Card hover effects */
+.philosophy-card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.philosophy-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+}
+
+.dark .philosophy-card:hover {
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.25);
+}
+
+/* Custom scrollbar for the section */
+.bag-philosophy-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bag-philosophy-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bag-philosophy-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--primary)),
+    hsl(var(--primary-light))
+  );
+  border-radius: 2px;
+}
+
+/* Image parallax effect */
+@media (prefers-reduced-motion: no-preference) {
+  .parallax-image {
+    will-change: transform;
+    transition: transform 0.2s ease-out;
+  }
+}
+
+/* Enhanced focus styles */
+.enhanced-focus:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
+}
+
+/* Glass morphism effect for badges */
+.glass-badge {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+}
+
+.dark .glass-badge {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.1)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+/* Product Showcase Specific Styles */
+
+/* Smooth auto-transition effect */
+.auto-transition {
+  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Image swap animation */
+.image-swap-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.image-primary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.image-secondary {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Price strikethrough animation */
+@keyframes price-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.line-through {
+  position: relative;
+}
+
+.line-through::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -5%;
+  width: 110%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+
+.group:hover .line-through::after {
+  transform: scaleX(1);
+}
+
+/* Card hover elevation */
+.product-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.dark .product-card:hover {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Star rating animation */
+@keyframes star-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.group:hover .star-rating svg {
+  animation: star-pulse 0.5s ease;
+}
+
+.group:hover .star-rating svg:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.group:hover .star-rating svg:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.group:hover .star-rating svg:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.group:hover .star-rating svg:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+/* Auto-play indicator animation */
+@keyframes indicator-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.bg-primary.animate-pulse-indicator {
+  animation: indicator-pulse 2s infinite;
+}
+
+/* Hover image swap overlay effect */
+.hover-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.group:hover .hover-image-overlay {
+  opacity: 1;
+}
+
+/* Breadcrumb separator animation */
+.breadcrumb-separator {
+  transition: transform 0.3s ease;
+}
+
+.group:hover .breadcrumb-separator {
+  transform: translateX(2px);
+}
+
+/* Mobile touch optimization */
+@media (max-width: 640px) {
+  .product-card {
+    margin: 0 8px;
+  }
+  
+  .image-swap-container {
+    touch-action: pan-x pan-y;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .auto-transition,
+  .image-primary,
+  .image-secondary,
+  .product-card,
+  .line-through::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+/* Customer Reviews Specific Styles */
+
+/* Quote mark animation */
+@keyframes quote-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+}
+
+.group:hover .group-hover\:animate-float {
+  animation: quote-float 3s ease-in-out infinite;
+}
+
+/* Star rating animation on hover */
+.review-card:hover .star-rating svg {
+  animation: star-twinkle 0.6s ease;
+}
+
+.review-card:hover .star-rating svg:nth-child(1) { animation-delay: 0s; }
+.review-card:hover .star-rating svg:nth-child(2) { animation-delay: 0.1s; }
+.review-card:hover .star-rating svg:nth-child(3) { animation-delay: 0.2s; }
+.review-card:hover .star-rating svg:nth-child(4) { animation-delay: 0.3s; }
+.review-card:hover .star-rating svg:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes star-twinkle {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* Profile image glow effect */
+.profile-image {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.review-card:hover .profile-image {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+}
+
+/* Verified badge pulse */
+@keyframes badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+}
+
+.verified-badge {
+  animation: badge-pulse 2s infinite;
+}
+
+/* Review text gradient */
+.review-text {
+  position: relative;
+}
+
+.review-text::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(to top, 
+    hsl(var(--card)) 0%, 
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.dark .review-text::after {
+  background: linear-gradient(to top, 
+    hsl(var(--card) / 0.95) 0%, 
+    transparent 100%
+  );
+}
+
+.review-card:hover .review-text::after {
+  opacity: 1;
+}
+
+/* Carousel dot indicators */
+.carousel-dot {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-dot.active {
+  transform: scale(1.5);
+  background: linear-gradient(135deg, 
+    hsl(var(--primary)), 
+    hsl(var(--primary-light))
+  );
+}
+
+/* Like button animation */
+@keyframes like-pop {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.like-button:hover svg {
+  animation: like-pop 0.6s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .review-card {
+    margin: 0 8px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Glass effect for CTA section */
+.glass-cta {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05)
+  );
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-cta {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.2),
+    rgba(0, 0, 0, 0.1)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+/* Footer Specific Styles */
+
+/* Newsletter form animation */
+@keyframes success-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+.subscribed-state {
+  animation: success-pulse 2s ease-in-out;
+}
+
+/* Social media hover effects */
+.social-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.social-icon:hover {
+  transform: translateY(-3px) rotate(5deg);
+}
+
+/* Link hover animation */
+.footer-link {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: hsl(var(--primary));
+  transition: width 0.3s ease;
+}
+
+.footer-link:hover::after {
+  width: 100%;
+}
+
+/* Trust badge hover effect */
+.trust-badge {
+  transition: all 0.3s ease;
+}
+
+.trust-badge:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15);
+}
+
+/* Live chat bubble animation */
+@keyframes chat-bubble {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+}
+
+.chat-widget:hover {
+  animation: chat-bubble 2s ease-in-out infinite;
+}
+
+/* Scroll to top button */
+.scroll-top {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-top:hover {
+  transform: translateY(-3px);
+}
+
+/* Payment method icons */
+.payment-method {
+  position: relative;
+  overflow: hidden;
+}
+
+.payment-method::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.payment-method:hover::before {
+  left: 100%;
+}
+
+/* Gradient border for sections */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .footer-section {
+    padding: 2rem 1rem;
+  }
+  
+  .social-icons {
+    justify-content: center;
+  }
+  
+  .trust-badges {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Dark mode specific styles */
+.dark .footer-link:hover {
+  color: hsl(var(--primary-light));
+}
+
+.dark .trust-badge {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .trust-badge:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Print styles */
+@media print {
+  .footer {
+    display: none;
+  }
+}
