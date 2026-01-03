@@ -153,6 +153,10 @@ export const createExpense = async (data, userId) => {
     receiptUrl,
   } = data;
 
+  // Normalize empty strings to null for optional unique/metadata fields
+  const normalizedReferenceNumber = referenceNumber === '' ? null : referenceNumber;
+  const normalizedReceiptUrl = receiptUrl === '' ? null : receiptUrl;
+
   // Validate amount
   if (!amount || amount <= 0) {
     throw new Error('Amount must be greater than 0');
@@ -170,9 +174,9 @@ export const createExpense = async (data, userId) => {
   }
 
   // Check if reference number is unique (if provided)
-  if (referenceNumber) {
+  if (normalizedReferenceNumber) {
     const existing = await prisma.expense.findUnique({
-      where: { referenceNumber },
+      where: { referenceNumber: normalizedReferenceNumber },
     });
 
     if (existing) {
@@ -189,8 +193,8 @@ export const createExpense = async (data, userId) => {
       categoryId: categoryId ? parseInt(categoryId) : null,
       createdById: parseInt(userId),
       paymentMethod: paymentMethod || 'CASH',
-      referenceNumber,
-      receiptUrl,
+      referenceNumber: normalizedReferenceNumber,
+      receiptUrl: normalizedReceiptUrl,
       status: 'ACTIVE',
     },
     include: {
@@ -244,9 +248,11 @@ export const updateExpense = async (id, data, userId) => {
   }
 
   // Check if reference number is unique (if being updated)
-  if (data.referenceNumber && data.referenceNumber !== existing.referenceNumber) {
+  const normalizedUpdateReference = data.referenceNumber === '' ? null : data.referenceNumber;
+  
+  if (normalizedUpdateReference && normalizedUpdateReference !== existing.referenceNumber) {
     const referenceConflict = await prisma.expense.findUnique({
-      where: { referenceNumber: data.referenceNumber },
+      where: { referenceNumber: normalizedUpdateReference },
     });
 
     if (referenceConflict) {
@@ -265,8 +271,12 @@ export const updateExpense = async (id, data, userId) => {
     updateData.categoryId = data.categoryId ? parseInt(data.categoryId) : null;
   }
   if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
-  if (data.referenceNumber !== undefined) updateData.referenceNumber = data.referenceNumber;
-  if (data.receiptUrl !== undefined) updateData.receiptUrl = data.receiptUrl;
+  if (data.referenceNumber !== undefined) {
+    updateData.referenceNumber = data.referenceNumber === '' ? null : data.referenceNumber;
+  }
+  if (data.receiptUrl !== undefined) {
+    updateData.receiptUrl = data.receiptUrl === '' ? null : data.receiptUrl;
+  }
   if (data.status !== undefined) updateData.status = data.status;
 
   const expense = await prisma.expense.update({

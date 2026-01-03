@@ -6,20 +6,11 @@ import {
   sendPaymentFailedEmail 
 } from "../services/emails/emailService.js";
 import { validatePaymentRequest, validateMpesaCallback } from "../validators/paymentValidators.js";
+import NotificationService from "../services/notification.service.js";
 
 export async function startMpesaPayment(req, res) {
   try {
-    // Validate request
-    const { error, value } = validatePaymentRequest(req.body);
-    if (error) {
-      return res.status(400).json({ 
-        success: false,
-        message: "Invalid payment request",
-        errors: error.details.map(d => d.message)
-      });
-    }
-
-    const { items, customer, payment, amounts, shipping } = value;
+    const { items, customer, payment, amounts, shipping } = req.body;
 
     // Validate that all products exist and are in stock
     const productIds = items.map(item => item.productId);
@@ -31,9 +22,15 @@ export async function startMpesaPayment(req, res) {
       select: {
         id: true,
         title: true,
-        quantity: true,
-        price: true,
-        sellerId: true
+        sellerId: true,
+        variants: {
+          select: {
+            id: true,
+            price: true,
+            stock: true,
+            sku: true
+          }
+        }
       }
     });
 
@@ -50,13 +47,26 @@ export async function startMpesaPayment(req, res) {
       if (!product) {
         return res.status(400).json({
           success: false,
-          message: `Product ${item.productId} not found`
+          message: `Product ${item.productId} not found or unavailable`
         });
       }
-      if (product.quantity < item.quantity) {
+
+      // Find specific variant if variantId is provided, otherwise first variant
+      const variant = item.variantId 
+        ? product.variants.find(v => v.id === item.variantId)
+        : product.variants[0];
+
+      if (!variant) {
         return res.status(400).json({
           success: false,
-          message: `Insufficient stock for "${product.title}". Available: ${product.quantity}, Requested: ${item.quantity}`
+          message: `Product variant not found for "${product.title}"`
+        });
+      }
+
+      if (variant.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for "${product.title}". Available: ${variant.stock}, Requested: ${item.quantity}`
         });
       }
     }
@@ -244,6 +254,17 @@ export async function mpesaCallback(req, res) {
           console.error("Failed to send payment success email:", emailError);
         }
 
+        // 🏆 ADDED: Real-time Notification for Payment Success
+        await NotificationService.createNotification({
+          userId: intent.buyerId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Payment Successful',
+          message: `Your payment of ${intent.amount} for order ${order.orderNumber} has been received.`,
+          link: `/profile/orders/${order.id}`,
+          entityId: intent.id,
+          entityType: 'PAYMENT'
+        });
+
       } catch (orderError) {
         console.error("Order creation failed after payment:", orderError);
         
@@ -294,11 +315,21 @@ export async function mpesaCallback(req, res) {
       });
 
       // Send payment failure notification
-      try {
-        await sendPaymentFailedEmail(intent, intent.buyer, resultDesc);
-      } catch (emailError) {
-        console.error("Failed to send payment failure email:", emailError);
-      }
+        try {
+          await sendPaymentFailedEmail(intent, intent.buyer, resultDesc);
+        } catch (emailError) {
+          console.error("Failed to send payment failure email:", emailError);
+        }
+
+        // 🏆 ADDED: Real-time Notification for Payment Failure
+        await NotificationService.createNotification({
+          userId: intent.buyerId,
+          type: 'PAYMENT_FAILED',
+          title: 'Payment Failed',
+          message: `Your payment of ${intent.amount} failed: ${resultDesc}.`,
+          entityId: intent.id,
+          entityType: 'PAYMENT'
+        });
     }
 
     return res.json({ ResultCode: 0, ResultDesc: "Callback processed successfully" });

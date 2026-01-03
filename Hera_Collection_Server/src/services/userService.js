@@ -138,8 +138,30 @@ export const deleteUserById = (id) =>
   prisma.user.delete({ where: { id: Number(id) } });
 
 // service/userService.js
-export const getAllUsers = async () => {
+export const getAllUsers = async (params = {}) => {
+  const { search, role, status } = params;
+  const where = {};
+  
+  if (role) {
+    if (role === 'ADMIN') where.role = 'ADMIN';
+    else if (role === 'USER') where.role = 'USER';
+  }
+  
+  if (status) {
+      where.status = status;
+  }
+  
+  if (search) {
+      where.OR = [
+          { name: { contains: search } },
+          { email: { contains: search } },
+          { phone: { contains: search } }
+      ];
+  }
+
   const users = await prisma.user.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
     select: {
       id: true,
       email: true,
@@ -147,29 +169,26 @@ export const getAllUsers = async () => {
       phone: true,
       role: true,
       provider: true,
-      // Include other fields you need
       googleId: true,
       picture: true,
       isVerified: true,
       status: true,
       createdAt: true,
       updatedAt: true,
-      // Make sure to include verificationCodeExpiresUnix
       verificationCodeExpiresUnix: true,
+      _count: {
+          select: { orders: true }
+      }
     }
   });
   
-  // Convert BigInt to string for JSON serialization
   return users.map(user => ({
     ...user,
-    // Convert BigInt field to string
     verificationCodeExpiresUnix: user.verificationCodeExpiresUnix 
       ? user.verificationCodeExpiresUnix.toString() 
       : null,
-    // Also convert dates to ISO strings
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
-    // Handle other date fields if needed
     lastSeen: user.lastSeen ? user.lastSeen.toISOString() : null,
     lastPasswordChange: user.lastPasswordChange ? user.lastPasswordChange.toISOString() : null,
   }));

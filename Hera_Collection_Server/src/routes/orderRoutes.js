@@ -19,6 +19,7 @@ router.get('/', requireRoles('ADMIN', 'USER'), orderController.listOrders);
 router.get('/stats', requireRoles('ADMIN', 'USER'), orderController.orderStats);
 router.get('/:id', requireRoles('ADMIN', 'USER'), orderController.getOrder);
 router.get('/admin/all', protectAdmin, validateOrderQuery, orderController.listAllOrders);
+router.get('/admin/items', protectAdmin, orderController.listOrderItems);
 router.post('/admin/cash', protectAdmin, validateCreateOrder, orderController.createCashOrder);
 router.get('/admin/analytics/sales', protectAdmin, orderController.salesAnalytics);
 router.get('/admin/analytics/trends', protectAdmin, orderController.salesTrends);

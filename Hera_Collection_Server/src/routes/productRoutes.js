@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getProductsController,
   getProductController,
+  getProductBySlugController,
   createProductController,
   updateProductController,
   deleteProductController,
@@ -21,6 +22,7 @@ import {
 const router = express.Router();
 
 router.get('/', getProductsController);
+router.get('/slug/:slug', getProductBySlugController);
 router.get('/:id', getProductController);
 router.get('/seller/:sellerId', getProductsBySellerController);
 router.get('/category/:categoryId', getProductsByCategoryController);

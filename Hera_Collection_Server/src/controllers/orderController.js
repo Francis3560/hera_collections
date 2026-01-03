@@ -261,3 +261,20 @@ export async function sendOrderUpdateEmail(req, res) {
     });
   }
 }
+
+export async function listOrderItems(req, res) {
+  try {
+    const items = await orderService.getAllOrderItems(req.query);
+    return res.json({
+      success: true,
+      data: items,
+      count: items.length
+    });
+  } catch (err) {
+    console.error('listOrderItems error:', err);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Failed to fetch order items' 
+    });
+  }
+}

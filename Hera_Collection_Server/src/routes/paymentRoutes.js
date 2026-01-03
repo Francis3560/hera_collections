@@ -19,7 +19,7 @@ const router = express.Router();
 router.post('/mpesa/callback', validateMpesaCallback, mpesaCallback);
 router.use(protect);
 
-router.post('/mpesa/stkpush', validatePaymentRequest, startMpesaPayment);
+router.post('/mpesa/start', validatePaymentRequest, startMpesaPayment);
 router.get('/status/:checkoutId', validatePaymentStatus, checkPaymentStatus);
 router.post('/retry/:paymentIntentId', validateRetryPayment, retryPayment);
 router.get('/admin/intents', protectAdmin, validatePaymentIntentsQuery, getPaymentIntents);

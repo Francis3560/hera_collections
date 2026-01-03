@@ -19,6 +19,7 @@ import {
   sendOrderProcessingEmail,
   sendOrderShippedEmail
 } from './emails/emailService.js';
+import NotificationService from './notification.service.js';
 
 async function generateOrderNumber() {
   const lastOrder = await prisma.order.findFirst({
@@ -30,7 +31,8 @@ async function generateOrderNumber() {
     return 'HERA001';
   }
 
-  const lastNum = parseInt(lastOrder.orderNumber.replace('VZG', ''), 10) || 0;
+  // Fix: Replace the correct prefix 'HERA' (or 'VZG' for legacy support)
+  const lastNum = parseInt(lastOrder.orderNumber.replace(/^(HERA|VZG)/, ''), 10) || 0;
   const nextNum = (lastNum + 1).toString().padStart(3, '0');
   return `HERA${nextNum}`;
 }
@@ -77,7 +79,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         buyerId: userId,
         status: payment.method === 'CASH' ? 'PAID' : 'PENDING',
         paymentMethod: payment.method,
-        phone: payment.phone || customer.phone,
+        customerPhone: payment.phone || customer.phone,
         customerFirstName: customer.firstName || null,
         customerLastName: customer.lastName || null,
         customerEmail: customer.email || null,
@@ -93,8 +95,10 @@ export async function createOrder(userId, data, paymentIntentId = null) {
             productId: item.productId,
             quantity: item.quantity,
             price: new Prisma.Decimal(item.price),
+            total: new Prisma.Decimal(item.price * item.quantity), // Fixed: Calculate total for line item
             variantName: item.variantName || null,
             variantValue: item.variantValue || null,
+            variantId: item.variantId || null // Link to the specific variant
           })),
         },
       },
@@ -116,12 +120,25 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         } 
       },
     });
+    
+    // Decrement stock from variants
     for (const item of items) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { quantity: { decrement: item.quantity } },
-      });
+      if (item.variantId) {
+        await tx.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: { decrement: item.quantity } }, // Use 'stock', not 'quantity'
+        });
+      }
     }
+
+    // Clear user's cart after order creation
+    await tx.cartItem.deleteMany({
+      where: {
+        cart: {
+          userId: userId
+        }
+      }
+    });
 
     return newOrder;
   });
@@ -132,22 +149,19 @@ export async function createOrder(userId, data, paymentIntentId = null) {
 
     await sendOrderConfirmationEmail(order, customerName, order.items);
     await sendAdminOrderNotification(order, order.items, customerName);
-    const sellerNotifications = [];
-    for (const item of order.items) {
-      const seller = item.product.seller;
-      if (seller && seller.email && seller.id !== userId) { 
-        const sellerOrderDetails = {
-          orderNumber: order.orderNumber,
-          product: item.product.title,
-          quantity: item.quantity,
-          price: item.price,
-          customerName,
-          total: item.quantity * item.price
-        };
-        console.log(`Seller ${seller.name} should be notified about order ${order.orderNumber}`);
-        sellerNotifications.push(seller.email);
-      }
-    }
+    // 🏆 ADDED: Real-time Notification for the Buyer
+    await NotificationService.createNotification({
+      userId: userId,
+      type: 'ORDER_PLACED',
+      title: 'Order Placed Successfully',
+      message: `Your order ${order.orderNumber} has been placed and is being processed.`,
+      link: `/profile/orders/${order.id}`,
+      entityId: order.id,
+      entityType: 'ORDER'
+    });
+
+    // 🏆 ADDED: Real-time Notification for the Admin (via broadcast logic in service)
+    // The service handles sendAdminNotification for ORDER_PLACED type.
 
   } catch (emailError) {
     console.error('Failed to send order notification emails:', emailError);
@@ -175,13 +189,51 @@ export async function getUserOrders(userId) {
   });
 }
 
+export async function getAllOrderItems(filters = {}) {
+  const { search } = filters;
+  const where = {};
+  
+  if (search) {
+      where.product = {
+          title: { contains: search }
+      };
+  }
+
+  return prisma.orderItem.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    include: {
+        order: {
+            select: { 
+              orderNumber: true, 
+              status: true, 
+              buyerId: true,
+              customerFirstName: true,
+              customerLastName: true
+            }
+        },
+        product: {
+             include: { photos: true }
+        }
+    }
+  });
+}
+
 export async function getAllOrders(filters = {}) {
-  const { status, startDate, endDate, paymentMethod } = filters;
+  const { status, startDate, endDate, paymentMethod, search } = filters;
   
   const where = {};
   
   if (status) where.status = status;
   if (paymentMethod) where.paymentMethod = paymentMethod;
+  if (search) {
+      where.OR = [
+          { orderNumber: { contains: search } },
+          { customerFirstName: { contains: search } },
+          { customerLastName: { contains: search } },
+          { customerEmail: { contains: search } }
+      ];
+  }
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) where.createdAt.gte = new Date(startDate);
@@ -306,19 +358,42 @@ export async function updateOrderStatus(orderId, status, adminUserId, trackingNu
   const oldStatus = order.status;
   
   const updateData = { status };
-  if (status === 'SHIPPED' || status === 'FULFILLED') {
-    updateData.shippedAt = new Date();
-    if (trackingNumber) {
-      updateData.notes = order.notes 
-        ? `${order.notes}\n\nTracking: ${trackingNumber}`
-        : `Tracking: ${trackingNumber}`;
-    }
-  }
 
   const updatedOrder = await prisma.order.update({
     where: { id: orderId },
     data: updateData,
   });
+
+  if (status === 'SHIPPED' || status === 'FULFILLED') {
+      // Check if shipment already exists
+      const existingShipment = await prisma.shipment.findFirst({
+          where: { orderId: orderId }
+      });
+      
+      if (!existingShipment) {
+          await prisma.shipment.create({
+              data: {
+                  orderId,
+                  trackingNumber: trackingNumber || `TRK-${Date.now()}`,
+                  carrier: 'Default',
+                  method: 'Standard',
+                  status: status,
+                  shippedAt: new Date(),
+                  estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : null
+              }
+          });
+      } else {
+           await prisma.shipment.update({
+              where: { id: existingShipment.id },
+              data: {
+                  status: status,
+                  shippedAt: new Date(),
+                  trackingNumber: trackingNumber || existingShipment.trackingNumber,
+                   estimatedDelivery: estimatedDelivery ? new Date(estimatedDelivery) : existingShipment.estimatedDelivery
+              }
+          });
+      }
+  }
   try {
     const customerName = order.customerFirstName 
       ? `${order.customerFirstName} ${order.customerLastName || ''}`.trim()
@@ -336,6 +411,17 @@ export async function updateOrderStatus(orderId, status, adminUserId, trackingNu
         await sendOrderStatusUpdateEmail(updatedOrder, customerName, oldStatus, 'DELIVERED');
       }
     }
+
+    // 🏆 ADDED: Real-time Notification for Status Update
+    await NotificationService.createNotification({
+      userId: order.buyerId,
+      type: status === 'CANCELLED' ? 'ORDER_CANCELLED' : 'ORDER_FULFILLED',
+      title: `Order ${status.toLowerCase()}`,
+      message: `Your order ${order.orderNumber} status has been updated to ${status}.`,
+      link: `/profile/orders/${order.id}`,
+      entityId: order.id,
+      entityType: 'ORDER'
+    });
   } catch (emailError) {
     console.error('Failed to send status update email:', emailError);
   }
@@ -504,7 +590,7 @@ async function getTopProducts(startDate, endDate, limit = 5) {
     },
     _sum: {
       quantity: true,
-      price: true
+      total: true
     },
     _count: {
       orderId: true
@@ -522,7 +608,6 @@ async function getTopProducts(startDate, endDate, limit = 5) {
     select: {
       id: true,
       title: true,
-      price: true,
       photos: true,
       category: {
         select: {
@@ -539,9 +624,8 @@ async function getTopProducts(startDate, endDate, limit = 5) {
       title: product?.title || 'Unknown Product',
       category: product?.category?.name || 'Uncategorized',
       totalQuantity: item._sum.quantity,
-      totalRevenue: Number(item._sum.price) * item._sum.quantity,
+      totalRevenue: Number(item._sum.total) || 0,
       orderCount: item._count.orderId,
-      price: product?.price || 0
     };
   });
 }

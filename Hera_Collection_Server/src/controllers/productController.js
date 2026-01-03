@@ -3,6 +3,7 @@ import imageService from '../services/images/imageService.js';
 import {
   searchProducts,
   getProduct as publicGetProduct,
+  getProductBySlug,
   adminGetProduct,
   createProduct as svcCreateProduct,
   updateProduct as svcUpdateProduct,
@@ -61,6 +62,21 @@ export const getProductController = async (req, res) => {
 };
 
 /**
+ * PUBLIC: GET /products/slug/:slug
+ */
+export const getProductBySlugController = async (req, res) => {
+  const { slug } = req.params;
+  try {
+    const product = await getProductBySlug(slug);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.status(200).json(product);
+  } catch (e) {
+    console.error('Failed to fetch product by slug:', e);
+    res.status(500).json({ message: 'Failed to fetch product' });
+  }
+};
+
+/**
  * GET /products/seller/:sellerId
  */
 export const getProductsBySellerController = async (req, res) => {
@@ -94,21 +110,20 @@ export const getProductsByCategoryController = async (req, res) => {
 export const createProductController = [
   upload.array('images', 10),
   async (req, res) => {
-    const { error, value } = createProductValidator(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
-
     try {
-      let processedImages = [];
+      // Parse JSON fields if they are strings (typical for multipart/form-data)
+      const body = { ...req.body };
+      if (typeof body.options === 'string') body.options = JSON.parse(body.options);
+      if (typeof body.variants === 'string') body.variants = JSON.parse(body.variants);
 
+      const { error, value } = createProductValidator(body);
+      if (error) return res.status(400).json({ message: error.details[0].message });
+
+      let processedImages = [];
       if (req.files?.length) {
         processedImages = await imageService.processMultipleImages(req.files);
       }
 
-      if (!processedImages.length) {
-        return res.status(400).json({ message: 'At least one image is required.' });
-      }
-
-      // Create product with processed images
       const created = await svcCreateProduct(
         value,
         req.user.id,
@@ -118,17 +133,6 @@ export const createProductController = [
       res.status(201).json(created);
     } catch (e) {
       console.error('Failed to create product:', e);
-      
-      // Clean up uploaded images if product creation fails
-      if (processedImages?.length) {
-        try {
-          const imageUrls = processedImages.map(img => img.original);
-          await imageService.deleteMultipleImages(imageUrls);
-        } catch (cleanupError) {
-          console.error('Failed to clean up images:', cleanupError);
-        }
-      }
-      
       res.status(500).json({ 
         message: e.message || 'Failed to create product' 
       });
@@ -150,6 +154,20 @@ export const updateProductController = [
         } catch {
           req.body.removeImageUrls = [];
         }
+      }
+
+      // Explicitly parse JSON fields for options and variants if they are strings
+      if (typeof req.body.options === 'string') {
+        try { 
+          req.body.options = JSON.parse(req.body.options); 
+        } catch (e) {
+          // If parsing fails, leave it as is, validation will likely catch it
+        }
+      }
+      if (typeof req.body.variants === 'string') {
+        try {
+          req.body.variants = JSON.parse(req.body.variants);
+        } catch(e) {}
       }
 
       const { error, value } = updateProductValidator(req.body);

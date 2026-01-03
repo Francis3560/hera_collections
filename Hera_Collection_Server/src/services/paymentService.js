@@ -11,6 +11,7 @@ async function getAccessToken() {
   const auth = Buffer.from(`${mpesa.consumerKey}:${mpesa.consumerSecret}`).toString('base64');
 
   try {
+    console.log('Fetching MPESA access token from:', `${mpesa.baseUrl}/oauth/v1/generate?grant_type=client_credentials`);
     const response = await axios.get(
       `${mpesa.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
       {
@@ -18,7 +19,7 @@ async function getAccessToken() {
           Authorization: `Basic ${auth}`,
           'Content-Type': 'application/json'
         },
-        timeout: 10000, // 10 second timeout
+        timeout: 20000, // Increased to 20 seconds
       }
     );
     
@@ -62,7 +63,7 @@ export function normalizePhoneNumber(phone) {
   let cleaned = phone.replace(/\D/g, '');
   
   // Check if it's a valid Kenyan number
-  if (!/^(?:254|0)?(7[0-9]{8})$/.test(cleaned)) {
+  if (!/^(?:254|0)?([17][0-9]{8})$/.test(cleaned)) {
     throw new Error('Invalid Kenyan phone number format');
   }
   
@@ -71,7 +72,7 @@ export function normalizePhoneNumber(phone) {
     cleaned = '254' + cleaned.substring(1);
   } else if (!cleaned.startsWith('254')) {
     // Assume it's missing country code but starts with 7
-    if (cleaned.startsWith('7') && cleaned.length === 9) {
+    if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) {
       cleaned = '254' + cleaned;
     }
   }

@@ -22,6 +22,7 @@ import {
   sendGoogleWelcomeEmail 
 } from '../services/emails/emailService.js';
 import { generateVerificationCode, saveVerificationCode } from '../services/emails/emailVerificationService.js';
+import NotificationService from '../services/notification.service.js';
 
 const googleClient = config.google.clientId ? new OAuth2Client(config.google.clientId) : null;
 const cookieName = config.cookies.refreshName;
@@ -60,6 +61,11 @@ export const loginController = async (req, res) => {
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
+
+    // 🔔 Notify on low stock if admin
+    if (user.role === 'ADMIN') {
+      NotificationService.checkLowStockAndNotify(user.id).catch(console.error);
+    }
 
     res.status(200).json({ 
       accessToken, 
@@ -169,6 +175,11 @@ export const googleLoginController = async (req, res) => {
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
 
+    // 🔔 Notify on low stock if admin
+    if (user.role === 'ADMIN') {
+      NotificationService.checkLowStockAndNotify(user.id).catch(console.error);
+    }
+
     return res.status(200).json({ 
       accessToken, 
       role: user.role, 
@@ -229,10 +240,10 @@ export const getCurrentUserController = async (req, res) => {
 };
 
 // controller
-export const getAllUsersController = async (_req, res) => {
+export const getAllUsersController = async (req, res) => {
   try {
-    console.log('Fetching users from database...');
-    const users = await getAllUsers();
+    console.log('Fetching users from database...', req.query);
+    const users = await getAllUsers(req.query);
     console.log(`Found ${users.length} users`);
     res.status(200).json(users);
   } catch (error) {
@@ -441,5 +452,62 @@ export const logoutController = async (req, res) => {
       success: false,
       message: 'Failed to logout',
     });
+  }
+};
+
+export const sendUserEmailController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { subject, message, html } = req.body;
+    
+    if (!subject || (!message && !html)) {
+      return res.status(400).json({ message: 'Subject and message are required' });
+    }
+
+    const user = await getUserById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use provided HTML or wrap text message in a basic template
+    const emailHtml = html || `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+          .content { padding: 20px 0; }
+          .footer { font-size: 12px; color: #666; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2>Hera Collections</h2>
+          </div>
+          <div class="content">
+            <p>Dear ${user.name || 'Customer'},</p>
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          <div class="footer">
+            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Import sendEmail dynamically to avoid circular dependency issues or just import at top if possible
+    // Since we are in controller, top level import of emailService is fine (it was already imported)
+    const { sendEmail } = await import('../services/emails/emailService.js');
+    
+    await sendEmail(user.email, subject, emailHtml);
+    
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Send email error:', error);
+    res.status(500).json({ message: 'Failed to send email' });
   }
 };

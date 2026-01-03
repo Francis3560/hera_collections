@@ -22,6 +22,10 @@ import expenseCategoryRoutes from './src/routes/expenseCategoryRoutes.js';
 import stockRoutes from './src/routes/stockRoutes.js';
 import passwordResetRoutes from './src/routes/passwordResetRoutes.js';
 import notificationRoutes from './src/routes/notification.routes.js';
+import cartRoutes from './src/routes/cartRoutes.js';
+import wishlistRoutes from './src/routes/wishlistRoutes.js';
+import reportRoutes from './src/routes/reportRoutes.js';
+import discountRoutes from './src/routes/discountRoutes.js';
 
 // Import services and utilities
 import { webSocketService } from './src/services/websocket.service.js';
@@ -43,7 +47,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN?.split(',') || [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://75427b195fd5.ngrok-free.app'
+  'https://fe57a8df039c.ngrok-free.app',
 ]).map(s => s.trim()).filter(Boolean);
 
 // CORS middleware
@@ -248,6 +252,10 @@ app.use('/api/expense-categories', expenseCategoryRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/discounts', discountRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));

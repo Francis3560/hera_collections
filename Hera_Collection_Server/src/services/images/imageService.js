@@ -7,22 +7,23 @@ const __dirname = path.dirname(__filename);
 
 class ImageService {
   constructor() {
-    this.uploadDir = process.env.NODE_ENV === 'production' 
-      ? '/var/www/uploads/products'
-      : path.join(process.cwd(), 'uploads', 'products');
-    
-    this.ensureUploadDir();
+    this.baseUploadDir = process.env.NODE_ENV === 'production' 
+      ? '/var/www/uploads'
+      : path.join(process.cwd(), 'uploads');
   }
 
-  async ensureUploadDir() {
+  async getUploadDir(subDir = 'products') {
+    const uploadDir = path.join(this.baseUploadDir, subDir);
     try {
-      await fs.access(this.uploadDir);
+      await fs.access(uploadDir);
     } catch (error) {
-      await fs.mkdir(this.uploadDir, { recursive: true });
-      console.log(`Created upload directory: ${this.uploadDir}`);
+      await fs.mkdir(uploadDir, { recursive: true });
+      console.log(`Created upload directory: ${uploadDir}`);
     }
+    return uploadDir;
   }
-  generateFilename(originalname, prefix = 'product') {
+
+  generateFilename(originalname, prefix = 'img') {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
     const extension = path.extname(originalname).toLowerCase();
@@ -30,25 +31,32 @@ class ImageService {
     
     return `${prefix}_${baseName}_${timestamp}_${random}${extension}`;
   }
-  async processAndSaveImage(file, options = {}) {
+
+  async processAndSaveImage(file, subDir = 'products', options = {}) {
     const {
       width = 1200,
       height = 1200,
       quality = 80,
-      format = 'webp'
+      format = 'webp',
+      prefix = subDir.replace(/s$/, '') // simple plural to singular for prefix
     } = options;
+
+    const uploadDir = await this.getUploadDir(subDir);
 
     try {
       this.validateImage(file);
-      const originalFilename = this.generateFilename(file.originalname);
-      const filepath = path.join(this.uploadDir, originalFilename);
+      const originalFilename = this.generateFilename(file.originalname, prefix);
+      const filepath = path.join(uploadDir, originalFilename);
+      
       let imageProcessor = sharp(file.buffer);
       const metadata = await imageProcessor.metadata();
+
       imageProcessor = imageProcessor.resize(width, height, {
         fit: 'cover',
         position: 'center',
         withoutEnlargement: true
       });
+
       switch (format) {
         case 'webp':
           imageProcessor = imageProcessor.webp({ quality, effort: 4 });
@@ -62,9 +70,11 @@ class ImageService {
         default:
           imageProcessor = imageProcessor.webp({ quality });
       }
+
       await imageProcessor.toFile(filepath);
+
       const thumbnailFilename = `thumb_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
-      const thumbnailPath = path.join(this.uploadDir, thumbnailFilename);
+      const thumbnailPath = path.join(uploadDir, thumbnailFilename);
       
       await sharp(file.buffer)
         .resize(400, 400, { 
@@ -77,8 +87,9 @@ class ImageService {
           effort: 3 
         })
         .toFile(thumbnailPath);
+
       const mediumFilename = `medium_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
-      const mediumPath = path.join(this.uploadDir, mediumFilename);
+      const mediumPath = path.join(uploadDir, mediumFilename);
       
       await sharp(file.buffer)
         .resize(800, 800, { 
@@ -90,8 +101,9 @@ class ImageService {
           effort: 3 
         })
         .toFile(mediumPath);
+
       const smallFilename = `small_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
-      const smallPath = path.join(this.uploadDir, smallFilename);
+      const smallPath = path.join(uploadDir, smallFilename);
       
       await sharp(file.buffer)
         .resize(300, 300, { 
@@ -104,9 +116,7 @@ class ImageService {
         })
         .toFile(smallPath);
 
-      const basePath = process.env.NODE_ENV === 'production' 
-        ? '/uploads/products'
-        : '/uploads/products';
+      const basePath = `/uploads/${subDir}`;
 
       return {
         original: `${basePath}/${originalFilename}`,
@@ -126,11 +136,12 @@ class ImageService {
       throw new Error(`Image processing failed: ${error.message}`);
     }
   }
-  async processMultipleImages(files, options = {}) {
+
+  async processMultipleImages(files, subDir = 'products', options = {}) {
     try {
       const results = [];
       for (const file of files) {
-        const result = await this.processAndSaveImage(file, options);
+        const result = await this.processAndSaveImage(file, subDir, options);
         results.push(result);
       }
       return results;
@@ -138,34 +149,53 @@ class ImageService {
       throw new Error(`Failed to process multiple images: ${error.message}`);
     }
   }
+
   async deleteImage(imageUrl) {
     try {
       if (!imageUrl) return;
 
-      const filename = path.basename(imageUrl);
-      const baseName = path.basename(filename, path.extname(filename));
-      const filesToDelete = [
-        filename,
-        `thumb_${baseName}.webp`,
-        `medium_${baseName}.webp`,
-        `small_${baseName}.webp`
-      ];
-      for (const file of filesToDelete) {
-        const filepath = path.join(this.uploadDir, file);
-        try {
-          await fs.unlink(filepath);
-          console.log(`Deleted image: ${file}`);
-        } catch (error) {
-          if (error.code !== 'ENOENT') {
-            console.error(`Error deleting ${file}:`, error);
-          }
-        }
+      // Extract subDir and filename from URL
+      // e.g., /uploads/products/product_name.webp -> products, product_name.webp
+      const parts = imageUrl.split('/');
+      const filename = parts.pop();
+      const subDir = parts.pop();
+      
+      if (!subDir || subDir === 'uploads') {
+         // Fallback if URL structure is different
+         const uploadDir = path.join(this.baseUploadDir, 'products');
+         await this._deleteFiles(uploadDir, filename);
+      } else {
+         const uploadDir = path.join(this.baseUploadDir, subDir);
+         await this._deleteFiles(uploadDir, filename);
       }
     } catch (error) {
       console.error('Error in deleteImage:', error);
       throw new Error(`Failed to delete image: ${error.message}`);
     }
   }
+
+  async _deleteFiles(uploadDir, filename) {
+    const baseName = path.basename(filename, path.extname(filename));
+    const filesToDelete = [
+      filename,
+      `thumb_${baseName}.webp`,
+      `medium_${baseName}.webp`,
+      `small_${baseName}.webp`
+    ];
+
+    for (const file of filesToDelete) {
+      const filepath = path.join(uploadDir, file);
+      try {
+        await fs.unlink(filepath);
+        console.log(`Deleted image: ${file}`);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Error deleting ${file}:`, error);
+        }
+      }
+    }
+  }
+
   async deleteMultipleImages(imageUrls) {
     try {
       const deletions = imageUrls.map(url => this.deleteImage(url));
@@ -174,6 +204,7 @@ class ImageService {
       throw new Error(`Failed to delete multiple images: ${error.message}`);
     }
   }
+
   validateImage(file) {
     if (!file) {
       throw new Error('No file provided');

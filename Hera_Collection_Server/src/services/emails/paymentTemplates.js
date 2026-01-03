@@ -7,72 +7,139 @@ export const createPaymentSuccessEmail = (paymentIntent, order, customer) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Successful - VizX Global</title>
+    <title>Payment Successful - Hera Collections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: hsl(222.2 84% 4.9%);
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: hsl(210 40% 96%);
         }
         .container {
             max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 40px auto;
+            background-color: hsl(0 0% 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .header {
             text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            border-radius: 10px 10px 0 0;
+            padding: 40px 0;
+            background: linear-gradient(135deg, hsl(269 90% 58%) 0%, hsl(270 90% 65%) 100%);
             color: white;
         }
         .logo {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 32px;
+            font-weight: 800;
             margin-bottom: 10px;
+            letter-spacing: -0.025em;
         }
         .content {
-            padding: 30px;
+            padding: 40px;
         }
         .success-icon {
             text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-            color: #4CAF50;
+            font-size: 64px;
+            margin-bottom: 24px;
+            color: hsl(142 76% 36%);
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+        p {
+            margin-bottom: 16px;
+            color: hsl(215.4 16.3% 46.9%);
         }
         .payment-details {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #4CAF50;
+            background-color: hsl(210 40% 98%);
+            padding: 24px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px solid hsl(214.3 31.8% 91.4%);
+        }
+        .payment-details h3, .order-info h3 {
+            margin-top: 0;
+            color: hsl(222.2 84% 4.9%);
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid hsl(214.3 31.8% 91.4%);
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: hsl(215.4 16.3% 46.9%);
+        }
+        .detail-value {
+            color: hsl(222.2 84% 4.9%);
+            font-weight: 500;
         }
         .order-info {
-            background-color: #e8f5e8;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+            background-color: hsl(269 90% 58% / 0.05);
+            padding: 24px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px solid hsl(269 90% 58% / 0.2);
         }
         .footer {
             text-align: center;
-            padding: 20px;
-            color: #666;
+            padding: 30px;
+            background-color: hsl(210 40% 98%);
+            color: hsl(215.4 16.3% 46.9%);
             font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
+            border-top: 1px solid hsl(214.3 31.8% 91.4%);
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, hsl(269 90% 58%) 0%, hsl(270 90% 65%) 100%);
+            color: white;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 16px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);
+        }
+        .button:hover {
+            background: linear-gradient(135deg, hsl(269 90% 48%) 0%, hsl(270 90% 55%) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, hsl(269 90% 58%), hsl(270 90% 65%), hsl(269 90% 58%));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 3s ease-in-out infinite;
+        }
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .transition-smooth {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">VizX Global</div>
+            <div class="logo gradient-text">Hera Collections</div>
             <h1>Payment Successful! 🎉</h1>
         </div>
         
@@ -81,38 +148,62 @@ export const createPaymentSuccessEmail = (paymentIntent, order, customer) => {
             
             <p>Dear ${customer.name || 'Customer'},</p>
             
-            <p>We're pleased to inform you that your payment has been successfully processed!</p>
+            <p>We're pleased to inform you that your payment has been successfully processed! Your transaction has been secured and confirmed.</p>
             
             <div class="payment-details">
                 <h3>Payment Details</h3>
-                <p><strong>Amount Paid:</strong> KES ${paymentIntent.amount.toFixed(2)}</p>
-                <p><strong>Payment Method:</strong> M-Pesa</p>
-                <p><strong>Phone Number:</strong> ${paymentIntent.phone}</p>
-                <p><strong>Transaction Date:</strong> ${new Date(paymentIntent.updatedAt).toLocaleString()}</p>
-                <p><strong>Payment ID:</strong> ${paymentIntent.id}</p>
+                <div class="detail-row">
+                    <span class="detail-label">Amount Paid</span>
+                    <span class="detail-value">KES ${paymentIntent.amount.toFixed(2)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Method</span>
+                    <span class="detail-value">M-Pesa</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Phone Number</span>
+                    <span class="detail-value">${paymentIntent.phone}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value">${new Date(paymentIntent.updatedAt).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Transaction ID</span>
+                    <span class="detail-value">${paymentIntent.id}</span>
+                </div>
             </div>
             
             ${order ? `
             <div class="order-info">
                 <h3>Order Information</h3>
-                <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-                <p><strong>Order Status:</strong> ${order.status}</p>
-                <p><strong>Order Total:</strong> KES ${order.totalAmount.toFixed(2)}</p>
+                <div class="detail-row">
+                    <span class="detail-label">Order Number</span>
+                    <span class="detail-value">#${order.orderNumber}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value" style="color: hsl(142 76% 36%); font-weight: bold;">${order.status}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Total</span>
+                    <span class="detail-value">KES ${order.totalAmount.toFixed(2)}</span>
+                </div>
             </div>
             
-            <p>Your order is now being processed. You'll receive another email shortly with your order confirmation and tracking details.</p>
+            <p>Your order is now being processed by our team. You'll receive another notification shortly with your tracking details.</p>
             ` : `
             <p>Your order is being processed and you'll receive an order confirmation email shortly.</p>
             `}
             
-            <p>You can view your order status by logging into your account at any time.</p>
-            
-            <p>Thank you for your purchase!</p>
-            <p><strong>The VizX Global Team</strong></p>
+            <div style="text-align: center; margin-top: 32px;">
+                <p>Thank you for choosing luxury.</p>
+                <p style="font-weight: 700; color: hsl(269 90% 58%);">The Hera Collections Team</p>
+            </div>
         </div>
         
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} VizX Global. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
         </div>
     </div>
@@ -128,82 +219,141 @@ export const createPaymentFailedEmail = (paymentIntent, customer, failureReason)
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Failed - VizX Global</title>
+    <title>Payment Failed - Hera Collections</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: hsl(222.2 84% 4.9%);
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: hsl(210 40% 96%);
         }
         .container {
             max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 40px auto;
+            background-color: hsl(0 0% 100%);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
         .header {
             text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-            border-radius: 10px 10px 0 0;
+            padding: 40px 0;
+            background: linear-gradient(135deg, hsl(0 84.2% 60.2%) 0%, hsl(0 72.2% 50.6%) 100%);
             color: white;
         }
         .logo {
-            font-size: 28px;
-            font-weight: bold;
+            font-size: 32px;
+            font-weight: 800;
             margin-bottom: 10px;
+            letter-spacing: -0.025em;
         }
         .content {
-            padding: 30px;
+            padding: 40px;
         }
         .failure-icon {
             text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-            color: #f44336;
+            font-size: 64px;
+            margin-bottom: 24px;
+            color: hsl(0 84.2% 60.2%);
         }
         .payment-details {
-            background-color: #fff5f5;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #f44336;
+            background-color: hsl(0 84.2% 60.2% / 0.05);
+            padding: 24px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px solid hsl(0 84.2% 60.2% / 0.2);
+        }
+        .payment-details h3, .retry-info h3 {
+            margin-top: 0;
+            color: hsl(0 72.2% 50.6%);
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid hsl(0 84.2% 60.2% / 0.1);
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: hsl(0 72.2% 50.6%);
+        }
+        .detail-value {
+            color: hsl(222.2 84% 4.9%);
+            font-weight: 500;
         }
         .retry-info {
-            background-color: #fff3e0;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+            background-color: hsl(38 92% 50% / 0.05);
+            padding: 24px;
+            border-radius: 12px;
+            margin: 24px 0;
+            border: 1px solid hsl(38 92% 50% / 0.2);
+        }
+        .retry-info h3 {
+            color: hsl(38 92% 50%);
+        }
+        ol {
+            margin: 0;
+            padding-left: 20px;
+            color: hsl(215.4 16.3% 46.9%);
+        }
+        li {
+            margin-bottom: 8px;
         }
         .button {
             display: inline-block;
-            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            background: linear-gradient(135deg, hsl(269 90% 58%) 0%, hsl(270 90% 65%) 100%);
             color: white;
             text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 20px 0;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 24px 0 0 0;
+            box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .button:hover {
+            background: linear-gradient(135deg, hsl(269 90% 48%) 0%, hsl(270 90% 55%) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3);
         }
         .footer {
             text-align: center;
-            padding: 20px;
-            color: #666;
+            padding: 30px;
+            background-color: hsl(210 40% 98%);
+            color: hsl(215.4 16.3% 46.9%);
             font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
+            border-top: 1px solid hsl(214.3 31.8% 91.4%);
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, hsl(269 90% 58%), hsl(270 90% 65%), hsl(269 90% 58%));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-shift 3s ease-in-out infinite;
+        }
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .transition-smooth {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">VizX Global</div>
+            <div class="logo gradient-text">Hera Collections</div>
             <h1>Payment Failed</h1>
         </div>
         
@@ -212,25 +362,40 @@ export const createPaymentFailedEmail = (paymentIntent, customer, failureReason)
             
             <p>Dear ${customer.name || 'Customer'},</p>
             
-            <p>We were unable to process your payment. Here are the details:</p>
+            <p>We were unable to process your payment for your order. Please find the details below:</p>
             
             <div class="payment-details">
-                <h3>Payment Details</h3>
-                <p><strong>Amount:</strong> KES ${paymentIntent.amount.toFixed(2)}</p>
-                <p><strong>Payment Method:</strong> M-Pesa</p>
-                <p><strong>Phone Number:</strong> ${paymentIntent.phone}</p>
-                <p><strong>Attempt Date:</strong> ${new Date(paymentIntent.updatedAt).toLocaleString()}</p>
-                <p><strong>Failure Reason:</strong> ${failureReason || 'Unknown error'}</p>
+                <h3>Transaction Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Amount</span>
+                    <span class="detail-value">KES ${paymentIntent.amount.toFixed(2)}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Method</span>
+                    <span class="detail-value">M-Pesa</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Phone</span>
+                    <span class="detail-value">${paymentIntent.phone}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value">${new Date(paymentIntent.updatedAt).toLocaleString()}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Reason</span>
+                    <span class="detail-value">${failureReason || 'Unknown error'}</span>
+                </div>
             </div>
             
             <div class="retry-info">
-                <h3>How to Complete Your Order</h3>
-                <p>To complete your purchase, please try one of the following:</p>
+                <h3>Complete Your Order</h3>
+                <p style="margin-bottom: 12px; color: hsl(215.4 16.3% 46.9%);">To secure your items, please try the following:</p>
                 <ol>
-                    <li>Retry the payment by clicking the button below</li>
-                    <li>Check that your M-Pesa PIN is correct</li>
+                    <li>Verify your M-Pesa PIN is correct</li>
                     <li>Ensure you have sufficient balance</li>
-                    <li>Try using a different phone number</li>
+                    <li>Check your internet connection</li>
+                    <li>Or retry using the link below</li>
                 </ol>
                 
                 <div style="text-align: center;">
@@ -240,16 +405,15 @@ export const createPaymentFailedEmail = (paymentIntent, customer, failureReason)
                 </div>
             </div>
             
-            <p>If you continue to experience issues, please contact our customer support for assistance.</p>
+            <p style="margin-top: 24px;">Your items have been temporarily reserved in your cart. If you continue to experience issues, please contact our support team.</p>
             
-            <p>Your items have been reserved in your cart for the next 24 hours.</p>
-            
-            <p>Thank you for choosing VizX Global!</p>
-            <p><strong>The VizX Global Team</strong></p>
+            <div style="text-align: center; margin-top: 32px;">
+                <p style="font-weight: 700; color: hsl(0 84.2% 60.2%);">The Hera Collections Team</p>
+            </div>
         </div>
         
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} VizX Global. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
         </div>
     </div>

@@ -34,7 +34,7 @@ export const adjustStockSchema = Joi.object({
 export const bulkStockUpdateSchema = Joi.object({
   updates: Joi.array().items(
     Joi.object({
-      productId: Joi.number().integer().required(),
+      variantId: Joi.number().integer().required(),
       quantity: Joi.number().integer().required().not(0),
       movementType: Joi.string().valid(...STOCK_MOVEMENT_TYPES).optional(),
       reason: Joi.string().max(500).optional().allow('', null),
@@ -65,6 +65,7 @@ export const stockAlertSchema = Joi.object({
 // Validation for stock alert query
 export const stockAlertQuerySchema = Joi.object({
   productId: Joi.number().integer().optional(),
+  variantId: Joi.number().integer().optional(),
   startDate: Joi.date().optional(),
   endDate: Joi.date().optional(),
   resolved: Joi.string().valid('true', 'false').optional(),
@@ -83,7 +84,7 @@ export const createStockTakeSchema = Joi.object({
 export const addStockTakeItemsSchema = Joi.object({
   items: Joi.array().items(
     Joi.object({
-      productId: Joi.number().integer().required(),
+      variantId: Joi.number().integer().required(),
       countedQuantity: Joi.number().integer().min(0).required(),
       notes: Joi.string().max(500).optional().allow('', null),
     })

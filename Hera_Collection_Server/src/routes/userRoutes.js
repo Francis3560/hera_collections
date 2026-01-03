@@ -12,6 +12,7 @@ import {
   userHeartbeatController,
   googleRegistrationController,
   googleLoginController,
+  sendUserEmailController
 } from '../controllers/authController.js';
 
 import {
@@ -53,6 +54,7 @@ router.get('/users/:id', protectAdmin, getUserByIdController);
 router.post('/', protectAdmin, createUserController);
 router.put('/users/:id', protectAdmin, updateUserController);
 router.delete('/users/:id', protectAdmin, deleteUserController);
+router.post('/users/:id/email', protectAdmin, sendUserEmailController);
 router.get('/me', getCurrentUserController);
 router.post('/heartbeat', userHeartbeatController);
 router.use(autoRefreshToken);

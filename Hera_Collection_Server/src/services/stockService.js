@@ -1,53 +1,68 @@
 import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
 import { sendLowStockAlertEmail } from './emails/emailService.js';
-export const addStock = async (productId, data, userId) => {
+import { NotificationService } from './notification.service.js';
+import { NotificationTypes, NotificationPriorities, RelatedEntities } from '../types/notification.types.js';
+export const addStock = async (variantId, data, userId) => {
   const { quantity, reason, notes, costPrice, location } = data;
 
   if (!quantity || quantity <= 0) {
     throw new Error('Quantity must be greater than 0');
   }
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+
+  const variant = await prisma.productVariant.findUnique({
+    where: { id: parseInt(variantId) },
     include: {
-      category: {
+      product: {
         select: {
-          name: true,
-        },
-      },
+          id: true,
+          title: true,
+          category: {
+            select: { name: true }
+          }
+        }
+      }
     },
   });
 
-  if (!product) {
-    throw new Error('Product not found');
+  if (!variant) {
+    throw new Error('Product variant not found');
   }
+
   const result = await prisma.$transaction(async (tx) => {
-    const updatedProduct = await tx.product.update({
-      where: { id: parseInt(productId) },
+    const updatedVariant = await tx.productVariant.update({
+      where: { id: parseInt(variantId) },
       data: {
-        quantity: { increment: quantity },
+        stock: { increment: quantity },
       },
+      include: {
+        product: true
+      }
     });
+
     const movement = await tx.stockMovement.create({
       data: {
-        productId: parseInt(productId),
+        variantId: parseInt(variantId),
         movementType: 'ADDITION',
         quantity: quantity,
-        previousStock: product.quantity,
-        newStock: updatedProduct.quantity,
+        previousStock: variant.stock,
+        newStock: updatedVariant.stock,
         reason: reason || 'Manual stock addition',
         notes,
         createdById: parseInt(userId),
         location,
-        costPrice: costPrice ? new Prisma.Decimal(costPrice) : null,
-        sellingPrice: product.price,
+        costPrice: costPrice ? new Prisma.Decimal(costPrice) : variant.costPrice,
+        sellingPrice: variant.price,
       },
       include: {
-        product: {
-          select: {
-            title: true,
-            sku: true,
-          },
+        variant: {
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
+            },
+          }
         },
         createdBy: {
           select: {
@@ -58,60 +73,70 @@ export const addStock = async (productId, data, userId) => {
       },
     });
 
-    await checkAndUpdateStockAlerts(parseInt(productId), updatedProduct.quantity, tx);
+    await checkAndUpdateStockAlerts(parseInt(variantId), updatedVariant.stock, tx);
 
     return {
-      product: updatedProduct,
+      variant: updatedVariant,
       movement,
     };
   });
 
   return result;
 };
-export const adjustStock = async (productId, data, userId) => {
+export const adjustStock = async (variantId, data, userId) => {
   const { quantity, reason, notes, location } = data;
 
   if (!quantity || quantity === 0) {
     throw new Error('Quantity must be provided and not zero');
   }
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+
+  const variant = await prisma.productVariant.findUnique({
+    where: { id: parseInt(variantId) },
   });
 
-  if (!product) {
-    throw new Error('Product not found');
+  if (!variant) {
+    throw new Error('Product variant not found');
   }
-  if (quantity < 0 && Math.abs(quantity) > product.quantity) {
+
+  if (quantity < 0 && Math.abs(quantity) > variant.stock) {
     throw new Error('Insufficient stock for deduction');
   }
+
   const result = await prisma.$transaction(async (tx) => {
-    const updatedProduct = await tx.product.update({
-      where: { id: parseInt(productId) },
+    const updatedVariant = await tx.productVariant.update({
+      where: { id: parseInt(variantId) },
       data: {
-        quantity: { increment: quantity },
+        stock: { increment: quantity },
       },
+      include: {
+        product: true
+      }
     });
+
     const movementType = quantity > 0 ? 'ADJUSTMENT' : 'CORRECTION';
     const movement = await tx.stockMovement.create({
       data: {
-        productId: parseInt(productId),
+        variantId: parseInt(variantId),
         movementType,
         quantity: quantity,
-        previousStock: product.quantity,
-        newStock: updatedProduct.quantity,
+        previousStock: variant.stock,
+        newStock: updatedVariant.stock,
         reason: reason || `Stock ${quantity > 0 ? 'increase' : 'decrease'} adjustment`,
         notes,
         createdById: parseInt(userId),
         location,
-        costPrice: product.oldPrice,
-        sellingPrice: product.price,
+        costPrice: variant.costPrice,
+        sellingPrice: variant.price,
       },
       include: {
-        product: {
-          select: {
-            title: true,
-            sku: true,
-          },
+        variant: {
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
+            },
+          }
         },
         createdBy: {
           select: {
@@ -121,10 +146,11 @@ export const adjustStock = async (productId, data, userId) => {
         },
       },
     });
-    await checkAndUpdateStockAlerts(parseInt(productId), updatedProduct.quantity, tx);
+
+    await checkAndUpdateStockAlerts(parseInt(variantId), updatedVariant.stock, tx);
 
     return {
-      product: updatedProduct,
+      variant: updatedVariant,
       movement,
     };
   });
@@ -136,21 +162,23 @@ export const recordSaleMovement = async (orderId, orderItems, userId) => {
   const movements = [];
   
   for (const item of orderItems) {
-    const product = await prisma.product.findUnique({
-      where: { id: item.productId },
+    if (!item.variantId) continue;
+
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: item.variantId },
     });
 
-    if (!product) {
-      console.error(`Product ${item.productId} not found for stock movement`);
+    if (!variant) {
+      console.error(`Variant ${item.variantId} not found for stock movement`);
       continue;
     }
 
-    const previousStock = product.quantity;
+    const previousStock = variant.stock;
     const newStock = previousStock - item.quantity;
 
     const movement = await prisma.stockMovement.create({
       data: {
-        productId: item.productId,
+        variantId: item.variantId,
         movementType: 'SALE',
         quantity: -item.quantity, 
         previousStock,
@@ -164,22 +192,22 @@ export const recordSaleMovement = async (orderId, orderItems, userId) => {
     });
 
     movements.push(movement);
-    await prisma.product.update({
-      where: { id: item.productId },
-      data: { quantity: newStock },
+    await prisma.productVariant.update({
+      where: { id: item.variantId },
+      data: { stock: newStock },
     });
-    await checkAndUpdateStockAlerts(item.productId, newStock);
+    await checkAndUpdateStockAlerts(item.variantId, newStock);
   }
 
   return movements;
 };
-export const recordReturnMovement = async (productId, quantity, orderId, userId, reason) => {
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+export const recordReturnMovement = async (variantId, quantity, orderId, userId, reason) => {
+  const variant = await prisma.productVariant.findUnique({
+    where: { id: parseInt(variantId) },
   });
 
-  if (!product) {
-    throw new Error('Product not found');
+  if (!variant) {
+    throw new Error('Product variant not found');
   }
 
   if (!quantity || quantity <= 0) {
@@ -187,31 +215,38 @@ export const recordReturnMovement = async (productId, quantity, orderId, userId,
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const updatedProduct = await tx.product.update({
-      where: { id: parseInt(productId) },
+    const updatedVariant = await tx.productVariant.update({
+      where: { id: parseInt(variantId) },
       data: {
-        quantity: { increment: quantity },
+        stock: { increment: quantity },
       },
+      include: {
+        product: true
+      }
     });
+
     const movement = await tx.stockMovement.create({
       data: {
-        productId: parseInt(productId),
+        variantId: parseInt(variantId),
         movementType: 'RETURN',
         quantity: quantity,
-        previousStock: product.quantity,
-        newStock: updatedProduct.quantity,
+        previousStock: variant.stock,
+        newStock: updatedVariant.stock,
         referenceId: orderId,
         referenceType: 'ORDER_RETURN',
         reason: reason || 'Customer return',
         createdById: parseInt(userId),
-        sellingPrice: product.price,
+        sellingPrice: variant.price,
       },
       include: {
-        product: {
-          select: {
-            title: true,
-            sku: true,
-          },
+        variant: {
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
+            },
+          }
         },
         createdBy: {
           select: {
@@ -221,62 +256,70 @@ export const recordReturnMovement = async (productId, quantity, orderId, userId,
         },
       },
     });
-    await checkAndUpdateStockAlerts(parseInt(productId), updatedProduct.quantity, tx);
+
+    await checkAndUpdateStockAlerts(parseInt(variantId), updatedVariant.stock, tx);
 
     return {
-      product: updatedProduct,
+      variant: updatedVariant,
       movement,
     };
   });
 
   return result;
 };
-export const recordDamageMovement = async (productId, data, userId) => {
+export const recordDamageMovement = async (variantId, data, userId) => {
   const { quantity, reason, notes, location } = data;
 
   if (!quantity || quantity <= 0) {
     throw new Error('Quantity must be greater than 0');
   }
 
-  const product = await prisma.product.findUnique({
-    where: { id: parseInt(productId) },
+  const variant = await prisma.productVariant.findUnique({
+    where: { id: parseInt(variantId) },
   });
 
-  if (!product) {
-    throw new Error('Product not found');
+  if (!variant) {
+    throw new Error('Product variant not found');
   }
 
-  if (quantity > product.quantity) {
+  if (quantity > variant.stock) {
     throw new Error('Damage quantity cannot exceed available stock');
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const updatedProduct = await tx.product.update({
-      where: { id: parseInt(productId) },
+    const updatedVariant = await tx.productVariant.update({
+      where: { id: parseInt(variantId) },
       data: {
-        quantity: { decrement: quantity },
+        stock: { decrement: quantity },
       },
+      include: {
+        product: true
+      }
     });
+
     const movement = await tx.stockMovement.create({
       data: {
-        productId: parseInt(productId),
+        variantId: parseInt(variantId),
         movementType: 'DAMAGE',
         quantity: -quantity, 
-        previousStock: product.quantity,
-        newStock: updatedProduct.quantity,
+        previousStock: variant.stock,
+        newStock: updatedVariant.stock,
         reason: reason || 'Damaged goods',
         notes,
         createdById: parseInt(userId),
         location,
-        costPrice: product.oldPrice,
-        sellingPrice: product.price,
+        costPrice: variant.costPrice,
+        sellingPrice: variant.price,
       },
       include: {
-        product: {
-          select: {
-            title: true,
-            sku: true,
-          },
+        variant: {
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
+            },
+          }
         },
         createdBy: {
           select: {
@@ -286,62 +329,85 @@ export const recordDamageMovement = async (productId, data, userId) => {
         },
       },
     });
-    await checkAndUpdateStockAlerts(parseInt(productId), updatedProduct.quantity, tx);
+
+    await checkAndUpdateStockAlerts(parseInt(variantId), updatedVariant.stock, tx);
 
     return {
-      product: updatedProduct,
+      variant: updatedVariant,
       movement,
     };
   });
 
   return result;
 };
-const checkAndUpdateStockAlerts = async (productId, currentStock, tx = prisma) => {
+export const checkAndUpdateStockAlerts = async (variantId, currentStock, tx = prisma) => {
   const alert = await tx.stockAlert.findUnique({
-    where: { productId },
+    where: { variantId },
+    include: {
+      variant: {
+        include: {
+          product: {
+            include: {
+              category: true
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!alert || !alert.isActive) {
     return;
   }
+
+  const productName = alert.variant.product.title;
+  const productId = alert.variant.productId;
+
   if (currentStock <= alert.threshold && !alert.notifiedAt) {
-    const product = await tx.product.findUnique({
-      where: { id: productId },
-      include: {
-        category: {
-          select: {
-            name: true,
-          },
-        },
+    try {
+      // Send Email
+      await sendLowStockAlertEmail(alert.variant.product, currentStock, alert.threshold);
+      
+      // Create Database Notification
+      const admins = await tx.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true }
+      });
+
+      for (const admin of admins) {
+        await NotificationService.createNotification({
+          userId: admin.id,
+          type: NotificationTypes.STOCK_LOW,
+          title: 'Low Stock Alert',
+          message: `${productName} is running low on stock (${currentStock} units remaining).`,
+          relatedEntity: RelatedEntities.PRODUCT,
+          relatedEntityId: productId,
+          priority: NotificationPriorities.URGENT,
+          data: { variantId, currentStock, threshold: alert.threshold }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to process low stock notifications:', error);
+    }
+
+    await tx.stockAlert.update({
+      where: { variantId },
+      data: {
+        notifiedAt: new Date(),
+        isResolved: false,
       },
     });
-
-    if (product) {
-      try {
-        await sendLowStockAlertEmail(product, currentStock, alert.threshold);
-      } catch (emailError) {
-        console.error('Failed to send low stock alert email:', emailError);
-      }
-      await tx.stockAlert.update({
-        where: { productId },
-        data: {
-          notifiedAt: new Date(),
-          isResolved: false,
-        },
-      });
-    }
   } else if (currentStock > alert.threshold && alert.notifiedAt && !alert.isResolved) {
     await tx.stockAlert.update({
-      where: { productId },
+      where: { variantId },
       data: {
         isResolved: true,
         resolvedAt: new Date(),
-        resolvedById: alert.resolvedById, 
       },
     });
   }
 };
-export const getProductStockMovements = async (productId, filters = {}) => {
+export const getProductStockMovements = async (variantId, filters = {}) => {
   const {
     startDate,
     endDate,
@@ -353,7 +419,7 @@ export const getProductStockMovements = async (productId, filters = {}) => {
   const skip = (parseInt(page) - 1) * parseInt(limit);
   
   const where = {
-    productId: parseInt(productId),
+    variantId: parseInt(variantId),
   };
 
   if (startDate || endDate) {
@@ -370,11 +436,14 @@ export const getProductStockMovements = async (productId, filters = {}) => {
     prisma.stockMovement.findMany({
       where,
       include: {
-        product: {
-          select: {
-            title: true,
-            sku: true,
-          },
+        variant: {
+          include: {
+            product: {
+              select: {
+                title: true,
+              },
+            },
+          }
         },
         createdBy: {
           select: {
@@ -401,25 +470,29 @@ export const getProductStockMovements = async (productId, filters = {}) => {
   };
 };
 export const getLowStockProducts = async (threshold = 10) => {
-  const products = await prisma.product.findMany({
+  const variants = await prisma.productVariant.findMany({
     where: {
-      quantity: {
+      stock: {
         lte: threshold,
       },
-      isPublished: true,
+      isActive: true,
     },
     include: {
-      category: {
-        select: {
-          name: true,
-        },
-      },
-      photos: {
-        take: 1,
+      product: {
+        include: {
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          photos: {
+            take: 1,
+          },
+        }
       },
       _count: {
         select: {
-          orders: {
+          orderItems: {
             where: {
               createdAt: {
                 gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 
@@ -429,19 +502,20 @@ export const getLowStockProducts = async (threshold = 10) => {
         },
       },
     },
-    orderBy: { quantity: 'asc' },
+    orderBy: { stock: 'asc' },
   });
-  const productIds = products.map(p => p.id);
+
+  const variantIds = variants.map(v => v.id);
   const alerts = await prisma.stockAlert.findMany({
     where: {
-      productId: { in: productIds },
+      variantId: { in: variantIds },
     },
   });
 
-  const productsWithAlerts = products.map(product => {
-    const alert = alerts.find(a => a.productId === product.id);
+  const variantsWithAlerts = variants.map(variant => {
+    const alert = alerts.find(a => a.variantId === variant.id);
     return {
-      ...product,
+      ...variant,
       alert: alert ? {
         threshold: alert.threshold,
         isActive: alert.isActive,
@@ -451,60 +525,69 @@ export const getLowStockProducts = async (threshold = 10) => {
     };
   });
 
-  return productsWithAlerts;
+  return variantsWithAlerts;
 };
 
 export const getStockValueAnalytics = async () => {
-  const products = await prisma.product.findMany({
+  const variants = await prisma.productVariant.findMany({
     where: {
-      isPublished: true,
+      isActive: true,
     },
     select: {
       id: true,
-      title: true,
       sku: true,
-      quantity: true,
+      stock: true,
       price: true,
-      oldPrice: true,
-      category: {
+      costPrice: true,
+      product: {
         select: {
-          name: true,
-        },
+          id: true,
+          title: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
+        }
       },
     },
   });
-  const totalValue = products.reduce((sum, product) => {
-    const costPrice = Number(product.oldPrice) || Number(product.price) * 0.7; 
-    return sum + (costPrice * product.quantity);
+
+  const totalValue = variants.reduce((sum, variant) => {
+    const cp = Number(variant.costPrice) || Number(variant.price) * 0.7; 
+    return sum + (cp * variant.stock);
   }, 0);
-  const retailValue = products.reduce((sum, product) => {
-    return sum + (Number(product.price) * product.quantity);
+
+  const retailValue = variants.reduce((sum, variant) => {
+    return sum + (Number(variant.price) * variant.stock);
   }, 0);
+
   const categoryBreakdown = {};
-  products.forEach(product => {
-    const categoryName = product.category?.name || 'Uncategorized';
-    const costPrice = Number(product.oldPrice) || Number(product.price) * 0.7;
+  variants.forEach(variant => {
+    const categoryName = variant.product.category?.name || 'Uncategorized';
+    const cp = Number(variant.costPrice) || Number(variant.price) * 0.7;
     
     if (!categoryBreakdown[categoryName]) {
       categoryBreakdown[categoryName] = {
         category: categoryName,
-        productCount: 0,
-        totalQuantity: 0,
+        variantCount: 0,
+        totalStock: 0,
         totalCostValue: 0,
         totalRetailValue: 0,
       };
     }
 
-    categoryBreakdown[categoryName].productCount += 1;
-    categoryBreakdown[categoryName].totalQuantity += product.quantity;
-    categoryBreakdown[categoryName].totalCostValue += costPrice * product.quantity;
-    categoryBreakdown[categoryName].totalRetailValue += Number(product.price) * product.quantity;
+    categoryBreakdown[categoryName].variantCount += 1;
+    categoryBreakdown[categoryName].totalStock += variant.stock;
+    categoryBreakdown[categoryName].totalCostValue += cp * variant.stock;
+    categoryBreakdown[categoryName].totalRetailValue += Number(variant.price) * variant.stock;
   });
-  const slowMovingProducts = await prisma.product.findMany({
+
+  const slowMovingVariants = await prisma.productVariant.findMany({
     where: {
-      isPublished: true,
-      quantity: { gt: 0 },
-      orders: {
+      isActive: true,
+      stock: { gt: 0 },
+      orderItems: {
         none: {
           createdAt: {
             gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
@@ -513,22 +596,26 @@ export const getStockValueAnalytics = async () => {
       },
     },
     include: {
-      category: {
+      product: {
         select: {
-          name: true,
-        },
+          title: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
+        }
       },
     },
     take: 10,
-    orderBy: { quantity: 'desc' },
+    orderBy: { stock: 'desc' },
   });
-  const fastMovingProducts = await prisma.orderItem.groupBy({
-    by: ['productId'],
+
+  const fastMovingVariants = await prisma.orderItem.groupBy({
+    by: ['variantId'],
     where: {
-      order: {
-        createdAt: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        },
+      createdAt: {
+        gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       },
     },
     _sum: {
@@ -541,53 +628,58 @@ export const getStockValueAnalytics = async () => {
     },
     take: 10,
   });
-  const fastMovingProductIds = fastMovingProducts.map(item => item.productId);
-  const fastMovingDetails = await prisma.product.findMany({
+
+  const fastMovingVariantIds = fastMovingVariants.map(item => item.variantId).filter(Boolean);
+  const fastMovingDetails = await prisma.productVariant.findMany({
     where: {
-      id: { in: fastMovingProductIds },
+      id: { in: fastMovingVariantIds },
     },
     select: {
       id: true,
-      title: true,
       sku: true,
-      quantity: true,
+      stock: true,
       price: true,
-      category: {
+      product: {
         select: {
-          name: true,
-        },
+          title: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
+        }
       },
     },
   });
 
-  const fastMovingWithSales = fastMovingDetails.map(product => {
-    const salesData = fastMovingProducts.find(item => item.productId === product.id);
+  const fastMovingWithSales = fastMovingDetails.map(variant => {
+    const salesData = fastMovingVariants.find(item => item.variantId === variant.id);
     return {
-      ...product,
+      ...variant,
       salesCount: salesData?._sum.quantity || 0,
     };
   });
 
   return {
     summary: {
-      totalProducts: products.length,
-      totalItems: products.reduce((sum, p) => sum + p.quantity, 0),
+      totalVariants: variants.length,
+      totalItems: variants.reduce((sum, v) => sum + v.stock, 0),
       totalCostValue: parseFloat(totalValue.toFixed(2)),
       totalRetailValue: parseFloat(retailValue.toFixed(2)),
-      averageStockValue: products.length > 0 ? totalValue / products.length : 0,
+      averageStockValue: variants.length > 0 ? totalValue / variants.length : 0,
     },
     categoryBreakdown: Object.values(categoryBreakdown).map(cat => ({
       ...cat,
       totalCostValue: parseFloat(cat.totalCostValue.toFixed(2)),
       totalRetailValue: parseFloat(cat.totalRetailValue.toFixed(2)),
     })),
-    slowMovingProducts: slowMovingProducts.map(p => ({
-      id: p.id,
-      title: p.title,
-      sku: p.sku,
-      quantity: p.quantity,
-      price: p.price,
-      category: p.category?.name,
+    slowMovingProducts: slowMovingVariants.map(v => ({
+      id: v.id,
+      title: v.product.title,
+      sku: v.sku,
+      quantity: v.stock,
+      price: v.price,
+      category: v.product.category?.name,
       daysWithoutSale: 60, 
     })),
     fastMovingProducts: fastMovingWithSales.sort((a, b) => b.salesCount - a.salesCount),
@@ -599,22 +691,22 @@ const calculateStockTurnover = async () => {
   const now = new Date();
   const lastYear = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
   const monthlyAverages = [];
+  
   for (let i = 0; i < 12; i++) {
     const monthStart = new Date(now.getFullYear(), i, 1);
-    const monthEnd = new Date(now.getFullYear(), i + 1, 0);
-
-    const products = await prisma.product.findMany({
+    
+    const variants = await prisma.productVariant.findMany({
       where: {
-        isPublished: true,
+        isActive: true,
       },
       select: {
         price: true,
-        quantity: true,
+        stock: true,
       },
     });
 
-    const monthValue = products.reduce((sum, product) => {
-      return sum + (Number(product.price) * product.quantity);
+    const monthValue = variants.reduce((sum, variant) => {
+      return sum + (Number(variant.price) * variant.stock);
     }, 0);
 
     monthlyAverages.push({
@@ -657,62 +749,65 @@ export const bulkStockUpdate = async (updates, userId) => {
 
   for (const update of updates) {
     try {
-      const { productId, quantity, movementType, reason, notes } = update;
+      const { variantId, quantity, movementType, reason, notes } = update;
 
-      if (!productId || !quantity || quantity === 0) {
+      if (!variantId || !quantity || quantity === 0) {
         errors.push({
           update,
-          error: 'Product ID and quantity (non-zero) are required',
+          error: 'Variant ID and quantity (non-zero) are required',
         });
         continue;
       }
 
-      const product = await prisma.product.findUnique({
-        where: { id: parseInt(productId) },
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: parseInt(variantId) },
       });
 
-      if (!product) {
+      if (!variant) {
         errors.push({
           update,
-          error: `Product ${productId} not found`,
+          error: `Variant ${variantId} not found`,
         });
         continue;
       }
 
-      if (quantity < 0 && Math.abs(quantity) > product.quantity) {
+      if (quantity < 0 && Math.abs(quantity) > variant.stock) {
         errors.push({
           update,
-          error: `Insufficient stock for product ${productId}`,
+          error: `Insufficient stock for variant ${variantId}`,
         });
         continue;
       }
+
       const result = await prisma.$transaction(async (tx) => {
-        const updatedProduct = await tx.product.update({
-          where: { id: parseInt(productId) },
+        const updatedVariant = await tx.productVariant.update({
+          where: { id: parseInt(variantId) },
           data: {
-            quantity: { increment: quantity },
+            stock: { increment: quantity },
           },
         });
+
         const movementTypeToUse = movementType || (quantity > 0 ? 'ADDITION' : 'ADJUSTMENT');
         const movement = await tx.stockMovement.create({
           data: {
-            productId: parseInt(productId),
+            variantId: parseInt(variantId),
             movementType: movementTypeToUse,
             quantity: quantity,
-            previousStock: product.quantity,
-            newStock: updatedProduct.quantity,
+            previousStock: variant.stock,
+            newStock: updatedVariant.stock,
             reason: reason || 'Bulk stock update',
             notes,
             createdById: parseInt(userId),
-            sellingPrice: product.price,
+            sellingPrice: variant.price,
           },
         });
-        await checkAndUpdateStockAlerts(parseInt(productId), updatedProduct.quantity, tx);
+
+        await checkAndUpdateStockAlerts(parseInt(variantId), updatedVariant.stock, tx);
 
         return {
-          productId,
-          previousStock: product.quantity,
-          newStock: updatedProduct.quantity,
+          variantId,
+          previousStock: variant.stock,
+          newStock: updatedVariant.stock,
           movementId: movement.id,
         };
       });

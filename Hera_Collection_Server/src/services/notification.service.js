@@ -1,36 +1,55 @@
-import prisma from '../database.js';
-import { WebSocketService } from '../services/websocket.service.js';
-import { NotificationTypes, NotificationPriorities } from '../types/notification.types.js';
+// src/services/notification.service.js
+import prisma from '../database.js'; // Use shared prisma instance
+import webSocketService from './websocket.service.js';
 
-export class NotificationService {
-
+class NotificationService {
+  /**
+   * Create a notification and send it via WebSocket
+   */
   static async createNotification(data) {
     try {
+      const { 
+        userId, 
+        type, 
+        title, 
+        message, 
+        link, 
+        entityId, 
+        entityType, 
+        metadata,
+        priority = 'MEDIUM'
+      } = data;
+
+      // 1. Save to Database
       const notification = await prisma.notification.create({
         data: {
-          userId: data.userId,
-          type: data.type,
-          title: data.title,
-          message: data.message,
-          data: data.data || {},
-          relatedEntity: data.relatedEntity,
-          relatedEntityId: data.relatedEntityId,
-          priority: data.priority || NotificationPriorities.MEDIUM,
-          expiresAt: data.expiresAt
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true
-            }
-          }
+          userId: Number(userId),
+          type,
+          title,
+          message,
+          link,
+          entityId: entityId?.toString(),
+          entityType,
+          metadata: metadata ? (typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : null,
+          isRead: false
         }
       });
 
-      await this.emitRealTimeNotification(notification);
+      // 2. Send via Real-time WebSocket
+      await webSocketService.sendNotification(userId, notification);
+
+      // 3. If it's an important system/admin notification, broadcast to admins too
+      const isAdminType = [
+        'ORDER_PLACED', 
+        'STOCK_LOW', 
+        'STOCK_OUT', 
+        'PAYMENT_FAILED', 
+        'SYSTEM_ALERT'
+      ].includes(type);
+
+      if (isAdminType) {
+        await webSocketService.sendAdminNotification(notification);
+      }
 
       return notification;
     } catch (error) {
@@ -38,73 +57,42 @@ export class NotificationService {
       throw error;
     }
   }
+
+  /**
+   * Get user notifications
+   */
   static async getUserNotifications(userId, filters = {}) {
+    const { page = 1, limit = 20, unreadOnly = false, type } = filters;
+    const skip = (page - 1) * limit;
+
+    const where = { userId: Number(userId) };
+    if (unreadOnly) where.isRead = false;
+    if (type) where.type = type;
+
     try {
-      const {
-        page = 1,
-        limit = 20,
-        unreadOnly = false,
-        priority,
-        type,
-        startDate,
-        endDate
-      } = filters;
-
-      const skip = (page - 1) * limit;
-      const where = { userId };
-
-      if (unreadOnly) {
-        where.isRead = false;
-      }
-
-      if (priority) {
-        where.priority = priority;
-      }
-
-      if (type) {
-        where.type = type;
-      }
-
-      if (startDate || endDate) {
-        where.createdAt = {};
-        if (startDate) where.createdAt.gte = startDate;
-        if (endDate) where.createdAt.lte = endDate;
-      }
-
-      where.OR = [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      ];
-
       const [notifications, total] = await Promise.all([
         prisma.notification.findMany({
           where,
           orderBy: { createdAt: 'desc' },
           skip,
-          take: limit,
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-                picture: true
-              }
-            }
-          }
+          take: Number(limit)
         }),
         prisma.notification.count({ where })
       ]);
 
+      const unreadCount = await prisma.notification.count({
+        where: { userId: Number(userId), isRead: false }
+      });
+
       return {
         notifications,
         pagination: {
-          page,
-          limit,
           total,
-          pages: Math.ceil(total / limit),
-          hasMore: total > page * limit
-        }
+          page: Number(page),
+          totalPages: Math.ceil(total / limit),
+          limit: Number(limit)
+        },
+        unreadCount
       };
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -112,252 +100,174 @@ export class NotificationService {
     }
   }
 
+  /**
+   * Get unread count
+   */
+  static async getUnreadCount(userId) {
+    return await prisma.notification.count({
+      where: { userId: Number(userId), isRead: false }
+    });
+  }
+
+  /**
+   * Mark notification as read
+   */
   static async markAsRead(userId, notificationIds) {
     try {
       const ids = Array.isArray(notificationIds) ? notificationIds : [notificationIds];
       
-      const updated = await prisma.notification.updateMany({
-        where: {
-          id: { in: ids },
-          userId,
-          isRead: false
+      const result = await prisma.notification.updateMany({
+        where: { 
+          id: { in: ids.map(id => Number(id)) },
+          userId: Number(userId) 
         },
-        data: {
-          isRead: true,
-          readAt: new Date()
-        }
+        data: { isRead: true }
       });
 
-      if (updated.count > 0) {
-        await WebSocketService.emitToUser(userId, 'notifications:read', {
-          notificationIds: ids,
-          readAt: new Date()
-        });
-      }
+      // Notify user sessions
+      await webSocketService.emitToUser(userId, 'notifications:updated', { 
+        ids, 
+        isRead: true 
+      });
 
-      return updated;
+      return result;
     } catch (error) {
       console.error('Error marking notifications as read:', error);
       throw error;
     }
   }
+
+  /**
+   * Mark all notifications as read for user
+   */
   static async markAllAsRead(userId) {
     try {
-      const updated = await prisma.notification.updateMany({
-        where: {
-          userId,
-          isRead: false
-        },
-        data: {
-          isRead: true,
-          readAt: new Date()
-        }
+      const result = await prisma.notification.updateMany({
+        where: { userId: Number(userId), isRead: false },
+        data: { isRead: true }
       });
 
-      if (updated.count > 0) {
-        await WebSocketService.emitToUser(userId, 'notifications:all-read', {
-          count: updated.count,
-          readAt: new Date()
-        });
-      }
+      // Notify user sessions
+      await webSocketService.emitToUser(userId, 'notifications:marked_all_read', { userId });
 
-      return updated;
+      return result;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       throw error;
     }
   }
 
+  /**
+   * Delete notifications
+   */
   static async deleteNotifications(userId, notificationIds) {
     try {
       const ids = Array.isArray(notificationIds) ? notificationIds : [notificationIds];
       
-      const deleted = await prisma.notification.deleteMany({
-        where: {
-          id: { in: ids },
-          userId
+      const result = await prisma.notification.deleteMany({
+        where: { 
+          id: { in: ids.map(id => Number(id)) },
+          userId: Number(userId) 
         }
       });
 
-      if (deleted.count > 0) {
-        await WebSocketService.emitToUser(userId, 'notifications:deleted', {
-          notificationIds: ids
-        });
-      }
-
-      return deleted;
+      return result;
     } catch (error) {
       console.error('Error deleting notifications:', error);
       throw error;
     }
   }
-  static async getUnreadCount(userId) {
-    try {
-      const count = await prisma.notification.count({
-        where: {
-          userId,
-          isRead: false,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: new Date() } }
-          ]
-        }
-      });
 
-      return count;
-    } catch (error) {
-      console.error('Error getting unread count:', error);
-      throw error;
-    }
-  }
+  /**
+   * Cleanup expired or old read notifications
+   */
+  static async cleanupExpiredNotifications(days = 30) {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
 
-  static async cleanupExpiredNotifications() {
     try {
       const result = await prisma.notification.deleteMany({
         where: {
-          expiresAt: { lt: new Date() }
+          OR: [
+            { createdAt: { lt: date }, isRead: true },
+            // Could add explicit expiry date logic if needed
+          ]
         }
       });
-
-      console.log(`Cleaned up ${result.count} expired notifications`);
       return result;
     } catch (error) {
-      console.error('Error cleaning up expired notifications:', error);
+      console.error('Error cleaning up notifications:', error);
       throw error;
     }
   }
-  static async createPasswordChangedNotification(userId) {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.PASSWORD_CHANGED,
-      title: 'Password Changed',
-      message: 'Your password was successfully changed.',
-      priority: NotificationPriorities.HIGH,
-      data: {
-        changedAt: new Date(),
-        ipAddress: null 
-      }
-    });
-  }
 
-  static async createPasswordResetNotification(userId) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.PASSWORD_RESET,
-      title: 'Password Reset',
-      message: 'Your password has been reset successfully.',
-      priority: NotificationPriorities.HIGH
-    });
-  }
-
-  static async createPaymentMethodAddedNotification(userId, paymentMethod) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.PAYMENT_METHOD_ADDED,
-      title: 'Payment Method Added',
-      message: `New ${paymentMethod} payment method was added to your account.`,
-      priority: NotificationPriorities.MEDIUM,
-      data: { paymentMethod, addedAt: new Date() }
-    });
-  }
-
-  static async createShippingInfoUpdatedNotification(userId) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.SHIPPING_INFO_UPDATED,
-      title: 'Shipping Information Updated',
-      message: 'Your shipping information has been updated successfully.',
-      priority: NotificationPriorities.LOW,
-      data: { updatedAt: new Date() }
-    });
-  }
-
-  static async createOrderSubmittedNotification(userId, orderId, orderNumber) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.ORDER_SUBMITTED,
-      title: 'Order Submitted',
-      message: `Your order #${orderNumber} has been submitted successfully.`,
-      relatedEntity: 'ORDER',
-      relatedEntityId: orderId,
-      priority: NotificationPriorities.HIGH,
-      data: { orderId, orderNumber, submittedAt: new Date() }
-    });
-  }
-
-  static async createOrderShippedNotification(userId, orderId, trackingNumber) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.ORDER_SHIPPED,
-      title: 'Order Shipped',
-      message: `Your order has been shipped. Tracking number: ${trackingNumber}`,
-      relatedEntity: 'ORDER',
-      relatedEntityId: orderId,
-      priority: NotificationPriorities.HIGH,
-      data: { orderId, trackingNumber, shippedAt: new Date() }
-    });
-  }
-
-  static async createPaymentSuccessfulNotification(userId, orderId, amount) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.PAYMENT_SUCCESS,
-      title: 'Payment Successful',
-      message: `Your payment of KES ${amount} was processed successfully.`,
-      relatedEntity: 'ORDER',
-      relatedEntityId: orderId,
-      priority: NotificationPriorities.HIGH,
-      data: { orderId, amount, paidAt: new Date() }
-    });
-  }
-
-  static async createLowStockNotification(userId, productId, productName, currentStock) {
-    return this.createNotification({
-      userId,
-      type: NotificationTypes.LOW_STOCK,
-      title: 'Low Stock Alert',
-      message: `${productName} is running low on stock (${currentStock} units remaining).`,
-      relatedEntity: 'PRODUCT',
-      relatedEntityId: productId,
-      priority: NotificationPriorities.URGENT,
-      data: { productId, productName, currentStock, alertAt: new Date() }
-    });
-  }
-
-
-  static async emitRealTimeNotification(notification) {
+  /**
+   * Check for low stock items and notify the user
+   * Designed to be called at login for admins
+   */
+  static async checkLowStockAndNotify(userId) {
     try {
-      await WebSocketService.emitToUser(notification.userId, 'notification:new', notification);
-    
-      if (this.shouldNotifyAdmins(notification.type)) {
-        const admins = await prisma.user.findMany({
-          where: { role: 'ADMIN' },
-          select: { id: true }
-        });
+      // 1. Find variants with stock < 5
+      const lowStockVariants = await prisma.productVariant.findMany({
+        where: {
+          stock: { lt: 5 },
+          isActive: true
+        },
+        include: {
+          product: {
+            select: { title: true }
+          }
+        }
+      });
+
+      if (lowStockVariants.length === 0) return;
+
+      // 2. Create/Update notifications for each
+      for (const variant of lowStockVariants) {
+        const title = 'Low Stock Alert';
+        const message = `Product "${variant.product.title}" (SKU: ${variant.sku || 'N/A'}) is running low on stock. Current: ${variant.stock}`;
         
-        for (const admin of admins) {
-          await WebSocketService.emitToUser(admin.id, 'notification:admin', {
-            ...notification,
-            isAdminNotification: true
+        // We check if an unread notification for this specific variant already exists
+        const existing = await prisma.notification.findFirst({
+          where: {
+            userId: Number(userId),
+            type: 'STOCK_LOW',
+            entityId: variant.id.toString(),
+            isRead: false
+          }
+        });
+
+        if (existing) {
+          // Update the timestamp to bring it to the top for the new "session"
+          await prisma.notification.update({
+            where: { id: existing.id },
+            data: { 
+              createdAt: new Date(),
+              message // Update message in case stock changed
+            }
+          });
+          
+          // Still emit via websocket to alert the current session
+          await webSocketService.sendNotification(userId, { ...existing, createdAt: new Date(), message });
+        } else {
+          // Create new one
+          await this.createNotification({
+            userId,
+            type: 'STOCK_LOW',
+            title,
+            message,
+            link: `/admin/inventory/movements`, // Or a specific link if available
+            entityId: variant.id,
+            entityType: 'PRODUCT_VARIANT',
+            priority: 'HIGH'
           });
         }
       }
     } catch (error) {
-      console.error('Error emitting real-time notification:', error);
+      console.error('Error in checkLowStockAndNotify:', error);
     }
   }
-
-  static shouldNotifyAdmins(type) {
-    const adminNotificationTypes = [
-      NotificationTypes.NEW_ORDER,
-      NotificationTypes.NEW_USER_REGISTERED,
-      NotificationTypes.SYSTEM_ALERT,
-      NotificationTypes.LOW_STOCK,
-      NotificationTypes.OUT_OF_STOCK
-    ];
-    
-    return adminNotificationTypes.includes(type);
-  }
 }
+
+export { NotificationService };
+export default NotificationService;

@@ -1,6 +1,7 @@
 // services/stockTakeService.js
 import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
+import { checkAndUpdateStockAlerts } from './stockService.js';
 
 /**
  * Create a new stock take
@@ -86,23 +87,27 @@ export const addStockTakeItems = async (stockTakeId, items, userId) => {
 
   for (const item of items) {
     try {
-      const { productId, countedQuantity, notes } = item;
+      const { variantId, countedQuantity, notes } = item;
 
-      // Get product with current stock
-      const product = await prisma.product.findUnique({
-        where: { id: parseInt(productId) },
+      // Get variant with current stock
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: parseInt(variantId) },
         select: {
           id: true,
-          quantity: true,
+          stock: true,
           price: true,
-          title: true,
+          product: {
+            select: {
+              title: true
+            }
+          }
         },
       });
 
-      if (!product) {
+      if (!variant) {
         errors.push({
           item,
-          error: `Product ${productId} not found`,
+          error: `Variant ${variantId} not found`,
         });
         continue;
       }
@@ -110,9 +115,9 @@ export const addStockTakeItems = async (stockTakeId, items, userId) => {
       // Check if item already exists in stock take
       const existingItem = await prisma.stockTakeItem.findUnique({
         where: {
-          stockTakeId_productId: {
+          stockTakeId_variantId: {
             stockTakeId: parseInt(stockTakeId),
-            productId: parseInt(productId),
+            variantId: parseInt(variantId),
           },
         },
       });
@@ -120,30 +125,32 @@ export const addStockTakeItems = async (stockTakeId, items, userId) => {
       if (existingItem) {
         errors.push({
           item,
-          error: `Product ${productId} already added to this stock take`,
+          error: `Variant ${variantId} already added to this stock take`,
         });
         continue;
       }
 
-      const difference = countedQuantity - product.quantity;
+      const difference = countedQuantity - variant.stock;
 
       // Create stock take item
       const stockTakeItem = await prisma.stockTakeItem.create({
         data: {
           stockTakeId: parseInt(stockTakeId),
-          productId: parseInt(productId),
-          systemQuantity: product.quantity,
+          variantId: parseInt(variantId),
+          systemQuantity: variant.stock,
           countedQuantity,
           difference,
           notes,
         },
         include: {
-          product: {
-            select: {
-              title: true,
-              sku: true,
-              price: true,
-            },
+          variant: {
+            include: {
+              product: {
+                select: {
+                  title: true,
+                },
+              },
+            }
           },
         },
       });
@@ -158,7 +165,7 @@ export const addStockTakeItems = async (stockTakeId, items, userId) => {
           itemsCounted: { increment: 1 },
           itemsAdjusted: difference !== 0 ? { increment: 1 } : undefined,
           discrepancyValue: difference !== 0 
-            ? { increment: new Prisma.Decimal(Math.abs(difference * Number(product.price))) }
+            ? { increment: new Prisma.Decimal(Math.abs(difference * Number(variant.price))) }
             : undefined,
         },
       });
@@ -188,12 +195,15 @@ export const completeStockTake = async (stockTakeId, userId, autoAdjust = false)
     include: {
       items: {
         include: {
-          product: {
-            select: {
-              id: true,
-              title: true,
-              price: true,
-            },
+          variant: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
+            }
           },
         },
       },
@@ -212,15 +222,15 @@ export const completeStockTake = async (stockTakeId, userId, autoAdjust = false)
       for (const item of stockTake.items) {
         if (item.difference !== 0 && !item.adjusted) {
           const adjustmentQuantity = item.difference;
-          await tx.product.update({
-            where: { id: item.productId },
+          await tx.productVariant.update({
+            where: { id: item.variantId },
             data: {
-              quantity: { increment: adjustmentQuantity },
+              stock: { increment: adjustmentQuantity },
             },
           });
           await tx.stockMovement.create({
             data: {
-              productId: item.productId,
+              variantId: item.variantId,
               movementType: 'CORRECTION',
               quantity: adjustmentQuantity,
               previousStock: item.systemQuantity,
@@ -230,7 +240,7 @@ export const completeStockTake = async (stockTakeId, userId, autoAdjust = false)
               reason: `Stock take adjustment - ${stockTake.title}`,
               notes: item.notes,
               createdById: parseInt(userId),
-              sellingPrice: item.product.price,
+              sellingPrice: item.variant.price,
             },
           });
           await tx.stockTakeItem.update({
@@ -241,6 +251,9 @@ export const completeStockTake = async (stockTakeId, userId, autoAdjust = false)
               adjustedById: parseInt(userId),
             },
           });
+
+          // 🔔 Trigger alerts if necessary
+          await checkAndUpdateStockAlerts(item.variantId, item.systemQuantity + adjustmentQuantity, tx);
         }
       }
     }
@@ -267,11 +280,14 @@ export const completeStockTake = async (stockTakeId, userId, autoAdjust = false)
         },
         items: {
           include: {
-            product: {
-              select: {
-                title: true,
-                sku: true,
-              },
+            variant: {
+              include: {
+                product: {
+                  select: {
+                    title: true,
+                  },
+                },
+              }
             },
           },
         },
@@ -301,23 +317,19 @@ export const getStockTakeById = async (stockTakeId) => {
       },
       items: {
         include: {
-          product: {
-            select: {
-              title: true,
-              sku: true,
-              price: true,
-              category: {
+          variant: {
+            include: {
+              product: {
                 select: {
-                  name: true,
+                  title: true,
+                  category: {
+                    select: {
+                      name: true,
+                    },
+                  },
                 },
               },
-              photos: {
-                take: 1,
-                select: {
-                  url: true,
-                },
-              },
-            },
+            }
           },
           adjustedBy: {
             select: {
@@ -338,7 +350,7 @@ export const getStockTakeById = async (stockTakeId) => {
   }
   const itemsWithDifference = stockTake.items.filter(item => item.difference !== 0);
   const totalDiscrepancyValue = itemsWithDifference.reduce((sum, item) => {
-    return sum + Math.abs(item.difference * Number(item.product.price));
+    return sum + Math.abs(item.difference * Number(item.variant.price));
   }, 0);
 
   return {
@@ -477,7 +489,7 @@ export const getStockTakeReport = async (stockTakeId) => {
   const stockTake = await getStockTakeById(stockTakeId);
   const categoryBreakdown = {};
   stockTake.items.forEach(item => {
-    const categoryName = item.product.category?.name || 'Uncategorized';
+    const categoryName = item.variant.product.category?.name || 'Uncategorized';
     
     if (!categoryBreakdown[categoryName]) {
       categoryBreakdown[categoryName] = {
@@ -497,7 +509,7 @@ export const getStockTakeReport = async (stockTakeId) => {
       categoryBreakdown[categoryName].itemsWithDifference += 1;
       categoryBreakdown[categoryName].totalDifference += item.difference;
       categoryBreakdown[categoryName].totalValueDifference += Math.abs(
-        item.difference * Number(item.product.price)
+        item.difference * Number(item.variant.price)
       );
     }
   });
@@ -525,25 +537,25 @@ export const getStockTakeReport = async (stockTakeId) => {
       totalValueDifference: parseFloat(cat.totalValueDifference.toFixed(2)),
     })),
     topDiscrepancies: topDiscrepancies.map(item => ({
-      productId: item.productId,
-      productTitle: item.product.title,
-      sku: item.product.sku,
+      variantId: item.variantId,
+      productTitle: item.variant.product.title,
+      sku: item.variant.sku,
       systemQuantity: item.systemQuantity,
       countedQuantity: item.countedQuantity,
       difference: item.difference,
-      valueDifference: parseFloat(Math.abs(item.difference * Number(item.product.price)).toFixed(2)),
+      valueDifference: parseFloat(Math.abs(item.difference * Number(item.variant.price)).toFixed(2)),
       adjusted: item.adjusted,
     })),
     items: stockTake.items.map(item => ({
-      productId: item.productId,
-      productTitle: item.product.title,
-      sku: item.product.sku,
-      category: item.product.category?.name,
-      price: item.product.price,
+      variantId: item.variantId,
+      productTitle: item.variant.product.title,
+      sku: item.variant.sku,
+      category: item.variant.product.category?.name,
+      price: item.variant.price,
       systemQuantity: item.systemQuantity,
       countedQuantity: item.countedQuantity,
       difference: item.difference,
-      valueDifference: parseFloat(Math.abs(item.difference * Number(item.product.price)).toFixed(2)),
+      valueDifference: parseFloat(Math.abs(item.difference * Number(item.variant.price)).toFixed(2)),
       adjusted: item.adjusted,
       notes: item.notes,
     })),

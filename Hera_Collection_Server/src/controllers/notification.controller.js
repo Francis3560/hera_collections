@@ -19,8 +19,9 @@ export const getNotificationsController = async (req, res) => {
     
     res.status(200).json({
       success: true,
-      data: result.notifications,
-      pagination: result.pagination
+      notifications: result.notifications,
+      pagination: result.pagination,
+      unreadCount: result.unreadCount
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -165,7 +166,7 @@ export const getNotificationStatsController = async (req, res) => {
         byType: {
           ORDER_SUBMITTED: 300,
           PAYMENT_SUCCESS: 250,
-          LOW_STOCK: 50
+          STOCK_LOW: 50
         },
         today: {
           created: 15,

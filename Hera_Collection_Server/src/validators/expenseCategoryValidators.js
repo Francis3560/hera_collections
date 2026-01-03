@@ -31,7 +31,7 @@ export const updateCategorySchema = Joi.object({
 
 // Validation for category query parameters
 export const categoryQuerySchema = Joi.object({
-  search: Joi.string().optional(),
+  search: Joi.string().optional().allow(''),
   includeExpenses: Joi.boolean().default(false),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),

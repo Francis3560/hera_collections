@@ -15,8 +15,9 @@ export const paymentRequestSchema = Joi.object({
     .required(),
 
   customer: Joi.object({
-    firstName: Joi.string().max(120).required(),
-    lastName: Joi.string().max(120).required(),
+    firstName: Joi.string().max(120).optional().allow('', null),
+    lastName: Joi.string().max(120).optional().allow('', null),
+    name: Joi.string().max(255).optional().allow('', null),
     phone: Joi.string().max(32).required(),
     email: Joi.string().email().max(191).required(),
   }).required(),
@@ -24,7 +25,7 @@ export const paymentRequestSchema = Joi.object({
   payment: Joi.object({
     method: Joi.string().valid('MPESA').required(), // For now, only MPESA
     phone: Joi.string()
-      .pattern(/^(?:254|\+254|0)?(7\d{8})$/)
+      .pattern(/^(?:254|\+254|0)?([17]\d{8})$/)
       .required()
       .messages({
         'string.pattern.base': 'Phone number must be a valid Kenyan number'

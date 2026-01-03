@@ -47,17 +47,17 @@ router.use(protect);
 
 router.get('/low-stock', validateLowStockQuery, getLowStockProducts);
 
-router.get('/movements/:productId', validateStockMovementsQuery, getProductStockMovements);
+router.get('/movements/:variantId', validateStockMovementsQuery, getProductStockMovements);
 
 router.get('/analytics/value', protectAdmin, getStockValueAnalytics);
 
 router.use(protectAdmin);
 
-router.post('/:productId/add', validateAddStock, addStock);
+router.post('/:variantId/add', validateAddStock, addStock);
 
-router.post('/:productId/adjust', validateAdjustStock, adjustStock);
+router.post('/:variantId/adjust', validateAdjustStock, adjustStock);
 
-router.post('/:productId/damage', validateAdjustStock, recordDamage);
+router.post('/:variantId/damage', validateAdjustStock, recordDamage);
 
 router.post('/bulk-update', validateBulkStockUpdate, bulkStockUpdate);
 
@@ -77,11 +77,11 @@ router.post('/stock-takes/:stockTakeId/complete', validateCompleteStockTake, com
 
 router.post('/stock-takes/:stockTakeId/cancel', cancelStockTake);
 
-router.post('/alerts/:productId', validateStockAlert, setStockAlert);
+router.post('/alerts/:variantId', validateStockAlert, setStockAlert);
 
-router.delete('/alerts/:productId', disableStockAlert);
+router.delete('/alerts/:variantId', disableStockAlert);
 
-router.post('/alerts/:productId/resolve', resolveStockAlert);
+router.post('/alerts/:variantId/resolve', resolveStockAlert);
 
 router.get('/alerts/active', getActiveStockAlerts);
 

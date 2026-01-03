@@ -5,8 +5,8 @@ import * as stockAlertService from '../services/stockAlertService.js';
 
 export const addStock = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const result = await stockService.addStock(productId, req.body, req.auth.userId);
+    const { variantId } = req.params;
+    const result = await stockService.addStock(variantId, req.body, req.auth.userId);
 
     return res.status(200).json({
       success: true,
@@ -16,7 +16,7 @@ export const addStock = async (req, res) => {
   } catch (error) {
     console.error('Failed to add stock:', error);
     
-    if (error.message === 'Product not found') {
+    if (error.message === 'Product variant not found') {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -32,15 +32,15 @@ export const addStock = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to add stock',
+      message: error.message || 'Failed to add stock',
     });
   }
 };
 
 export const adjustStock = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const result = await stockService.adjustStock(productId, req.body, req.auth.userId);
+    const { variantId } = req.params;
+    const result = await stockService.adjustStock(variantId, req.body, req.auth.userId);
 
     return res.status(200).json({
       success: true,
@@ -50,7 +50,7 @@ export const adjustStock = async (req, res) => {
   } catch (error) {
     console.error('Failed to adjust stock:', error);
     
-    if (error.message === 'Product not found') {
+    if (error.message === 'Product variant not found') {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -67,15 +67,15 @@ export const adjustStock = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to adjust stock',
+      message: error.message || 'Failed to adjust stock',
     });
   }
 };
 
 export const recordDamage = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const result = await stockService.recordDamageMovement(productId, req.body, req.auth.userId);
+    const { variantId } = req.params;
+    const result = await stockService.recordDamageMovement(variantId, req.body, req.auth.userId);
 
     return res.status(200).json({
       success: true,
@@ -85,7 +85,7 @@ export const recordDamage = async (req, res) => {
   } catch (error) {
     console.error('Failed to record damage:', error);
     
-    if (error.message === 'Product not found') {
+    if (error.message === 'Product variant not found') {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -102,14 +102,14 @@ export const recordDamage = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to record damage',
+      message: error.message || 'Failed to record damage',
     });
   }
 };
 
 export const getProductStockMovements = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { variantId } = req.params;
     const filters = {
       startDate: req.query.startDate,
       endDate: req.query.endDate,
@@ -118,7 +118,7 @@ export const getProductStockMovements = async (req, res) => {
       limit: req.query.limit,
     };
 
-    const result = await stockService.getProductStockMovements(productId, filters);
+    const result = await stockService.getProductStockMovements(variantId, filters);
 
     return res.status(200).json({
       success: true,
@@ -129,7 +129,7 @@ export const getProductStockMovements = async (req, res) => {
     console.error('Failed to fetch stock movements:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch stock movements',
+      message: error.message || 'Failed to fetch stock movements',
     });
   }
 };
@@ -438,8 +438,8 @@ export const getStockTakeReport = async (req, res) => {
 // Stock Alert Controllers
 export const setStockAlert = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const result = await stockAlertService.setStockAlert(productId, req.body.threshold, req.auth.userId);
+    const { variantId } = req.params;
+    const result = await stockAlertService.setStockAlert(variantId, req.body.threshold, req.auth.userId);
 
     return res.status(200).json({
       success: true,
@@ -449,7 +449,7 @@ export const setStockAlert = async (req, res) => {
   } catch (error) {
     console.error('Failed to set stock alert:', error);
     
-    if (error.message === 'Product not found') {
+    if (error.message === 'Product variant not found') {
       return res.status(404).json({
         success: false,
         message: error.message,
@@ -465,15 +465,15 @@ export const setStockAlert = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to set stock alert',
+      message: error.message || 'Failed to set stock alert',
     });
   }
 };
 
 export const disableStockAlert = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const alert = await stockAlertService.disableStockAlert(productId);
+    const { variantId } = req.params;
+    const alert = await stockAlertService.disableStockAlert(variantId);
 
     return res.status(200).json({
       success: true,
@@ -492,15 +492,15 @@ export const disableStockAlert = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to disable stock alert',
+      message: error.message || 'Failed to disable stock alert',
     });
   }
 };
 
 export const resolveStockAlert = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const result = await stockAlertService.resolveStockAlert(productId, req.auth.userId);
+    const { variantId } = req.params;
+    const result = await stockAlertService.resolveStockAlert(variantId, req.auth.userId);
 
     return res.status(200).json({
       success: true,
@@ -526,7 +526,7 @@ export const resolveStockAlert = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Failed to resolve stock alert',
+      message: error.message || 'Failed to resolve stock alert',
     });
   }
 };
@@ -553,6 +553,7 @@ export const getStockAlertHistory = async (req, res) => {
   try {
     const filters = {
       productId: req.query.productId,
+      variantId: req.query.variantId,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       resolved: req.query.resolved,

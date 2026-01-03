@@ -10,14 +10,28 @@ export const searchProducts = async ({
   pageSize = 20,
   includePhotos = true,
   isPublished = true,
+  sortBy = 'createdAt',
+  sortOrder = 'desc',
+  hasDiscount = undefined,
 }) => {
   const where = {
     isPublished,
     categoryId: categoryId ? parseInt(categoryId) : undefined,
-    price: {
-      gte: minPrice || undefined,
-      lte: maxPrice || undefined,
-    },
+    // Note: Filtering by price now requires looking at variants
+    variants: (minPrice || maxPrice || hasDiscount) ? {
+      some: {
+        price: {
+          gte: minPrice || undefined,
+          lte: maxPrice || undefined,
+        },
+        isActive: true,
+        // Filter for discounts: for now just check if costPrice exists
+        // In the future, add a dedicated 'onSale' or 'discountPercentage' field
+        ...(hasDiscount ? {
+          costPrice: { not: null }
+        } : {})
+      }
+    } : undefined,
     OR: q
       ? [
           { title: { contains: q, mode: 'insensitive' } },
@@ -26,21 +40,61 @@ export const searchProducts = async ({
       : undefined,
   };
 
+
+  // Build orderBy clause based on sortBy parameter
+  let orderBy;
+  switch (sortBy) {
+    case 'price':
+      // For price sorting, we'll need to use a different approach since price is in variants
+      // For now, we'll sort by createdAt and handle price sorting client-side
+      orderBy = { createdAt: sortOrder };
+      break;
+    case 'title':
+      orderBy = { title: sortOrder };
+      break;
+    case 'purchases':
+      // Assuming we'll add a purchases count field later
+      // For now, fall back to createdAt
+      orderBy = { createdAt: sortOrder };
+      break;
+    case 'createdAt':
+    default:
+      orderBy = { createdAt: sortOrder };
+      break;
+  }
+
   const [items, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: includePhotos ? { 
-        photos: true,
+      include: {
+        photos: includePhotos,
         category: true,
         seller: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+          select: { id: true, name: true, email: true }
+        },
+        options: {
+          include: { values: true }
+        },
+        discounts: {
+            where: { isActive: true },
+            select: {
+              id: true,
+              discountPercentage: true,
+              startDate: true,
+              endDate: true,
+              name: true
+            }
+        },
+        variants: {
+          where: { isActive: true },
+          include: {
+            optionValues: {
+              include: { optionValue: { include: { option: true } } }
+            }
           }
         }
-      } : undefined,
-      orderBy: { createdAt: 'desc' },
+      },
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -73,7 +127,55 @@ export const getProduct = async (id) => {
           phone: true,
         }
       },
-      variants: true
+      options: {
+        include: { values: true }
+      },
+      variants: {
+        where: { isActive: true },
+        include: {
+          optionValues: {
+            include: { optionValue: { include: { option: true } } }
+          }
+        }
+      }
+    },
+  });
+};
+
+export const getProductBySlug = async (slug) => {
+  return prisma.product.findUnique({
+    where: { slug, isPublished: true },
+    include: { 
+      photos: true,
+      category: true,
+      seller: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        }
+      },
+      options: {
+        include: { values: true }
+      },
+      discounts: {
+        where: { isActive: true },
+        select: {
+           id: true,
+           discountPercentage: true,
+           name: true,
+           isActive: true
+        }
+      },
+      variants: {
+        where: { isActive: true },
+        include: {
+          optionValues: {
+            include: { optionValue: { include: { option: true } } }
+          }
+        }
+      }
     },
   });
 };
@@ -88,7 +190,16 @@ export const adminGetProduct = async (id) => {
       photos: true,
       category: true,
       seller: true,
-      variants: true
+      options: {
+        include: { values: true }
+      },
+      variants: {
+        include: {
+          optionValues: {
+            include: { optionValue: { include: { option: true } } }
+          }
+        }
+      }
     },
   });
 };
@@ -128,123 +239,246 @@ export const getProductsByCategory = async (categoryId) => {
 };
 
 export const createProduct = async (data, sellerUserId, processedImages = []) => {
-  const created = await prisma.product.create({
-    data: {
-      title: data.title,
-      description: data.description || null,
-      price: data.price,
-      oldPrice: data.oldPrice || null,
-      sku: data.sku || null,
-      quantity: data.quantity || 1,
-      isPublished: data.isPublished ?? true,
-      categoryId: data.categoryId ? parseInt(data.categoryId) : null,
-      sellerId: parseInt(sellerUserId),
-      photos: processedImages.length
-        ? {
-            createMany: {
-              data: processedImages.map((img) => ({
-                url: img.original,
-                publicId: img.thumbnail,
-              })),
-            },
+  return await prisma.$transaction(async (tx) => {
+    // 1. Create Product
+    const product = await tx.product.create({
+      data: {
+        title: data.title,
+        slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
+        description: data.description || null,
+        isPublished: data.isPublished ?? true,
+        categoryId: data.categoryId ? parseInt(data.categoryId) : null,
+        sellerId: parseInt(sellerUserId),
+        brand: data.brand || null,
+        manufacturer: data.manufacturer || null,
+        photos: processedImages.length
+          ? {
+              createMany: {
+                data: processedImages.map((img) => ({
+                  url: img.original,
+                  publicId: img.thumbnail,
+                })),
+              },
+            }
+          : undefined,
+      },
+    });
+
+    // 2. Create Options and Values
+    const createdOptions = {};
+    for (const opt of data.options) {
+      const option = await tx.productOption.create({
+        data: {
+          productId: product.id,
+          name: opt.name,
+          values: {
+            create: opt.values.map(val => ({ value: val }))
           }
-        : undefined,
-      variants: data.variants && Array.isArray(data.variants)
-        ? {
-            create: data.variants.map(variant => ({
-              name: variant.name,
-              value: variant.value,
-              price: variant.price || null,
-              quantity: variant.quantity || 0,
+        },
+        include: { values: true }
+      });
+      
+      createdOptions[opt.name] = {};
+      option.values.forEach(v => {
+        createdOptions[opt.name][v.value] = v.id;
+      });
+    }
+
+    // 3. Create Variants and initial Stock Movements
+    for (const varData of data.variants) {
+      const variant = await tx.productVariant.create({
+        data: {
+          productId: product.id,
+          sku: varData.sku,
+          price: varData.price,
+          costPrice: varData.costPrice || null,
+          stock: varData.stock || 0,
+          image: varData.image || null,
+          optionValues: {
+            create: Object.entries(varData.optionMappings).map(([optName, valName]) => ({
+              optionValueId: createdOptions[optName][valName]
             }))
           }
-        : undefined,
-    },
-    include: { 
-      photos: true,
-      category: true,
-      variants: true
-    },
-  });
+        }
+      });
 
-  return created;
+      // 4. Initial Stock Movement
+      if (varData.stock > 0) {
+        await tx.stockMovement.create({
+          data: {
+            variantId: variant.id,
+            movementType: 'ADDITION',
+            quantity: varData.stock,
+            unitCost: varData.costPrice || null,
+            previousStock: 0,
+            newStock: varData.stock,
+            reason: 'Initial stock on creation',
+            createdById: parseInt(sellerUserId)
+          }
+        });
+      }
+    }
+
+    return tx.product.findUnique({
+      where: { id: product.id },
+      include: {
+        photos: true,
+        category: true,
+        options: { include: { values: true } },
+        variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } } } }
+      }
+    });
+  });
 };
 
 export const updateProduct = async (id, data, processedImages = []) => {
   const productId = Number(id);
   if (!Number.isInteger(productId)) throw new Error('Invalid product id');
-  if (Array.isArray(data.removeImageUrls) && data.removeImageUrls.length) {
-    await prisma.photo.deleteMany({
-      where: { 
-        productId, 
-        url: { in: data.removeImageUrls } 
-      },
-    });
-    await Promise.all(
-      data.removeImageUrls.map(url => imageService.deleteImage(url))
-    );
-  }
-  if (data.imagesAction === 'replace') {
-    const existingPhotos = await prisma.photo.findMany({ 
-      where: { productId } 
-    });
-    await prisma.photo.deleteMany({ where: { productId } });
-    await Promise.all(
-      existingPhotos.map(photo => imageService.deleteImage(photo.url))
-    );
-  }
-  const {
-    imagesAction,
-    removeImageUrls,
-    variants,
-    ...fields
-  } = data;
-  const updateData = {};
-  if (fields.title !== undefined) updateData.title = fields.title;
-  if (fields.description !== undefined) updateData.description = fields.description;
-  if (fields.price !== undefined) updateData.price = fields.price;
-  if (fields.oldPrice !== undefined) updateData.oldPrice = fields.oldPrice;
-  if (fields.sku !== undefined) updateData.sku = fields.sku;
-  if (fields.quantity !== undefined) updateData.quantity = fields.quantity;
-  if (fields.isPublished !== undefined) updateData.isPublished = fields.isPublished;
-  if (fields.categoryId !== undefined) {
-    updateData.categoryId = fields.categoryId ? parseInt(fields.categoryId) : null;
-  }
-  if (processedImages.length > 0) {
-    updateData.photos = {
-      createMany: {
+
+  return await prisma.$transaction(async (tx) => {
+    // 1. Handle image management
+    if (Array.isArray(data.removeImageUrls) && data.removeImageUrls.length) {
+      await tx.photo.deleteMany({
+        where: { productId, url: { in: data.removeImageUrls } },
+      });
+      await Promise.all(data.removeImageUrls.map(url => imageService.deleteImage(url)));
+    }
+
+    if (processedImages.length > 0) {
+      await tx.photo.createMany({
         data: processedImages.map((img) => ({
+          productId,
           url: img.original,
           publicId: img.thumbnail,
         })),
-      },
-    };
-  }
-  if (variants && Array.isArray(variants)) {
-    await prisma.variant.deleteMany({
-      where: { productId }
+      });
+    }
+
+    // 2. Update Basic Product Fields
+    const updatedProduct = await tx.product.update({
+      where: { id: productId },
+      data: {
+        title: data.title,
+        description: data.description,
+        categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
+        brand: data.brand,
+        manufacturer: data.manufacturer,
+        isPublished: data.isPublished,
+      }
     });
-    updateData.variants = {
-      create: variants.map(variant => ({
-        name: variant.name,
-        value: variant.value,
-        price: variant.price || null,
-        quantity: variant.quantity || 0,
-      }))
-    };
-  }
 
-  const updated = await prisma.product.update({
-    where: { id: productId },
-    data: updateData,
-    include: { 
-      photos: true,
-      category: true,
-      variants: true
-    },
+    // 3. Update Options and Values (if provided)
+    if (data.options) {
+      // For simplicity in this logic, we'll sync options by name
+      for (const opt of data.options) {
+        let option = await tx.productOption.findFirst({
+          where: { productId, name: opt.name }
+        });
+
+        if (!option) {
+          option = await tx.productOption.create({
+            data: {
+              productId,
+              name: opt.name,
+              values: {
+                create: opt.values.map(val => ({ value: val }))
+              }
+            },
+            include: { values: true }
+          });
+        } else {
+          // Sync option values
+          for (const valName of opt.values) {
+            await tx.optionValue.upsert({
+              where: { 
+                productOptionId_value: { productOptionId: option.id, value: valName }
+              },
+              update: {},
+              create: { productOptionId: option.id, value: valName }
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Update Variants
+    if (data.variants) {
+      const incomingVariantIds = data.variants.map(v => v.id).filter(Boolean);
+      
+      // Deactivate variants not in the incoming list
+      await tx.productVariant.updateMany({
+        where: { 
+          productId, 
+          id: { notIn: incomingVariantIds.map(id => parseInt(id)) } 
+        },
+        data: { isActive: false }
+      });
+
+      // Upsert incoming variants
+      for (const varData of data.variants) {
+        if (varData.id) {
+          // Update existing
+          await tx.productVariant.update({
+            where: { id: parseInt(varData.id) },
+            data: {
+              sku: varData.sku,
+              price: varData.price,
+              costPrice: varData.costPrice || null,
+              stock: varData.stock || 0,
+              isActive: varData.isActive !== undefined ? varData.isActive : true,
+              image: varData.image || null,
+            }
+          });
+          // Note: Option mappings for existing variants are generally immutable 
+          // to prevent data corruption. If they need to change, a new variant should be created.
+        } else {
+          // Create new variant
+          // Fetch current options/values to map IDs
+          const currentOptions = await tx.productOption.findMany({
+            where: { productId },
+            include: { values: true }
+          });
+
+          const optionValueMap = {};
+          currentOptions.forEach(opt => {
+            optionValueMap[opt.name] = {};
+            opt.values.forEach(v => {
+              optionValueMap[opt.name][v.value] = v.id;
+            });
+          });
+
+          await tx.productVariant.create({
+            data: {
+              productId,
+              sku: varData.sku,
+              price: varData.price,
+              costPrice: varData.costPrice || null,
+              stock: varData.stock || 0,
+              image: varData.image || null,
+              optionValues: {
+                create: Object.entries(varData.optionMappings).map(([optName, valName]) => ({
+                  optionValueId: optionValueMap[optName][valName]
+                }))
+              }
+            }
+          });
+        }
+      }
+    }
+
+    return tx.product.findUnique({
+      where: { id: productId },
+      include: {
+        photos: true,
+        category: true,
+        options: { include: { values: true } },
+        variants: { 
+          where: { isActive: true },
+          include: { optionValues: { include: { optionValue: { include: { option: true } } } } } 
+        }
+      }
+    });
   });
-
-  return updated;
 };
 
 export const deleteProduct = async (id) => {
