@@ -289,7 +289,7 @@ export default function Footer() {
               We Accept
             </h4>
             <div className="flex flex-wrap items-center justify-center gap-4">
-              {["MPESA", "Bank", "Cah",].map((method) => (
+              {["MPESA", "Bank", "Cash",].map((method) => (
                 <div 
                   key={method}
                   className="px-4 py-2 bg-secondary/30 dark:bg-secondary/20 rounded-lg text-sm text-foreground/70 dark:text-foreground/70"

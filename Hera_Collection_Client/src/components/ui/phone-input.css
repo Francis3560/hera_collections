@@ -1,0 +1,34 @@
+/* PhoneInput country select fix */
+.PhoneInputCountrySelect {
+  /* Ensure the background is dark in dark mode or consistent with theme */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--input));
+}
+
+/* Specific fix for options within the select to ensure they are readable */
+.PhoneInputCountrySelect option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Ensure the country select matches the height and styling of custom inputs */
+.PhoneInputCountry {
+  margin-right: 0.5rem;
+}
+
+.PhoneInputCountryIcon {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode specific overrides if needed */
+.dark .PhoneInputCountrySelect {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .PhoneInputCountrySelect option {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}

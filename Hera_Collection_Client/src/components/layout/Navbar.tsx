@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,12 +55,31 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/components/ThemeProvider";
 
 import { formatDistanceToNow } from "date-fns";
+import { useNotifications } from "@/context/NotificationContext";
 
 interface NavbarProps {
   title?: string;
   onMenuClick?: () => void;
   showSearch?: boolean;
 }
+
+const getNotificationIcon = (type: string) => {
+  switch (type) {
+    case 'order': return Package;
+    case 'stock': return AlertCircle;
+    case 'success': return CheckCircle;
+    default: return Bell;
+  }
+};
+
+const getNotificationColor = (type: string) => {
+  switch (type) {
+    case 'order': return 'bg-blue-500/10 text-blue-500';
+    case 'stock': return 'bg-amber-500/10 text-amber-500';
+    case 'success': return 'bg-green-500/10 text-green-500';
+    default: return 'bg-primary/10 text-primary';
+  }
+};
 
 export const Navbar: React.FC<NavbarProps> = ({
   title = "Dashboard",
@@ -68,6 +88,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    loading 
+  } = useNotifications();
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -110,10 +138,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   // Quick actions
   const quickActions = [
-    { label: "New Order", icon: ShoppingCart, color: "bg-blue-500" },
-    { label: "Add Product", icon: Package, color: "bg-green-500" },
-    { label: "Reports", icon: TrendingUp, color: "bg-purple-500" },
-    { label: "Support", icon: Users, color: "bg-amber-500" },
+    { label: "New Order", icon: ShoppingCart, color: "bg-blue-500", href: "/admin/pos" },
+    { label: "Add Product", icon: Package, color: "bg-green-500", href: "/admin/addproducts" },
+    { label: "Reports", icon: TrendingUp, color: "bg-purple-500", href: "/admin/transactions" },
+    { label: "Support", icon: Users, color: "bg-amber-500", href: "/admin/customers" },
   ];
 
   return (
@@ -136,7 +164,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </h1>
             <Badge
               variant="outline"
-              className="hidden sm:inline-flex border-primary/20 bg-primary/5 text-primary"
+              className="hidden sm:inline-flex border-primary/20 bg-primary/5 text-primary cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => navigate("/admin/dashboard")}
             >
               Admin
             </Badge>
@@ -178,6 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 variant="ghost"
                 size="sm"
                 className="h-8 px-3 gap-2 hover-lift"
+                onClick={() => navigate(action.href)}
               >
                 <action.icon className="h-3.5 w-3.5" />
                 <span className="text-xs font-medium">{action.label}</span>
@@ -264,7 +294,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="relative hover-lift h-9 w-9"
               >
                 <Bell className="h-4 w-4" />
-          
+                {unreadCount > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-4 min-w-[1rem] flex items-center justify-center p-0 text-[10px] bg-red-500 hover:bg-red-600"
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -277,9 +313,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     Notifications
                   </h3>
                   <p className="text-xs text-muted-foreground">
+                    You have {unreadCount} unread messages
                   </p>
                 </div>
-          
+                {unreadCount > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-xs h-8 text-primary hover:text-primary hover:bg-primary/10"
+                    onClick={() => markAllAsRead()}
+                  >
+                    Mark all read
+                  </Button>
+                )}
               </div>
 
               <Tabs defaultValue="all" className="w-full">
@@ -303,7 +349,65 @@ export const Navbar: React.FC<NavbarProps> = ({
                     System
                   </TabsTrigger>
                 </TabsList>
-            
+
+                <TabsContent value="all" className="m-0">
+                  <ScrollArea className="h-[350px]">
+                    {notifications?.length > 0 ? (
+                      <div className="divide-y divide-border/50">
+                        {notifications.map((notif) => (
+                          <div 
+                            key={notif.id}
+                            className={cn(
+                              "flex gap-3 p-4 hover:bg-primary/5 transition-colors cursor-pointer relative",
+                              !notif.isRead && "bg-primary/5"
+                            )}
+                            onClick={() => {
+                              if (!notif.isRead) markAsRead(notif.id);
+                              if (notif.link) navigate(notif.link);
+                            }}
+                          >
+                            {!notif.isRead && (
+                              <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full" />
+                            )}
+                            <div className={cn(
+                              "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
+                              getNotificationColor(notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                                 notif.type.toLowerCase().includes('order') ? 'order' : 
+                                                 notif.type.toLowerCase().includes('payment') ? 'success' : 'alert')
+                            )}>
+                              {React.createElement(getNotificationIcon(
+                                notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                notif.type.toLowerCase().includes('order') ? 'order' : 
+                                notif.type.toLowerCase().includes('payment') ? 'success' : 'alert'
+                              ), { className: "h-4 w-4" })}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground line-clamp-1">
+                                {notif.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                {notif.message}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-[350px] text-center p-6">
+                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                          <Bell className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground">No notifications</p>
+                        <p className="text-xs text-muted-foreground">We'll notify you when something important happens.</p>
+                      </div>
+                    )}
+                  </ScrollArea>
+                </TabsContent>
+                {/* Other TabContents could be filtered versions of notifications */}
               </Tabs>
 
               <div className="p-2 border-t border-border">
@@ -312,7 +416,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   size="sm"
                   className="w-full text-sm h-9"
                   onClick={() => {
-                    // Navigate to notifications page
+                    navigate('/admin/notifications');
                   }}
                 >
                   View all notifications
@@ -357,7 +461,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <Avatar className="h-9 w-9 border-2 border-primary/10">
                   <AvatarImage
-                    src={user?.avatar}
+                    src={user?.picture}
                     alt={user?.name}
                     className="object-cover"
                   />
@@ -376,7 +480,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 border-2 border-primary/20">
                     <AvatarImage
-                      src={user?.avatar}
+                      src={user?.picture}
                       alt={user?.name}
                       className="object-cover"
                     />

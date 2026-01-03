@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
+import { useQuery } from "@tanstack/react-query"; 
 import {
   Sheet,
   SheetContent,
@@ -39,35 +40,32 @@ import {
   Star,
   Gift,
   Calendar,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import Logo from '@/components/Images/HeraCollection Logo.jpg';
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartProvider";
+import { useWishlist } from "@/context/WishlistProvider";
+import { API_BASE_URL } from "@/utils/axiosClient.ts";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNotifications } from "@/context/NotificationContext";
+import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+import CategoryService from "@/api/categories.service";
 
 const navigationItems = [
   { name: "Home", href: "/" },
-  {
-    name: "Collections",
-    href: "/collections",
-    dropdown: [
-      "Tote Bags",
-      "Backpacks",
-      "Travel Bags",
-      "Custom Bags",
-      "Messenger Bags",
-      "Sling Bags",
-      "Laptop Sleeves",
-      "Pouches",
-      "Pad Pouch",
-    ],
-  },
+  { name: "Collections", href: "/collections" },
   { name: "About Us", href: "/about" },
   { name: "Contact", href: "/contact" },
-];
-
-const cartItems = [
-  { id: 1, name: "Premium Leather Tote", price: 299, quantity: 1, image: "/images/tote.jpg" },
-  { id: 2, name: "Designer Crossbody", price: 189, quantity: 1, image: "/images/crossbody.jpg" },
 ];
 
 export default function Header() {
@@ -82,11 +80,24 @@ export default function Header() {
     userProfile 
   } = useAuth();
   
+  const { items: cartItems, cartCount, total: cartTotal, removeItem } = useCart();
+  const { wishlistCount } = useWishlist();
+  
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+  } = useNotifications();
+
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["categories"],
+    queryFn: CategoryService.getAllCategories
+  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -96,13 +107,32 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const cartItemCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  const cartTotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-
   const handleLogout = async () => {
     await logout();
     navigate("/login");
   };
+
+  const getProductImage = (item: any) => {
+    if (item.product?.photos?.[0]?.url) {
+      return `${API_BASE_URL}${item.product.photos[0].url}`;
+    }
+    return "/placeholder-product.png";
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0
+    }).format(price);
+  };
+
+  const calculatedTotal = cartItems.reduce((sum: number, item: any) => {
+    const price = parseFloat(item.variant?.price || "0");
+    return sum + (price * item.quantity);
+  }, 0);
+
+  const displayTotal = calculatedTotal || cartTotal;
 
   const getUserInitials = () => {
     if (!user?.name) return "U";
@@ -121,13 +151,35 @@ export default function Header() {
     return "Good evening";
   };
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "order": return Package;
+      case "stock": return Package2;
+      case "alert": return Shield;
+      case "success": return CheckCircle;
+      case "user": return User;
+      default: return Bell;
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case "order": return "text-blue-500 bg-blue-500/10";
+      case "stock": return "text-amber-500 bg-amber-500/10";
+      case "alert": return "text-red-500 bg-red-500/10";
+      case "success": return "text-green-500 bg-green-500/10";
+      case "user": return "text-purple-500 bg-purple-500/10";
+      default: return "text-primary bg-primary/10";
+    }
+  };
+
   return (
     <>
       {/* Premium Promotional Bar - Theme aware */}
       <div className="bg-primary text-primary-foreground py-3 px-4 text-sm text-center relative overflow-hidden">
         <div className="flex items-center justify-center gap-2 animate-pulse">
           <Sparkles className="h-4 w-4" />
-          <span className="font-semibold">Festivities Offers - 10% off for grabs!</span>
+          <span className="font-semibold">Flash Sales - 5% off for grabs!</span>
           <Sparkles className="h-4 w-4" />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 dark:via-white/5 to-transparent animate-shimmer"></div>
@@ -159,36 +211,28 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-1">
-              {navigationItems.map((item, index) =>
-                item.dropdown ? (
-                  <DropdownMenu key={item.name}>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="flex items-center gap-2 px-6 py-2 text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent hover:bg-primary-accent/5 dark:hover:bg-primary-accent/10 rounded-full transition-all duration-300 font-medium group relative"
-                      >
+              {navigationItems.map((item) => {
+                if (item.name === "Collections") {
+                  return (
+                    <DropdownMenu key={item.name}>
+                      <DropdownMenuTrigger className="relative px-6 py-2 text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent font-medium transition-all duration-300 group flex items-center gap-1 focus:outline-none">
                         {item.name}
-                        <ChevronDown className="h-4 w-4 transition-transform duration-300 group-hover:rotate-180" />
+                        <ChevronDown className="h-4 w-4" />
                         <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary-accent transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10"></div>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="center"
-                      className="w-64 p-3 shadow-2xl border border-border dark:border-border/60 bg-background/95 dark:bg-background/95 backdrop-blur-xl rounded-2xl mt-2"
-                    >
-                      {item.dropdown.map((category) => (
-                        <DropdownMenuItem key={category} asChild className="p-0">
-                          <Link
-                            to={`/collections/${category.toLowerCase().replace(/\s+/g, "-")}`}
-                            className="flex items-center px-4 py-3 text-foreground/80 dark:text-foreground/70 hover:text-primary-accent dark:hover:text-primary-accent hover:bg-primary-accent/5 dark:hover:bg-primary-accent/10 rounded-lg transition-all duration-200 cursor-pointer border-l-2 border-transparent hover:border-primary-accent"
-                          >
-                            {category}
-                          </Link>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-56 glass-card border-border/50">
+                        {categories?.map((cat: any) => (
+                           <DropdownMenuItem key={cat.id} asChild>
+                              <Link to={`/collections/${cat.slug}`} className="w-full cursor-pointer uppercase tracking-wider text-[10px] font-bold py-2">
+                                {cat.name}
+                              </Link>
+                           </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                }
+                return (
                   <Link
                     key={item.name}
                     to={item.href}
@@ -197,8 +241,8 @@ export default function Header() {
                     {item.name}
                     <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary-accent transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10"></div>
                   </Link>
-                )
-              )}
+                );
+              })}
             </nav>
 
             {/* User Actions */}
@@ -397,24 +441,185 @@ export default function Header() {
 
               {/* Notifications */}
               {isAuthenticated && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 w-12 rounded-full bg-secondary/50 dark:bg-secondary/30 hover:bg-primary-accent/10 dark:hover:bg-primary-accent/20 text-foreground/70 dark:text-foreground/60 hover:text-primary-accent dark:hover:text-primary-accent transition-all duration-300 relative group"
-                  aria-label="Notifications"
-                  asChild
-                >
-                  <Link to="/notifications">
-                    <Bell className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                    {notificationCount > 0 && (
-                      <Badge
-                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent text-cta-foreground border-2 border-background dark:border-background shadow-lg"
-                      >
-                        {notificationCount}
-                      </Badge>
-                    )}
-                  </Link>
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-12 w-12 rounded-full bg-secondary/50 dark:bg-secondary/30 hover:bg-primary-accent/10 dark:hover:bg-primary-accent/20 text-foreground/70 dark:text-foreground/60 hover:text-primary-accent dark:hover:text-primary-accent transition-all duration-300 relative group"
+                      aria-label="Notifications"
+                    >
+                      <Bell className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                      {unreadCount > 0 && (
+                        <Badge
+                          className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent text-cta-foreground border-2 border-background dark:border-background shadow-lg"
+                        >
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-96 p-0 shadow-2xl border border-border dark:border-border/60 bg-background/95 dark:bg-background/95 backdrop-blur-xl rounded-2xl overflow-hidden"
+                    align="end"
+                  >
+                    <div className="flex items-center justify-between p-4 border-b border-border/50">
+                      <div>
+                        <h3 className="font-semibold text-foreground">
+                          Notifications
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          You have {unreadCount} unread messages
+                        </p>
+                      </div>
+                      {unreadCount > 0 && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs h-8 text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={() => markAllAsRead()}
+                        >
+                          Mark all read
+                        </Button>
+                      )}
+                    </div>
+
+                    <Tabs defaultValue="all" className="w-full">
+                      <TabsList className="w-full grid grid-cols-2 rounded-none border-b border-border/50 px-0 bg-transparent">
+                        <TabsTrigger
+                          value="all"
+                          className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                        >
+                          All
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="unread"
+                          className="rounded-none data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
+                        >
+                          Unread
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="all" className="m-0">
+                        <ScrollArea className="h-[350px]">
+                          {notifications?.length > 0 ? (
+                            <div className="divide-y divide-border/50">
+                              {notifications.map((notif) => (
+                                <div 
+                                  key={notif.id}
+                                  className={cn(
+                                    "flex gap-3 p-4 hover:bg-secondary/50 dark:hover:bg-secondary/30 transition-colors cursor-pointer relative",
+                                    !notif.isRead && "bg-primary-accent/5"
+                                  )}
+                                  onClick={() => {
+                                    if (!notif.isRead) markAsRead(notif.id);
+                                    if (notif.link) navigate(notif.link);
+                                  }}
+                                >
+                                  {!notif.isRead && (
+                                    <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-accent rounded-full" />
+                                  )}
+                                  <div className={cn(
+                                    "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
+                                    getNotificationColor(notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                                       notif.type.toLowerCase().includes('order') ? 'order' : 
+                                                       notif.type.toLowerCase().includes('payment') ? 'success' : 'alert')
+                                  )}>
+                                    {React.createElement(getNotificationIcon(
+                                      notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                      notif.type.toLowerCase().includes('order') ? 'order' : 
+                                      notif.type.toLowerCase().includes('payment') ? 'success' : 'alert'
+                                    ), { className: "h-4 w-4" })}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground line-clamp-1">
+                                      {notif.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                      {notif.message}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-[350px] text-center p-6">
+                              <Bell className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                              <p className="text-sm font-medium text-foreground">No notifications</p>
+                              <p className="text-xs text-muted-foreground">We'll notify you when something important happens.</p>
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </TabsContent>
+                      
+                      <TabsContent value="unread" className="m-0">
+                          <ScrollArea className="h-[350px]">
+                            {notifications?.filter(n => !n.isRead).length > 0 ? (
+                              <div className="divide-y divide-border/50">
+                                {notifications.filter(n => !n.isRead).map((notif) => (
+                                  <div 
+                                    key={notif.id}
+                                    className="flex gap-3 p-4 hover:bg-secondary/50 dark:hover:bg-secondary/30 transition-colors cursor-pointer relative bg-primary-accent/5"
+                                    onClick={() => {
+                                      markAsRead(notif.id);
+                                      if (notif.link) navigate(notif.link);
+                                    }}
+                                  >
+                                    <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-accent rounded-full" />
+                                    <div className={cn(
+                                      "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
+                                      getNotificationColor(notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                                         notif.type.toLowerCase().includes('order') ? 'order' : 
+                                                         notif.type.toLowerCase().includes('payment') ? 'success' : 'alert')
+                                    )}>
+                                      {React.createElement(getNotificationIcon(
+                                        notif.type.toLowerCase().includes('stock') ? 'stock' : 
+                                        notif.type.toLowerCase().includes('order') ? 'order' : 
+                                        notif.type.toLowerCase().includes('payment') ? 'success' : 'alert'
+                                      ), { className: "h-4 w-4" })}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-foreground line-clamp-1">
+                                        {notif.title}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                                        {notif.message}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {formatDistanceToNow(new Date(notif.createdAt), { addSuffix: true })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-[350px] text-center p-6">
+                                    <CheckCircle className="h-12 w-12 text-green-500/30 mb-3" />
+                                    <p className="text-sm font-medium text-foreground">All caught up!</p>
+                                    <p className="text-xs text-muted-foreground">No unread notifications.</p>
+                                </div>
+                            )}
+                          </ScrollArea>
+                      </TabsContent>
+                    </Tabs>
+                    
+                    <div className="p-2 border-t border-border/50">
+                        <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-sm h-9 hover:bg-secondary/50"
+                        asChild
+                        >
+                            <Link to="/profile/notifications">View all notifications</Link>
+                        </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               )}
 
               {/* Wishlist */}
@@ -427,11 +632,11 @@ export default function Header() {
               >
                 <Link to="/wishlist">
                   <Heart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                  {userStats?.wishlist > 0 && (
+                  {wishlistCount > 0 && (
                     <Badge
                       className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent text-cta-foreground border-2 border-background dark:border-background shadow-lg"
                     >
-                      {userStats.wishlist}
+                      {wishlistCount}
                     </Badge>
                   )}
                 </Link>
@@ -447,11 +652,11 @@ export default function Header() {
                     aria-label="Shopping cart"
                   >
                     <ShoppingCart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                    {cartItemCount > 0 && (
+                    {cartCount > 0 && (
                       <Badge
                         className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent text-cta-foreground border-2 border-background dark:border-background shadow-lg"
                       >
-                        {cartItemCount}
+                        {cartCount}
                       </Badge>
                     )}
                   </Button>
@@ -480,19 +685,34 @@ export default function Header() {
                     ) : (
                       <>
                         <div className="space-y-4 max-h-60 overflow-y-auto">
-                          {cartItems.map((item) => (
-                            <div key={item.id} className="flex items-center space-x-4 p-3 rounded-xl bg-secondary/30 dark:bg-secondary/20 hover:bg-secondary/50 dark:hover:bg-secondary/40 transition-all duration-200">
-                              <div className="h-14 w-14 bg-gradient-to-br from-primary-accent/20 to-cta/20 dark:from-primary-accent/30 dark:to-cta/30 rounded-lg flex items-center justify-center">
-                                <Package className="h-6 w-6 text-primary-accent dark:text-primary-accent" />
+                          {cartItems.map((item: any) => (
+                            <div key={item.id} className="flex items-center space-x-4 p-3 rounded-xl bg-secondary/30 dark:bg-secondary/20 hover:bg-secondary/50 dark:hover:bg-secondary/40 transition-all duration-200 group/item">
+                              <div className="h-14 w-14 rounded-lg overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={getProductImage(item)} 
+                                  alt={item.product?.title}
+                                  className="h-full w-full object-cover"
+                                />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold truncate text-foreground dark:text-foreground">{item.name}</p>
+                                <p className="text-sm font-semibold truncate text-foreground dark:text-foreground">{item.product?.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.variant?.sku}
+                                </p>
                                 <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-                                  ${item.price} × {item.quantity}
+                                  {formatPrice(parseFloat(item.variant?.price || "0"))} × {item.quantity}
                                 </p>
                               </div>
-                              <div className="text-sm font-semibold text-primary-accent dark:text-primary-accent">
-                                ${item.price * item.quantity}
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="text-sm font-semibold text-primary-accent dark:text-primary-accent">
+                                  {formatPrice(parseFloat(item.variant?.price || "0") * item.quantity)}
+                                </div>
+                                <button 
+                                  onClick={() => removeItem(item.id)}
+                                  className="text-xs text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                                >
+                                  Remove
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -501,7 +721,7 @@ export default function Header() {
                         <div className="border-t border-border/50 dark:border-border/60 mt-6 pt-6">
                           <div className="flex justify-between items-center mb-6 text-lg">
                             <span className="font-semibold text-foreground dark:text-foreground">Total:</span>
-                            <span className="font-bold text-primary-accent dark:text-primary-accent">${cartTotal}</span>
+                            <span className="font-bold text-primary-accent dark:text-primary-accent">{formatPrice(displayTotal)}</span>
                           </div>
                           <div className="flex space-x-3">
                             <Button 
@@ -592,26 +812,27 @@ export default function Header() {
 
                     {/* Mobile Navigation */}
                     <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-                      {navigationItems.map((item) =>
-                        item.dropdown ? (
-                          <div key={item.name} className="space-y-3">
-                            <div className="font-semibold text-foreground dark:text-foreground text-lg px-3 py-2">
-                              {item.name}
-                            </div>
-                            <div className="space-y-1 pl-4">
-                              {item.dropdown.map((category) => (
+                      {navigationItems.map((item) => {
+                        if (item.name === "Collections") {
+                          return (
+                            <div key={item.name} className="space-y-2">
+                              <p className="px-3 py-2 text-xs font-bold text-muted-foreground uppercase tracking-widest mt-4">
+                                {item.name}
+                              </p>
+                              {categories?.map((cat: any) => (
                                 <Link
-                                  key={category}
-                                  to={`/collections/${category.toLowerCase().replace(/\s+/g, "-")}`}
-                                  className="block px-3 py-3 text-muted-foreground dark:text-muted-foreground hover:text-primary-accent dark:hover:text-primary-accent hover:bg-primary-accent/5 dark:hover:bg-primary-accent/10 rounded-xl transition-all duration-200"
+                                  key={cat.id}
+                                  to={`/collections/${cat.slug}`}
+                                  className="block px-6 py-3 text-foreground dark:text-foreground hover:text-primary-accent dark:hover:text-primary-accent hover:bg-primary-accent/5 dark:hover:bg-primary-accent/10 rounded-xl transition-all duration-200 font-medium text-sm"
                                   onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                  {category}
+                                  {cat.name}
                                 </Link>
                               ))}
                             </div>
-                          </div>
-                        ) : (
+                          );
+                        }
+                        return (
                           <Link
                             key={item.name}
                             to={item.href}
@@ -620,8 +841,8 @@ export default function Header() {
                           >
                             {item.name}
                           </Link>
-                        )
-                      )}
+                        );
+                      })}
                     </nav>
 
                     {/* Profile Links in Mobile Menu */}
@@ -697,7 +918,7 @@ export default function Header() {
                             asChild
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
-                            <Link to="/signup">Sign Up</Link>
+                            <Link to="/register">Sign Up</Link>
                           </Button>
                         </div>
                       ) : (

@@ -3,67 +3,26 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
-import Tote from '@/components/Images/tote.jpg'
-import BackPack from '@/components/Images/BackPack.png'
-import Travel from '@/components/Images/Travel.png'
-import LaptopSleeves from '@/components/Images/LaptopSleeves.png'
-import Custom from '@/components/Images/Custom.png'
-import Messenger from '@/components/Images/Messenger.png'
-import Sling from '@/components/Images/Sling.png'
+import { useQuery } from "@tanstack/react-query";
+import CategoryService from "@/api/categories.service";
+import { API_BASE_URL } from "@/utils/axiosClient.ts";
 
-const categories = [
-  {
-    id: 1,
-    name: "Tote Bags",
-    image: Tote,
-    href: "/collections/tote-bags",
-    description: "Stylish & Spacious"
-  },
-  {
-    id: 2,
-    name: "Backpacks",
-    image: BackPack,
-    href: "/collections/backpacks",
-    description: "Comfort & Function"
-  },
-  {
-    id: 3,
-    name: "Travel Bags",
-    image: Travel,
-    href: "/collections/travel-bags",
-    description: "Adventure Ready"
-  },
-  {
-    id: 4,
-    name: "Laptop Sleeves",
-    image: LaptopSleeves,
-    href: "/collections/laptop-sleeves",
-    description: "Tech Protection"
-  },
-  {
-    id: 5,
-    name: "Custom Bags",
-    image: Custom,
-    href: "/collections/custom-bags",
-    description: "Personalized"
-  },
-  {
-    id: 6,
-    name: "Messenger Bags",
-    image: Messenger,
-    href: "/collections/messenger-bags",
-    description: "Urban Style"
-  },
-  {
-    id: 7,
-    name: "Sling Bags",
-    image: Sling,
-    href: "/collections/sling-bags",
-    description: "Compact & Trendy"
-  }
-];
+// Helper to format category link
+const getCategoryLink = (slug: string) => `/collections/${slug}`;
+
+// Fallback image helper
+const getCategoryImage = (coverPhoto: string | null) => {
+  if (!coverPhoto) return "/placeholder-category.jpg";
+  if (coverPhoto.startsWith('http')) return coverPhoto;
+  return `${API_BASE_URL}${coverPhoto.startsWith('/') ? '' : '/'}${coverPhoto}`;
+};
 
 export default function ShopByCategory() {
+  const { data: categories = [] as any[], isLoading, error } = useQuery<any[]>({
+    queryKey: ["categories"],
+    queryFn: CategoryService.getAllCategories,
+  });
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [itemsPerView, setItemsPerView] = useState(4);
   const [isDragging, setIsDragging] = useState(false);
@@ -232,7 +191,7 @@ export default function ShopByCategory() {
 
           {/* Mobile Navigation Dots */}
           <div className="md:hidden flex items-center space-x-2">
-            {Array.from({ length: totalDots }).map((_, index) => (
+            {!isLoading && categories.length > 0 && Array.from({ length: totalDots }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index * itemsPerView)}
@@ -260,7 +219,7 @@ export default function ShopByCategory() {
               <ChevronLeft className="h-5 w-5 text-primary dark:text-primary" />
             </button>
             <span className="text-sm text-muted-foreground dark:text-muted-foreground">
-              {Math.min(currentIndex + 1, categories.length)} / {categories.length}
+              {categories.length > 0 ? Math.min(currentIndex + 1, categories.length) : 0} / {categories.length}
             </span>
             <button
               onClick={nextSlide}
@@ -289,88 +248,106 @@ export default function ShopByCategory() {
               aria-label="Product categories carousel"
               aria-live="polite"
             >
-              {categories.map((category, index) => (
-                <div
-                  key={category.id}
-                  className="flex-shrink-0 px-2 sm:px-3"
-                  style={{ width: `${100 / itemsPerView}%` }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    className="group relative h-full"
+              {isLoading ? (
+                // Skeleton loading state
+                Array.from({ length: 4 }).map((_, idx) => (
+                  <div
+                    key={`skeleton-${idx}`}
+                    className="flex-shrink-0 px-2 sm:px-3"
+                    style={{ width: `${100 / itemsPerView}%` }}
                   >
-                    <Link
-                      to={category.href}
-                      className="block h-full"
-                      aria-label={`Browse ${category.name} collection`}
-                    >
-                      {/* Image Container */}
-                      <div className="relative bg-secondary/20 dark:bg-secondary/10 overflow-hidden aspect-square rounded-xl sm:rounded-2xl border border-border/10 dark:border-border/20 transition-all duration-300 group-hover:border-primary/30 dark:group-hover:border-primary/50">
-                        {/* Image */}
-                        <div className="relative w-full h-full">
-                          <img
-                            src={category.image}
-                            alt={category.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            loading={index < 4 ? "eager" : "lazy"}
-                            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                          />
-                          
-                          {/* Gradient Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent dark:from-black/60" />
-                        </div>
-                        
-                        {/* Category Info */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-5">
-                          <div className="flex flex-col">
-                            {/* Category Name */}
-                            <div className="bg-primary dark:bg-primary py-2 px-4 rounded-lg sm:rounded-xl w-max mb-2 shadow-lg">
-                              <h3
-                                className="text-sm sm:text-base md:text-lg font-medium text-primary-foreground dark:text-primary-foreground text-center uppercase tracking-wider sm:tracking-widest"
-                                style={{ fontFamily: "'Open Sans', ui-sans-serif, system-ui, sans-serif" }}
-                              >
-                                {category.name}
-                              </h3>
-                            </div>
-                            
-                            {/* Description (Desktop only) */}
-                            <p className="hidden sm:block text-xs md:text-sm text-white/90 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-1">
-                              {category.description}
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {/* Hover Effect Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
-                        
-                        {/* Mobile Indicator */}
-                        <div className="absolute top-3 right-3 sm:hidden">
-                          <div className="w-8 h-8 rounded-full bg-background/80 dark:bg-background/80 flex items-center justify-center">
-                            <ChevronRight className="h-4 w-4 text-primary dark:text-primary" />
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                    
-                    {/* Quick View Button (Desktop only) */}
-                    <div className="hidden sm:block absolute top-4 right-4 z-10">
-                      <button
-                        className="bg-background/90 dark:bg-background/90 text-primary dark:text-primary text-xs font-medium py-1.5 px-3 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-primary-foreground shadow-md"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          // Quick view functionality can be added here
-                        }}
-                      >
-                        Quick View
-                      </button>
-                    </div>
-                  </motion.div>
+                    <div className="animate-pulse bg-muted rounded-2xl aspect-square" />
+                  </div>
+                ))
+              ) : categories.length === 0 ? (
+                <div className="w-full text-center py-20 text-muted-foreground">
+                  No categories found.
                 </div>
-              ))}
+              ) : (
+                categories.map((category: any, index: number) => (
+                  <div
+                    key={category.id}
+                    className="flex-shrink-0 px-2 sm:px-3"
+                    style={{ width: `${100 / itemsPerView}%` }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      className="group relative h-full"
+                    >
+                      <Link
+                        to={getCategoryLink(category.slug)}
+                        className="block h-full"
+                        aria-label={`Browse ${category.name} collection`}
+                      >
+                        {/* Image Container */}
+                        <div className="relative bg-secondary/20 dark:bg-secondary/10 overflow-hidden aspect-square rounded-xl sm:rounded-2xl border border-border/10 dark:border-border/20 transition-all duration-300 group-hover:border-primary/30 dark:group-hover:border-primary/50">
+                          {/* Image */}
+                          <div className="relative w-full h-full">
+                            <img
+                              src={getCategoryImage(category.coverPhoto)}
+                              alt={category.name}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              loading={index < 4 ? "eager" : "lazy"}
+                              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                            />
+                            
+                            {/* Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent dark:from-black/60" />
+                          </div>
+                          
+                          {/* Category Info */}
+                          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-5">
+                            <div className="flex flex-col">
+                              {/* Category Name */}
+                              <div className="bg-primary dark:bg-primary py-2 px-4 rounded-lg sm:rounded-xl w-max mb-2 shadow-lg">
+                                <h3
+                                  className="text-sm sm:text-base md:text-lg font-medium text-primary-foreground dark:text-primary-foreground text-center uppercase tracking-wider sm:tracking-widest"
+                                  style={{ fontFamily: "'Open Sans', ui-sans-serif, system-ui, sans-serif" }}
+                                >
+                                  {category.name}
+                                </h3>
+                              </div>
+                              
+                              {/* Description (Desktop only) */}
+                              {category.description && (
+                                <p className="hidden sm:block text-xs md:text-sm text-white/90 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 pl-1">
+                                  {category.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Hover Effect Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                          
+                          {/* Mobile Indicator */}
+                          <div className="absolute top-3 right-3 sm:hidden">
+                            <div className="w-8 h-8 rounded-full bg-background/80 dark:bg-background/80 flex items-center justify-center">
+                              <ChevronRight className="h-4 w-4 text-primary dark:text-primary" />
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                      
+                      {/* Quick View Button (Desktop only) */}
+                      <div className="hidden sm:block absolute top-4 right-4 z-10">
+                        <button
+                          className="bg-background/90 dark:bg-background/90 text-primary dark:text-primary text-xs font-medium py-1.5 px-3 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-primary hover:text-primary-foreground shadow-md"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          Quick View
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+                ))
+              )}
             </motion.div>
           </div>
         </div>
