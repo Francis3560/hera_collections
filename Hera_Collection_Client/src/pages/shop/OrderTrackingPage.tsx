@@ -18,8 +18,8 @@ export default function OrderTrackingPage() {
         // Assuming we can fetch by order number or id
         // For tracking page, usually search by order number
         const response = await OrderService.getOrders({ search: orderNumber });
-        if (response.items?.length > 0) {
-          setOrder(response.items[0]);
+        if (response.data?.length > 0) {
+          setOrder(response.data[0]);
         }
       } catch (error) {
         console.error("Failed to fetch order:", error);

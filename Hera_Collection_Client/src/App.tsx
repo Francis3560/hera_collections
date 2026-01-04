@@ -44,12 +44,15 @@ import OrderItemsList from "./pages/administrator/Orders/OrderItemsList";
 import NotificationsPage from "./pages/administrator/Notifications/NotificationsPage";
 import DiscountList from "./pages/administrator/Discounts/DiscountList";
 import DiscountForm from "./pages/administrator/Discounts/DiscountForm";
+import UserOrders from "./pages/authentication/UserOrders";
 import CartPage from "./pages/shop/CartPage";
 import CheckoutPage from "./pages/shop/CheckoutPage";
 import OrderTrackingPage from "./pages/shop/OrderTrackingPage";
 import WishlistPage from "./pages/shop/WishlistPage";
 import ProductDetailsPage from "./pages/shop/ProductDetailsPage";
+import CollectionsPage from "./pages/shop/CollectionsPage";
 import CollectionPage from "./pages/shop/CollectionPage";
+import ThankYouPage from "./pages/shop/ThankYouPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,12 +91,14 @@ const App = () => (
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/product/:slug" element={<ProductDetailsPage />} />
+                  <Route path="/collections" element={<CollectionsPage />} />
                   <Route path="/collections/:slug" element={<CollectionPage />} />
                   <Route path="/checkout" element={
                     <ProtectedRoute>
                       <CheckoutPage />
                     </ProtectedRoute>
                   } />
+                  <Route path="/thank-you" element={<ThankYouPage />} />
                   <Route path="/order-tracking/:orderNumber" element={<OrderTrackingPage />} />
                   
                   {/* Verification routes */}
@@ -108,6 +113,7 @@ const App = () => (
                     </ProtectedRoute>
                   }>
                     <Route index element={<ProfileOverview />} />
+                    <Route path="orders" element={<UserOrders />} />
                     <Route path="security" element={
                       <ProtectedRoute requireVerified>
                         <SecurityPage />

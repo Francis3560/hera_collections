@@ -537,7 +537,7 @@ export default function ProductShowcase() {
           className="text-center mt-12"
         >
           <Link
-            to="/shop?sort=bestsellers"
+            to="/collections?sort=popular"
             className="inline-flex items-center gap-2 border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-foreground hover:bg-gray-900 dark:hover:bg-gray-800 hover:text-white dark:hover:text-white font-medium py-3 px-8 rounded-none transition-all duration-300"
           >
             <span>View All Bestsellers</span>

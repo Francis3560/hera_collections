@@ -51,22 +51,19 @@ export const mpesaCallbackSchema = Joi.object({
     stkCallback: Joi.object({
       MerchantRequestID: Joi.string().required(),
       CheckoutRequestID: Joi.string().required(),
-      ResultCode: Joi.number().required(),
+      ResultCode: Joi.alternatives().try(Joi.number(), Joi.string()).required(),
       ResultDesc: Joi.string().required(),
       CallbackMetadata: Joi.object({
         Item: Joi.array().items(
           Joi.object({
             Name: Joi.string().required(),
-            Value: Joi.alternatives().try(
-              Joi.string(),
-              Joi.number()
-            ).required()
-          })
+            Value: Joi.any().optional()
+          }).unknown()
         ).optional()
-      }).optional()
-    }).required()
-  }).required()
-});
+      }).unknown().optional()
+    }).unknown().required()
+  }).unknown().required()
+}).unknown();
 
 // Validation for payment status check
 export const paymentStatusSchema = Joi.object({
@@ -131,10 +128,16 @@ export function validatePaymentRequest(req, res, next) {
 }
 
 export function validateMpesaCallback(req, res, next) {
+  console.log("=== INCOMING MPESA CALLBACK VALIDATION ===");
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
+  console.log("Body:", JSON.stringify(req.body, null, 2));
+
   const { error } = mpesaCallbackSchema.validate(req.body, { abortEarly: false });
   
   if (error) {
-    console.warn("Invalid MPESA callback format:", error.details);
+    console.error("=== MPESA CALLBACK VALIDATION FAILED ===");
+    console.error("Current Body:", JSON.stringify(req.body, null, 2));
+    console.error("Validation Errors:", JSON.stringify(error.details, null, 2));
     return res.status(400).json({
       ResultCode: 1,
       ResultDesc: "Invalid callback format"

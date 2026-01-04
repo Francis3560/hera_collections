@@ -18,7 +18,7 @@ export async function createOrder(req, res) {
 }
 export async function listOrders(req, res) {
   try {
-    const orders = await orderService.getUserOrders(req.auth.userId);
+    const orders = await orderService.getUserOrders(req.auth.userId, req.query);
     return res.json({
       success: true,
       data: orders,

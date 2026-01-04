@@ -1,5 +1,6 @@
 import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
+import * as stockService from './stockService.js';
 import { 
   subDays, 
   subMonths, 
@@ -60,19 +61,47 @@ export async function createOrder(userId, data, paymentIntentId = null) {
   if (products.length !== items.length) {
     throw new Error('Some products are invalid or unavailable');
   }
-  for (const item of items) {
-    const product = products.find(p => p.id === item.productId);
-    if (!product) {
-      throw new Error(`Product ${item.productId} not found`);
-    }
-    if (product.quantity < item.quantity) {
-      throw new Error(`Not enough stock for "${product.title}". Available: ${product.quantity}, Requested: ${item.quantity}`);
-    }
-  }
-
+  
   const orderNumber = await generateOrderNumber();
 
   const order = await prisma.$transaction(async (tx) => {
+    console.log(`[OrderService] Starting transaction for Order #${orderNumber}`);
+    
+    // Check stock availability
+    for (const item of items) {
+      if (item.variantId) {
+        const variant = await tx.productVariant.findUnique({
+          where: { id: item.variantId },
+          include: { product: true }
+        });
+
+        if (!variant) {
+          throw new Error(`Product variant not found (ID: ${item.variantId})`);
+        }
+
+        console.log(`[OrderService] Checking stock for ${variant.sku}: requested ${item.quantity}, available ${variant.stock}`);
+        if (variant.stock < item.quantity) {
+          throw new Error(`Not enough stock for "${variant.product.title}" (${variant.sku}). Available: ${variant.stock}, Requested: ${item.quantity}`);
+        }
+      } else {
+        // Fallback for items without variantId (if any)
+        const product = products.find(p => p.id === item.productId);
+        if (!product) {
+          throw new Error(`Product ${item.productId} not found`);
+        }
+        
+        const firstVariant = await tx.productVariant.findFirst({
+          where: { productId: item.productId }
+        });
+
+        if (firstVariant && firstVariant.stock < item.quantity) {
+          throw new Error(`Not enough stock for "${product.title}". Available: ${firstVariant.stock}, Requested: ${item.quantity}`);
+        }
+      }
+    }
+
+    console.log(`[OrderService] Creating order record...`);
+
     const newOrder = await tx.order.create({
       data: {
         orderNumber,
@@ -121,15 +150,9 @@ export async function createOrder(userId, data, paymentIntentId = null) {
       },
     });
     
-    // Decrement stock from variants
-    for (const item of items) {
-      if (item.variantId) {
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: { stock: { decrement: item.quantity } }, // Use 'stock', not 'quantity'
-        });
-      }
-    }
+    console.log("Recording stock movements and clearing cart...");
+    // Record stock movements (this also updates variant stock and broadcasts)
+    await stockService.recordSaleMovement(newOrder.id, items, userId, tx);
 
     // Clear user's cart after order creation
     await tx.cartItem.deleteMany({
@@ -170,9 +193,19 @@ export async function createOrder(userId, data, paymentIntentId = null) {
   return order;
 }
 
-export async function getUserOrders(userId) {
+export async function getUserOrders(userId, filters = {}) {
+  const { search, status } = filters;
+  const where = { buyerId: userId };
+
+  if (search) {
+    where.orderNumber = { contains: search, mode: 'insensitive' };
+  }
+  if (status) {
+    where.status = status;
+  }
+
   return prisma.order.findMany({
-    where: { buyerId: userId },
+    where,
     include: { 
       items: { 
         include: { 

@@ -2,6 +2,7 @@ import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
 import { sendLowStockAlertEmail } from './emails/emailService.js';
 import { NotificationService } from './notification.service.js';
+import webSocketService from './websocket.service.js';
 import { NotificationTypes, NotificationPriorities, RelatedEntities } from '../types/notification.types.js';
 export const addStock = async (variantId, data, userId) => {
   const { quantity, reason, notes, costPrice, location } = data;
@@ -158,13 +159,14 @@ export const adjustStock = async (variantId, data, userId) => {
   return result;
 };
 
-export const recordSaleMovement = async (orderId, orderItems, userId) => {
+export const recordSaleMovement = async (orderId, orderItems, userId, tx = null) => {
+  const db = tx || prisma;
   const movements = [];
   
   for (const item of orderItems) {
     if (!item.variantId) continue;
 
-    const variant = await prisma.productVariant.findUnique({
+    const variant = await db.productVariant.findUnique({
       where: { id: item.variantId },
     });
 
@@ -176,14 +178,14 @@ export const recordSaleMovement = async (orderId, orderItems, userId) => {
     const previousStock = variant.stock;
     const newStock = previousStock - item.quantity;
 
-    const movement = await prisma.stockMovement.create({
+    const movement = await db.stockMovement.create({
       data: {
         variantId: item.variantId,
         movementType: 'SALE',
         quantity: -item.quantity, 
         previousStock,
         newStock,
-        referenceId: orderId,
+        referenceId: parseInt(orderId),
         referenceType: 'ORDER',
         reason: `Sale - Order #${orderId}`,
         createdById: parseInt(userId),
@@ -192,10 +194,19 @@ export const recordSaleMovement = async (orderId, orderItems, userId) => {
     });
 
     movements.push(movement);
-    await prisma.productVariant.update({
+    await db.productVariant.update({
       where: { id: item.variantId },
       data: { stock: newStock },
     });
+    
+    // Broadcast stock update
+    webSocketService.sendStockUpdate({
+      variantId: item.variantId,
+      productId: variant.productId,
+      newStock: newStock,
+      timestamp: new Date().toISOString()
+    });
+
     await checkAndUpdateStockAlerts(item.variantId, newStock);
   }
 
@@ -232,7 +243,7 @@ export const recordReturnMovement = async (variantId, quantity, orderId, userId,
         quantity: quantity,
         previousStock: variant.stock,
         newStock: updatedVariant.stock,
-        referenceId: orderId,
+        referenceId: parseInt(orderId),
         referenceType: 'ORDER_RETURN',
         reason: reason || 'Customer return',
         createdById: parseInt(userId),

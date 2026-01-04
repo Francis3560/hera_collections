@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 
@@ -16,7 +17,7 @@ const heroSlides = [
     subtitle: "Executive Excellence",
     description: "Discover our premium collection of professional bags designed for the modern business leader. Crafted with precision and sophistication.",
     cta: "EXPLORE COLLECTION",
-
+    bgColor: "from-gray-800/20 to-gray-600/20"
   },
   {
     id: 2,
@@ -25,7 +26,7 @@ const heroSlides = [
     subtitle: "Luxury Meets Functionality",
     description: "Experience unparalleled quality with our handcrafted leather bags, built to withstand the demands of corporate life while making a statement.",
     cta: "EXPLORE COLLECTION",
-
+    bgColor: "from-blue-600/20 to-purple-600/20"
   },
   {
     id: 3,
@@ -34,7 +35,7 @@ const heroSlides = [
     subtitle: "Smart Organization",
     description: "Innovative compartments and intelligent design meet elegant aesthetics. Your perfect companion for meetings, travel, and daily commutes.",
     cta: "EXPLORE COLLECTION",
-  
+    bgColor: "from-green-600/20 to-teal-600/20"
   },
   {
     id: 4,
@@ -43,7 +44,7 @@ const heroSlides = [
     subtitle: "Ethical Elegance",
     description: "Commitment to sustainability without compromising on style. Our eco-friendly materials and ethical production redefine corporate accessories.",
     cta: "EXPLORE COLLECTION",
-
+    bgColor: "from-amber-600/20 to-orange-600/20"
   }
 ];
 
@@ -189,12 +190,14 @@ export default function HeroSection() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8, duration: 0.7 }}
                   >
-                    <Button 
-                      size="lg"
-                      className="bg-primary hover:bg-primary-accent/90 text-primary-accent-foreground px-8 py-6 text-lg font-semibold rounded-none border-2 border-transparent hover:border-primary-accent/20 transition-all duration-300 hover:scale-105"
-                    >
-                      {heroSlides[currentSlide].cta}
-                    </Button>
+                    <Link to="/collections">
+                      <Button 
+                        size="lg"
+                        className="bg-primary hover:bg-primary-accent/90 text-primary-accent-foreground px-8 py-6 text-lg font-semibold rounded-none border-2 border-transparent hover:border-primary-accent/20 transition-all duration-300 hover:scale-105"
+                      >
+                        {heroSlides[currentSlide].cta}
+                      </Button>
+                    </Link>
                   </motion.div>
                 </motion.div>
               </AnimatePresence>

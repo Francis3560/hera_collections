@@ -174,13 +174,14 @@ export async function mpesaCallback(req, res) {
       });
     }
 
-    console.log("MPESA Callback received:", {
-      checkoutId,
-      resultCode,
-      resultDesc,
-      transactionData,
-      timestamp: new Date().toISOString()
-    });
+    console.log("=== MPESA CALLBACK START ===");
+    console.log("Full Request Body:", JSON.stringify(req.body, null, 2));
+    console.log("STK Callback:", JSON.stringify(stkCallback, null, 2));
+    console.log("ResultCode:", resultCode);
+    console.log("ResultDesc:", resultDesc);
+    console.log("CheckoutRequestID:", checkoutId);
+    console.log("Transaction Data:", JSON.stringify(transactionData, null, 2));
+    console.log("Timestamp:", new Date().toISOString());
 
     if (!checkoutId) {
       console.warn("Callback missing CheckoutRequestID");
@@ -207,6 +208,8 @@ export async function mpesaCallback(req, res) {
       return res.json({ ResultCode: 0, ResultDesc: "Payment intent not found" });
     }
 
+    console.log(`Processing intent: ${intent.id}, Current status: ${intent.status}`);
+
     // Don't process if already completed
     if (intent.status !== "PENDING") {
       console.log(`Payment intent ${intent.id} already in status: ${intent.status}`);
@@ -215,7 +218,7 @@ export async function mpesaCallback(req, res) {
 
     if (resultCode === 0) {
       // Payment successful
-      console.log(`Payment successful for intent ${intent.id}`);
+      console.log(`Payment successful for intent ${intent.id}. Proceeding to create order...`);
       
       try {
         const payload = JSON.parse(intent.payload);
@@ -227,8 +230,10 @@ export async function mpesaCallback(req, res) {
           intent.id
         );
 
+        console.log(`Order created: ${order.orderNumber} (ID: ${order.id})`);
+
         // Update payment intent with success and connect to order
-        await prisma.paymentIntent.update({
+        const updatedIntent = await prisma.paymentIntent.update({
           where: { id: intent.id },
           data: {
             status: "SUCCESS",
@@ -245,11 +250,13 @@ export async function mpesaCallback(req, res) {
           },
         });
 
-        console.log(`Order ${order.id} created successfully for payment ${intent.id}`);
+        console.log(`Payment intent ${intent.id} updated to SUCCESS`);
+        console.log(`Order ${order.id} connected successfully to payment ${intent.id}`);
 
         // Send payment success notification
         try {
           await sendPaymentSuccessEmail(intent, order, intent.buyer);
+          console.log(`Success email sent to ${intent.buyer.email}`);
         } catch (emailError) {
           console.error("Failed to send payment success email:", emailError);
         }
@@ -264,6 +271,8 @@ export async function mpesaCallback(req, res) {
           entityId: intent.id,
           entityType: 'PAYMENT'
         });
+        console.log("Real-time notification sent for Payment Success");
+
 
       } catch (orderError) {
         console.error("Order creation failed after payment:", orderError);

@@ -18,6 +18,7 @@ import PhoneInput from 'react-phone-number-input';
 import customerService from "@/api/customer.service";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useRef } from "react";
+import { OrderSuccessSplash } from "@/components/shared/OrderSuccessSplash";
 
 export default function CheckoutPage() {
   const { items, total, cartCount, clearCart } = useCart();
@@ -26,6 +27,7 @@ export default function CheckoutPage() {
   
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"IDLE" | "PENDING" | "SUCCESS" | "FAILED">("IDLE");
+  const [successOrder, setSuccessOrder] = useState<any>(null);
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"MPESA" | "CARD" | "BANK">("MPESA");
 
@@ -209,13 +211,11 @@ export default function CheckoutPage() {
         const response = await PaymentService.checkPaymentStatus(id);
         if (response.success && response.data.status === "SUCCESS") {
           clearInterval(interval);
+          setSuccessOrder(response.data.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
           toast.success("Payment successful! Order placed.");
           clearCart();
-          setTimeout(() => {
-            navigate(`/order-tracking/${response.data.order.orderNumber}`);
-          }, 3000);
         } else if (response.data.status === "FAILED") {
           clearInterval(interval);
           setPaymentStatus("FAILED");
@@ -230,20 +230,19 @@ export default function CheckoutPage() {
       } catch (error) {
         console.error("Polling error:", error);
       }
-    }, 30000); // Poll every 30 seconds
+    }, 3000); // Poll every 3 seconds
   };
 
   if (paymentStatus === "SUCCESS") {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-            <div className="text-center animate-in zoom-in duration-500">
-                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle2 className="w-16 h-16 text-green-600" />
-                </div>
-                <h1 className="text-4xl font-bold mb-4">Payment Successful!</h1>
-                <p className="text-xl text-muted-foreground mb-8">Your luxury bag is on its way to you.</p>
-                <p className="text-sm text-muted-foreground animate-pulse">Redirecting to order tracking...</p>
+        <div className="min-h-screen bg-background">
+            <Header />
+            <div className="py-20">
+              <OrderSuccessSplash 
+                orderNumber={successOrder?.orderNumber} 
+              />
             </div>
+            <Footer />
         </div>
     );
   }

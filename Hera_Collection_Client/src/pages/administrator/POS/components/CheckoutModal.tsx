@@ -20,6 +20,7 @@ import customerService from '@/api/customer.service';
 import paymentService from '@/api/payment.service';
 import { debounce } from 'lodash';
 import { useCallback, useRef } from 'react';
+import { OrderSuccessSplash } from '@/components/shared/OrderSuccessSplash';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [cashTendered, setCashTendered] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"IDLE" | "PENDING" | "SUCCESS" | "FAILED">("IDLE");
+  const [successOrder, setSuccessOrder] = useState<any>(null);
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
   
   // Customer info
@@ -91,18 +93,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         const response = await paymentService.checkPaymentStatus(id);
         if (response.success && response.data.status === "SUCCESS") {
           clearInterval(intervalId);
+          setSuccessOrder(response.data.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-          
-          if (onPaymentSuccess) {
-             setTimeout(async () => {
-                await onPaymentSuccess();
-             }, 2000);
-          } else {
-             setTimeout(() => {
-                finalizeCheckout();
-             }, 2000);
-          }
         } else if (response.data.status === "FAILED") {
           clearInterval(intervalId);
           setPaymentStatus("FAILED");
@@ -400,12 +393,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 )}
 
                 {paymentStatus === 'SUCCESS' && (
-                  <div className="text-center py-2 animate-in zoom-in duration-300">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-500 mb-2">
-                       <Check className="h-6 w-6 text-white stroke-[4]" />
-                    </div>
-                    <p className="font-bold text-green-600 text-lg">Payment Verified</p>
-                    <p className="text-xs text-muted-foreground">Completing transaction...</p>
+                  <div className="w-full bg-white dark:bg-zinc-950 py-4">
+                     <OrderSuccessSplash 
+                        orderNumber={successOrder?.orderNumber} 
+                        isPos={true}
+                        onContinue={async () => {
+                           if (onPaymentSuccess) {
+                              await onPaymentSuccess();
+                           } else {
+                              await finalizeCheckout();
+                           }
+                        }}
+                     />
                   </div>
                 )}
 
@@ -509,17 +508,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </Tabs>
         </div>
 
-        <DialogFooter className="p-6 bg-secondary/10 border-t flex sm:justify-between items-center gap-4">
-          <Button variant="ghost" onClick={onClose} disabled={loading} className="rounded-xl">Discard</Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!isCashSufficient || paymentStatus === 'PENDING' || loading}
-            className="rounded-xl px-8 h-12 text-base font-bold shadow-lg shadow-primary/20 flex-1 sm:flex-none"
-          >
-            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
-            Confirm Sale
-          </Button>
-        </DialogFooter>
+        {paymentStatus !== 'SUCCESS' && (
+          <DialogFooter className="p-6 bg-secondary/10 border-t flex sm:justify-between items-center gap-4">
+            <Button variant="ghost" onClick={onClose} disabled={loading} className="rounded-xl">Discard</Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!isCashSufficient || paymentStatus === 'PENDING' || loading}
+              className="rounded-xl px-8 h-12 text-base font-bold shadow-lg shadow-primary/20 flex-1 sm:flex-none"
+            >
+              {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
+              Confirm Sale
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

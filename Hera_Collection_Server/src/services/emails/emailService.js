@@ -344,7 +344,7 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
 
 export { createTransporter, verifyTransporter, sendEmail };
 export const sendOrderConfirmationEmail = async (order, customerName, orderItems) => {
-  const subject = `Order Confirmation - ${order.orderNumber} - VizX Global`;
+  const subject = `Order Confirmation - ${order.orderNumber} - Hera Collections`;
   const html = createOrderConfirmationEmail(order, customerName, orderItems);
   
   const customerEmail = order.customerEmail;
@@ -412,7 +412,7 @@ export const sendOrderStatusUpdateEmail = async (order, customerName, oldStatus,
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Status Updated - VizX Global</title>
+    <title>Order Status Updated - Hera Collections</title>
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -448,7 +448,7 @@ export const sendOrderStatusUpdateEmail = async (order, customerName, oldStatus,
         
         <p>You can view your order details by logging into your account.</p>
         
-        <p>Thank you for shopping with VizX Global!</p>
+        <p>Thank you for shopping with Hera Collections!</p>
     </div>
 </body>
 </html>
@@ -478,7 +478,7 @@ export const sendPaymentSuccessEmail = async (paymentIntent, order, customer) =>
 };
 
 export const sendPaymentFailedEmail = async (paymentIntent, customer, failureReason) => {
-  const subject = `Payment Failed - VizX Global`;
+  const subject = `Payment Failed - Hera Collections`;
   const html = createPaymentFailedEmail(paymentIntent, customer, failureReason);
   
   const customerEmail = customer?.email;
@@ -593,7 +593,7 @@ export const sendLowStockAlertEmail = async (product, currentStock, threshold) =
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">VizX Global</div>
+            <div class="logo">Hera Collections</div>
             <h1>⚠️ Low Stock Alert</h1>
         </div>
         
@@ -647,11 +647,11 @@ export const sendLowStockAlertEmail = async (product, currentStock, threshold) =
             <p>This is an automated alert. Please take appropriate action to avoid stockouts.</p>
             
             <p><strong>Inventory Management System</strong><br>
-            VizX Global</p>
+            Hera Collections</p>
         </div>
         
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} VizX Global. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
         </div>
     </div>

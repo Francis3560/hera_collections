@@ -273,6 +273,13 @@ class WebSocketService {
   }
 
   /**
+   * Send stock update to all clients
+   */
+  async sendStockUpdate(update) {
+    return this.emitToAll('stock:update', update);
+  }
+
+  /**
    * Send chat message to chat room
    */
   async sendChatMessage(chatId, message) {

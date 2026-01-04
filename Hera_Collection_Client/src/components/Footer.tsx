@@ -183,9 +183,9 @@ export default function Footer() {
               <ul className="space-y-3">
                 {[
                   { name: "Home", href: "/" },
-                  { name: "New Arrivals", href: "/collections/new" },
-                  { name: "Best Sellers", href: "/collections/best-sellers" },
-                  { name: "Sale", href: "/collections/sale" },
+                  { name: "New Arrivals", href: "/collections?sort=newest" },
+                  { name: "Best Sellers", href: "/collections?sort=popular" },
+                  { name: "Sale", href: "/collections?discounted=true" },
                   { name: "Custom Orders", href: "/custom" },
                   { name: "Gift Cards", href: "/gift-cards" },
                 ].map((link) => (

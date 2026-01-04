@@ -4,6 +4,7 @@ import { notificationService, Notification } from '../api/notification.service';
 import { socketService } from '../utils/socket';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -80,6 +81,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   // WebSocket Setup
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (isAuthenticated && user) {
       // Connect to socket with token
@@ -105,6 +108,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
               }
             }
           });
+        });
+
+        // Listen for stock updates
+        socketService.on('stock:update', (data: { variantId: number, productId: number, newStock: number }) => {
+          console.log('Real-time stock update received:', data);
+          // Invalidate product-related queries to refresh UI
+          queryClient.invalidateQueries({ queryKey: ['products'] });
+          queryClient.invalidateQueries({ queryKey: ['product', data.productId] });
+          queryClient.invalidateQueries({ queryKey: ['variants', data.productId] });
+          queryClient.invalidateQueries({ queryKey: ['stock'] });
         });
 
         // Listen for updates (e.g. marked as read in another tab)
@@ -138,13 +151,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       return () => {
         socketService.off('notification:new');
+        socketService.off('stock:update');
         socketService.off('notifications:updated');
         socketService.off('notifications:marked_all_read');
         socketService.off('notification:admin');
         socketService.disconnect();
       };
     }
-  }, [isAuthenticated, user, fetchNotifications]);
+  }, [isAuthenticated, user, fetchNotifications, queryClient]);
 
   return (
     <NotificationContext.Provider value={{

@@ -47,7 +47,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN?.split(',') || [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://fe57a8df039c.ngrok-free.app',
+  'https://ab7c3abd5f61.ngrok-free.app',
 ]).map(s => s.trim()).filter(Boolean);
 
 // CORS middleware
