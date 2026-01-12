@@ -4,13 +4,15 @@ import { authenticateToken, authorizeRoles } from '../middlewares/authMiddleware
 
 const router = express.Router();
 
+// Public routes
+router.get('/', discountController.getAllDiscounts);
+router.get('/:id', discountController.getDiscountById);
+
 // Protect all routes with authentication and admin role
 router.use(authenticateToken); 
 router.use(authorizeRoles('ADMIN'));
 
 router.post('/', discountController.createDiscount);
-router.get('/', discountController.getAllDiscounts);
-router.get('/:id', discountController.getDiscountById);
 router.put('/:id', discountController.updateDiscount);
 router.delete('/:id', discountController.deleteDiscount);
 

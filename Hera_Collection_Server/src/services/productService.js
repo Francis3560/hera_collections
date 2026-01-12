@@ -130,6 +130,17 @@ export const getProduct = async (id) => {
       options: {
         include: { values: true }
       },
+      discounts: {
+        where: { isActive: true },
+        select: {
+           id: true,
+           discountPercentage: true,
+           name: true,
+           isActive: true,
+           startDate: true,
+           endDate: true
+        }
+      },
       variants: {
         where: { isActive: true },
         include: {
@@ -165,7 +176,9 @@ export const getProductBySlug = async (slug) => {
            id: true,
            discountPercentage: true,
            name: true,
-           isActive: true
+           isActive: true,
+           startDate: true,
+           endDate: true
         }
       },
       variants: {

@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2, Calendar, Tag, Percent } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,22 @@ export default function DiscountList() {
     }
   };
 
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => 
+      discountService.updateDiscount(id, { isActive }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discounts'] });
+      toast.success('Discount status updated');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update status');
+    },
+  });
+
+  const handleToggleActive = (id: string, currentStatus: boolean) => {
+    toggleMutation.mutate({ id, isActive: !currentStatus });
+  };
+
   const isActive = (start: string, end: string, active: boolean) => {
     if (!active) return false;
     const now = new Date();
@@ -74,25 +91,38 @@ export default function DiscountList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {discounts?.data?.map((discount: any) => {
-          const active = isActive(discount.startDate, discount.endDate, discount.isActive);
+        {discounts?.map((discount: any) => {
+          const isTimeActive = isActive(discount.startDate, discount.endDate, true); // Check time validity regardless of flag for display info
+          const isFullyActive = discount.isActive && isTimeActive;
           
           return (
             <div key={discount.id} className="group relative bg-card rounded-xl border shadow-sm hover:shadow-md transition-all duration-300">
-              <div className="absolute top-4 right-4 flex gap-2">
-                  <Badge variant={active ? "default" : "secondary"} className={active ? "bg-green-500 hover:bg-green-600" : ""}>
-                    {active ? "Active" : "Inactive"}
-                  </Badge>
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-secondary/50 rounded-full px-2 py-1">
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {discount.isActive ? 'On' : 'Off'}
+                    </span>
+                    <Switch 
+                      checked={discount.isActive}
+                      onCheckedChange={() => handleToggleActive(discount.id, discount.isActive)}
+                      className="scale-75 data-[state=checked]:bg-green-500"
+                    />
+                  </div>
               </div>
               
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${isFullyActive ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
                     <Percent className="h-5 w-5" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg line-clamp-1">{discount.name}</h3>
-                    <p className="text-sm text-primary font-bold">{discount.discountPercentage}% OFF</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-primary">{discount.discountPercentage}% OFF</span>
+                      <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${isFullyActive ? 'text-green-600 border-green-200 bg-green-50' : 'text-gray-500'}`}>
+                         {isFullyActive ? 'Live' : 'Inactive'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
@@ -143,7 +173,7 @@ export default function DiscountList() {
           );
         })}
 
-        {(!discounts?.data || discounts.data.length === 0) && (
+        {(!discounts || discounts.length === 0) && (
             <div className="col-span-full py-12 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-xl">
                 <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
                     <Tag className="h-6 w-6 text-muted-foreground" />

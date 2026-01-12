@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { API_BASE_URL } from '@/utils/axiosClient';
+import { getColorValue } from "@/utils/colorPalettes";
 
 interface VariantSelectionModalProps {
   isOpen: boolean;
@@ -18,93 +19,156 @@ export const VariantSelectionModal: React.FC<VariantSelectionModalProps> = ({
   product,
   onSelectVariant
 }) => {
+  const [selectedVariant, setSelectedVariant] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    if (isOpen && product?.variants?.length > 0) {
+      // Default to first variant
+      setSelectedVariant(product.variants[0]);
+    }
+  }, [isOpen, product]);
+
   if (!product) return null;
+
+  const getProductImage = () => {
+    if (selectedVariant?.image) {
+       return selectedVariant.image.startsWith('http') ? selectedVariant.image : `${API_BASE_URL}${selectedVariant.image}`;
+    }
+    if (product.photos?.[0]?.url) {
+      return `${API_BASE_URL}${product.photos[0].url}`;
+    }
+    return "/placeholder-product.png";
+  };
+
+  const selectedPrice = selectedVariant?.price || product.variants?.[0]?.price || 0;
+  const isOutOfStock = selectedVariant?.stock <= 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl bg-white dark:bg-zinc-950">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            Select Style for <span className="text-primary">{product.title}</span>
-          </DialogTitle>
-          <DialogDescription>
-            Choose a specific variation to add to your cart.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-4xl bg-white dark:bg-zinc-950 p-0 overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-[600px]">
+        
+        {/* Left Column: Image Gallery */}
+        <div className="md:w-1/2 bg-secondary/10 flex flex-col">
+            <div className="flex-1 relative bg-white dark:bg-zinc-900 flex items-center justify-center p-6 border-r border-border/50">
+                <img 
+                    src={getProductImage()} 
+                    alt={product.title} 
+                    className="max-h-full max-w-full object-contain mix-blend-multiply dark:mix-blend-normal"
+                />
+            </div>
+            {/* Thumbnails (optional, just showing filtered variants images for now if we wanted, or just static main image) */}
+            <div className="h-20 border-t border-border/50 bg-background p-2 flex gap-2 overflow-x-auto">
+                 {product.photos?.map((photo: any, idx: number) => (
+                     <div key={idx} className="h-full aspect-square rounded-md overflow-hidden border border-border/50 shrink-0">
+                         <img src={`${API_BASE_URL}${photo.url}`} className="h-full w-full object-cover" />
+                     </div>
+                 ))}
+            </div>
+        </div>
 
-        <ScrollArea className="max-h-[60vh] mt-4 pr-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {product.variants?.map((variant: any) => {
-              // Construct variant name from option values if available
-              // Structure: variant.optionValues[].optionValue.value (and .option.name)
-              let variantName = variant.sku;
-              if (variant.optionValues && variant.optionValues.length > 0) {
-                 variantName = variant.optionValues
-                    .map((ov: any) => `${ov.optionValue?.option?.name}: ${ov.optionValue?.value}`)
-                    .join(', ');
-              }
-
-              const isOutOfStock = variant.stock <= 0;
-              const photoUrl = variant.image 
-                  ? (variant.image.startsWith('http') ? variant.image : `${API_BASE_URL}${variant.image}`)
-                  : (product.photos?.[0]?.url ? `${API_BASE_URL}${product.photos[0].url}` : null);
-
-
-              return (
-                <div 
-                  key={variant.id} 
-                  className={`
-                    relative flex flex-colborder rounded-xl p-3 gap-3 transition-all border
-                    ${isOutOfStock ? 'opacity-60 bg-muted/50' : 'hover:border-primary hover:shadow-md bg-card'}
-                  `}
-                >
-                  <div className="flex gap-4">
-                      {/* Image Thumbnail */}
-                      <div className="h-20 w-20 shrink-0 rounded-lg overflow-hidden bg-muted border">
-                        {photoUrl ? (
-                            <img src={photoUrl} alt={variantName} className="h-full w-full object-cover" />
+        {/* Right Column: Details & Selection */}
+        <div className="md:w-1/2 p-6 flex flex-col h-full bg-background">
+            <DialogHeader className="mb-6">
+                <Badge variant="outline" className="w-fit mb-2 text-muted-foreground">{product.category?.name || 'Product'}</Badge>
+                <DialogTitle className="text-2xl font-bold">{product.title}</DialogTitle>
+                <div className="flex flex-col mt-2">
+                    <div className="flex items-baseline gap-2">
+                        {product.discounts && product.discounts.length > 0 ? (
+                           (() => {
+                              const discount = product.discounts[0];
+                              const original = Number(selectedPrice);
+                              const discounted = original - (original * discount.discountPercentage / 100);
+                              return (
+                                <>
+                                   <span className="text-sm text-muted-foreground line-through">KES {original.toLocaleString()}</span>
+                                   <span className="text-2xl font-bold text-red-500">KES {discounted.toLocaleString()}</span>
+                                   <Badge variant="destructive" className="ml-2">{discount.discountPercentage}% OFF</Badge>
+                                </>
+                              );
+                           })()
                         ) : (
-                            <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
+                           <span className="text-2xl font-bold text-primary">KES {Number(selectedPrice).toLocaleString()}</span>
                         )}
-                      </div>
-                      
-                      {/* Details */}
-                      <div className="flex-1 flex flex-col justify-between">
-                         <div>
-                            <h4 className="font-semibold text-sm line-clamp-2" title={variantName}>
-                                {variantName}
-                            </h4>
-                            <p className="text-xs text-muted-foreground mt-1">SKU: {variant.sku}</p>
-                         </div>
-                         
-                         <div className="flex items-center justify-between mt-2">
-                            <span className="font-bold text-primary">KES {Number(variant.price).toLocaleString()}</span>
-                         </div>
-                      </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t mt-1">
-                      <Badge variant={isOutOfStock ? "destructive" : "outline"} className="text-[10px]">
-                          {isOutOfStock ? 'Out of Stock' : `${variant.stock} Available`}
-                      </Badge>
-                      
-                      <Button 
-                        size="sm" 
-                        disabled={isOutOfStock}
-                        onClick={() => {
-                            onSelectVariant(product, variant.id);
-                            onClose();
-                        }}
-                      >
-                        Select
-                      </Button>
-                  </div>
-
+                    </div>
+                    {selectedVariant && (
+                        <span className="text-sm text-muted-foreground mt-1">
+                            Stock: <span className={isOutOfStock ? "text-red-500 font-medium" : "text-green-600 font-medium"}>
+                                {isOutOfStock ? 'Out of Stock' : `${selectedVariant.stock} Available`}
+                            </span>
+                        </span>
+                    )}
                 </div>
-              );
-            })}
-          </div>
-        </ScrollArea>
+            </DialogHeader>
+
+            <ScrollArea className="flex-1 pr-4 -mr-4">
+                <div className="space-y-6">
+                     {/* SKU Display */}
+                     {selectedVariant && (
+                         <div className="p-3 bg-secondary/20 rounded-lg text-sm flex justify-between">
+                             <span className="text-muted-foreground">SKU</span>
+                             <span className="font-mono font-medium">{selectedVariant.sku}</span>
+                         </div>
+                     )}
+
+                     {/* Variant Selector */}
+                     <div>
+                        <label className="text-sm font-medium mb-3 block">Select Option</label>
+                        <div className="flex flex-wrap gap-2">
+                            {product.variants?.map((variant: any) => (
+                                <button
+                                    key={variant.id}
+                                    onClick={() => setSelectedVariant(variant)}
+                                    className={`px-3 py-2 border rounded-lg text-sm transition-all flex items-center gap-2 ${
+                                        selectedVariant?.id === variant.id 
+                                        ? 'border-primary bg-primary/5 text-primary font-medium ring-1 ring-primary' 
+                                        : 'border-border hover:border-primary/50'
+                                    }`}
+                                >
+                                    {/* Content similar to ProductDetailsPage */}
+                                    <div className="flex items-center gap-1.5">
+                                        {variant.optionValues?.map((ov: any, idx: number) => {
+                                            const isColor = ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                                                            ov.optionValue?.option?.name?.toLowerCase().includes('colour');
+                                            return (
+                                                <div key={idx} className="flex items-center gap-1.5">
+                                                    {isColor && (
+                                                        <div 
+                                                            className="w-4 h-4 rounded-full border border-gray-300 shadow-sm" 
+                                                            style={{ backgroundColor: getColorValue(ov.optionValue.value) }}
+                                                        />
+                                                    )}
+                                                    <span>{ov.optionValue.value}</span>
+                                                    {idx < variant.optionValues.length - 1 && <span className="opacity-50">/</span>}
+                                                </div>
+                                            );
+                                        })}
+                                        {(!variant.optionValues || variant.optionValues.length === 0) && (
+                                            <span>{variant.sku || `Var ${variant.id}`}</span>
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                     </div>
+                </div>
+            </ScrollArea>
+
+            <div className="mt-6 pt-4 border-t border-border flex justify-end gap-3">
+                <Button variant="outline" onClick={onClose}>Cancel</Button>
+                <Button 
+                    onClick={() => {
+                        if (selectedVariant) {
+                            onSelectVariant(product, selectedVariant.id);
+                            onClose();
+                        }
+                    }}
+                    disabled={!selectedVariant || isOutOfStock}
+                    className="w-full sm:w-auto"
+                >
+                    {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                </Button>
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

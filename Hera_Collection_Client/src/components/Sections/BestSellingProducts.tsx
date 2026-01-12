@@ -170,49 +170,16 @@ export default function ProductShowcase() {
         toast.error("No variant available");
         return;
       }
-      await addToCart(product.id, variantId, 1);
+      await addToCart(product.id, variantId, 1, product, product.variants?.[0]);
       toast.success(`${product.title} added to bag`);
     } catch (error) {
       toast.error("Failed to add to bag");
     }
   };
 
-  const getProductColors = (product: any) => {
-    const colors = new Set<string>();
-    product.variants?.forEach((variant: any) => {
-      variant.optionValues?.forEach((ov: any) => {
-        if (ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
-            ov.optionValue?.option?.name?.toLowerCase().includes('colour')) {
-          colors.add(ov.optionValue.value);
-        }
-      });
-    });
-    return Array.from(colors);
-  };
 
-  const getColorHex = (colorName: string) => {
-    const colorMap: Record<string, string> = {
-      'Black': '#000000',
-      'White': '#FFFFFF',
-      'Red': '#EF4444',
-      'Blue': '#3B82F6',
-      'Green': '#10B981',
-      'Yellow': '#F59E0B',
-      'Pink': '#EC4899',
-      'Purple': '#8B5CF6',
-      'Gray': '#6B7280',
-      'Grey': '#6B7280',
-      'Brown': '#78350F',
-      'Orange': '#F97316',
-      'Tan': '#D2B48C',
-      'Beige': '#F5F5DC',
-      'Gold': '#FFD700',
-      'Silver': '#C0C0C0',
-      'Navy': '#000080',
-      'Burgundy': '#800020'
-    };
-    return colorMap[colorName] || colorName;
-  };
+
+
 
   const handleToggleWishlist = async (e: React.MouseEvent, product: any) => {
     e.preventDefault(); // Prevent link navigation
@@ -433,46 +400,7 @@ export default function ProductShowcase() {
                               </Link>
                             </h3>
                             
-                            {/* Variants */}
-                            {product.variants?.length > 1 && (
-                              <div className="flex flex-col items-center gap-2 mb-3">
-                                {getProductColors(product).length > 0 && (
-                                  <div className="flex flex-col items-center gap-1.5 ">
-                                    <div className="flex justify-center flex-wrap gap-1">
-                                      {getProductColors(product).slice(0, 5).map((color) => (
-                                        <div 
-                                          key={color}
-                                          className="group/swatch relative"
-                                          title={color}
-                                        >
-                                          <div 
-                                            className="w-3.5 h-3.5 rounded-full border border-border/40 shadow-sm"
-                                            style={{ backgroundColor: getColorHex(color) }}
-                                          />
-                                        </div>
-                                      ))}
-                                      {getProductColors(product).length > 5 && (
-                                        <span className="text-[8px] text-muted-foreground">+{getProductColors(product).length - 5}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                <div className="flex items-center justify-center gap-1.5">
-                                  <div className="flex -space-x-1.5 overflow-hidden">
-                                    {product.variants.slice(0, 3).map((v: any) => (
-                                      <div 
-                                        key={v.id} 
-                                        className="w-4 h-4 rounded-full border border-background dark:border-background bg-secondary/80"
-                                      />
-                                    ))}
-                                  </div>
-                                  <span className="text-[10px] font-medium text-muted-foreground uppercase">
-                                    {product.variants.length} Options
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+
                             
                             {/* Rating */}
                             <div className="flex items-center justify-center gap-1 mb-3">
@@ -491,17 +419,7 @@ export default function ProductShowcase() {
                               </span>
                             </div>
                             
-                            {/* Price */}
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="text-xl font-bold text-gray-900 dark:text-foreground">
-                                {formatPrice(price)}
-                              </span>
-                              {originalPrice && (
-                                <span className="text-sm text-gray-500 dark:text-muted-foreground line-through decoration-red-500/50">
-                                  {formatPrice(originalPrice)}
-                                </span>
-                              )}
-                            </div>
+
                           </div>
                         </Link>
                       </motion.div>

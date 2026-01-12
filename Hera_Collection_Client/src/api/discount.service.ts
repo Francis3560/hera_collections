@@ -3,7 +3,7 @@ import axiosClient from '../utils/axiosClient';
 class DiscountService {
   async getAllDiscounts() {
     const response = await axiosClient.get('/discounts');
-    return response.data;
+    return response.data.data;
   }
 
   async getDiscount(id: string) {

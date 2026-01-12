@@ -60,6 +60,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import CategoryService from "@/api/categories.service";
+import DiscountService from "@/api/discount.service";
 
 const navigationItems = [
   { name: "Home", href: "/" },
@@ -99,6 +100,25 @@ export default function Header() {
     queryFn: CategoryService.getAllCategories
   });
 
+  const { data: discounts = [] } = useQuery({
+    queryKey: ["active-discounts"],
+    queryFn: DiscountService.getAllDiscounts
+  });
+
+  // Find the best active discount (highest percentage)
+  const activeDiscount = React.useMemo(() => {
+    if (!discounts || discounts.length === 0) return null;
+    
+    // Sort by percentage descending and pick the first active one
+    // Assuming the API returns a list of discount objects
+    const validDiscounts = discounts.filter((d: any) => d.isActive !== false); // specific check if field exists, otherwise assume active
+    if (validDiscounts.length === 0) return null;
+
+    return validDiscounts.sort((a: any, b: any) => 
+      (b.percentage || b.discountPercentage || 0) - (a.percentage || a.discountPercentage || 0)
+    )[0];
+  }, [discounts]);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -128,7 +148,7 @@ export default function Header() {
   };
 
   const calculatedTotal = cartItems.reduce((sum: number, item: any) => {
-    const price = parseFloat(item.variant?.price || "0");
+    const price = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
     return sum + (price * item.quantity);
   }, 0);
 
@@ -176,14 +196,19 @@ export default function Header() {
   return (
     <>
       {/* Premium Promotional Bar - Theme aware */}
-      <div className="bg-primary text-primary-foreground py-3 px-4 text-sm text-center relative overflow-hidden">
-        <div className="flex items-center justify-center gap-2 animate-pulse">
-          <Sparkles className="h-4 w-4" />
-          <span className="font-semibold">Flash Sales - 5% off for grabs!</span>
-          <Sparkles className="h-4 w-4" />
+      {/* Premium Promotional Bar - Theme aware */}
+      {activeDiscount && (
+        <div className="bg-primary text-primary-foreground py-3 px-4 text-sm text-center relative overflow-hidden">
+          <div className="flex items-center justify-center gap-2 animate-pulse">
+            <Sparkles className="h-4 w-4" />
+            <span className="font-semibold">
+              {activeDiscount.name || "Flash Sales"} - {Math.round(activeDiscount.percentage || activeDiscount.discountPercentage)}% off for grabs!
+            </span>
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 dark:via-white/5 to-transparent animate-shimmer"></div>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 dark:via-white/5 to-transparent animate-shimmer"></div>
-      </div>
+      )}
 
       {/* Main Header */}
       <header
@@ -700,12 +725,24 @@ export default function Header() {
                                   {item.variant?.sku}
                                 </p>
                                 <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-                                  {formatPrice(parseFloat(item.variant?.price || "0"))} × {item.quantity}
+                                  {item.appliedDiscount ? (
+                                     <>
+                                         <span className="line-through text-xs mr-1 opacity-70">
+                                            {formatPrice(item.originalPrice)}
+                                         </span>
+                                         <span className="text-red-500">
+                                            {formatPrice(parseFloat(item.price))}
+                                         </span>
+                                     </>
+                                  ) : (
+                                     formatPrice(parseFloat(item.variant?.price || "0"))
+                                  )} 
+                                  {' '}× {item.quantity}
                                 </p>
                               </div>
                               <div className="flex flex-col items-end gap-1">
                                 <div className="text-sm font-semibold text-primary-accent dark:text-primary-accent">
-                                  {formatPrice(parseFloat(item.variant?.price || "0") * item.quantity)}
+                                  {formatPrice((item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")) * item.quantity)}
                                 </div>
                                 <button 
                                   onClick={() => removeItem(item.id)}

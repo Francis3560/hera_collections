@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import ProductService from "@/api/product.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { useCart } from "@/context/CartProvider";
+import { getColorValue } from "@/utils/colorPalettes";
 import { useWishlist } from "@/context/WishlistProvider";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
@@ -43,7 +44,13 @@ export default function ProductDetailsPage() {
     enabled: !!slug
   });
 
+  // Scroll to top when product changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   const product = productData?.data || productData;
+
 
   // Set default variant when product loads
   useEffect(() => {
@@ -62,7 +69,7 @@ export default function ProductDetailsPage() {
       return;
     }
     try {
-      await addToCart(product.id, selectedVariant.id, quantity);
+      await addToCart(product.id, selectedVariant.id, quantity, product, selectedVariant);
       toast.success("Added to cart");
     } catch (err) {
       toast.error("Failed to add to cart");
@@ -271,7 +278,27 @@ export default function ProductDetailsPage() {
                                 }`}
                             >
                                 {/* Display combination of option values if available, else SKU/Title */}
-                                {variant.optionValues?.map((ov: any) => ov.optionValue.value).join(' / ') || variant.sku || variant.id}
+                                <div className="flex items-center gap-2">
+                                  {variant.optionValues?.map((ov: any, idx: number) => {
+                                      const isColor = ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                                                      ov.optionValue?.option?.name?.toLowerCase().includes('colour');
+                                      return (
+                                        <div key={idx} className="flex items-center gap-1">
+                                            {isColor && (
+                                              <div 
+                                                className="w-5 h-5 rounded-full border border-gray-300 hover:border-primary transition-colors" 
+                                                style={{ backgroundColor: getColorValue(ov.optionValue.value) }}
+                                              />
+                                            )}
+                                            <span>{ov.optionValue.value}</span>
+                                            {idx < variant.optionValues.length - 1 && <span className="text-muted-foreground">/</span>}
+                                        </div>
+                                      );
+                                  })}
+                                  {(!variant.optionValues || variant.optionValues.length === 0) && (
+                                     <span>{variant.sku || variant.id}</span>
+                                  )}
+                                </div>
                                 {variant.price !== selectedVariant?.price && ` - ${formatPrice(parseFloat(variant.price))}`}
                             </button>
                         ))}
@@ -308,7 +335,7 @@ export default function ProductDetailsPage() {
                  onClick={handleAddToCart}
                >
                  <ShoppingBag className="h-5 w-5" />
-                 Add to Bag
+                 Add to Cart
                </Button>
                <Button 
                  size="lg" 

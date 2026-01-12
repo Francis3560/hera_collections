@@ -231,7 +231,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     productId: item.productId,
                     variantId: item.variantId,
                     quantity: item.quantity,
-                    price: parseFloat(item.variant?.price || "0")
+                    price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
                 })),
                 customer: {
                   firstName: customer.firstName,

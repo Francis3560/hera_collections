@@ -6,6 +6,14 @@ import prisma from '../database.js';
 export const createDiscount = async (data) => {
   const { name, description, discountPercentage, startDate, endDate, isActive, productIds } = data;
 
+  // If marking as active, deactivate all others
+  if (isActive) {
+    await prisma.discount.updateMany({
+      where: { isActive: true },
+      data: { isActive: false }
+    });
+  }
+
   const discount = await prisma.discount.create({
     data: {
       name,
@@ -89,6 +97,17 @@ export const updateDiscount = async (id, data) => {
     updateData.products = {
       set: productIds.map(pid => ({ id: pid }))
     };
+  }
+
+  // If marking as active, deactivate all others
+  if (isActive === true) {
+    await prisma.discount.updateMany({
+      where: { 
+        isActive: true,
+        id: { not: parseInt(id) }
+      },
+      data: { isActive: false }
+    });
   }
 
   return prisma.discount.update({

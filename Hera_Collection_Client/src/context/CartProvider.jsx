@@ -36,9 +36,86 @@ export const CartProvider = ({ children }) => {
   });
   const { user } = useAuth();
 
+  // Load guest cart from local storage on mount if no user
+  useEffect(() => {
+    if (!user) {
+      const storedCart = localStorage.getItem('guest_cart');
+      if (storedCart) {
+        try {
+          const parsedCart = JSON.parse(storedCart);
+          dispatch({ type: 'SET_CART', payload: parsedCart });
+        } catch (e) {
+          console.error("Failed to parse guest cart", e);
+        }
+      }
+    }
+  }, [user]);
+
+  const calculateItemPrice = (item) => {
+      const product = item.product || {};
+      const variant = item.variant || {};
+      
+      const originalPrice = parseFloat(variant.price || 0);
+      let finalPrice = originalPrice;
+      let appliedDiscount = null;
+
+      // Check for active discounts on product (Guest logic mirroring backend)
+      // Find the first discount that is active and within valid date range
+      const now = new Date();
+      const activeDiscount = product.discounts?.find(d => {
+        const startDate = new Date(d.startDate);
+        const endDate = new Date(d.endDate);
+        const isActive = d.isActive !== false;
+        return isActive && now >= startDate && now <= endDate;
+      });
+
+      if (activeDiscount) {
+         const discountAmount = (originalPrice * activeDiscount.discountPercentage) / 100;
+         finalPrice = originalPrice - discountAmount;
+         appliedDiscount = {
+            id: activeDiscount.id,
+            name: activeDiscount.name,
+            percentage: activeDiscount.discountPercentage,
+            amountSaved: discountAmount
+         };
+      }
+
+      return {
+          ...item,
+          price: finalPrice,
+          originalPrice,
+          appliedDiscount
+      };
+  };
+
+  const saveGuestCart = (items) => {
+    // Process items to ensure prices are up to date with discounts
+    const processedItems = items.map(calculateItemPrice);
+
+    const total = processedItems.reduce((sum, item) => {
+      return sum + (item.price * item.quantity);
+    }, 0);
+    
+    const cartData = { items: processedItems, totalAmount: total };
+    localStorage.setItem('guest_cart', JSON.stringify(cartData));
+    dispatch({ type: 'SET_CART', payload: cartData });
+    return cartData;
+  };
+
   const fetchCart = useCallback(async () => {
-    if (!user) return;
-    // If not logged in, we could use session ID or local storage
+    if (!user) {
+        // If user logs out, we might want to reload guest cart or clear it. 
+        // For now, we rely on the initial useEffect for loading guest cart.
+        // Or we can re-read it here.
+        const storedCart = localStorage.getItem('guest_cart');
+        if (storedCart) {
+            try {
+                dispatch({ type: 'SET_CART', payload: JSON.parse(storedCart) });
+            } catch(e) {}
+        }
+        return;
+    }
+    
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const data = await CartService.getCart();
@@ -46,13 +123,13 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchCart();
-  }, [fetchCart, user]);
+  }, [fetchCart]);
 
-  const addToCart = async (productId, variantId, quantity = 1) => {
+  const addToCart = async (productId, variantId, quantity = 1, productData = null, variantData = null) => {
     // Check local stock if item exists in cart
     const existingItem = state.items.find(
       item => item.productId === productId && item.variantId === variantId
@@ -60,10 +137,40 @@ export const CartProvider = ({ children }) => {
 
     if (existingItem) {
       const currentStock = existingItem.variant?.stock || 0;
+      // Note: For guest cart, stock validation relies on the passed variantData or existing item data
       if (existingItem.quantity + quantity > currentStock) {
         toast.error(`Cannot add more items. Only ${currentStock} left in stock.`);
         throw new Error("Insufficient stock");
       }
+    }
+
+    if (!user) {
+        // Guest Mode
+        let newItems = [...state.items];
+        if (existingItem) {
+            newItems = newItems.map(item => 
+                (item.productId === productId && item.variantId === variantId)
+                ? { ...item, quantity: item.quantity + quantity }
+                : item
+            );
+        } else {
+            if (!productData || !variantData) {
+                // If caller didn't pass data, we can't display it properly in guest mode. 
+                // In a real app we might fetch it here, but let's assume caller provides it.
+                console.warn("Product/Variant data missing for guest cart");
+            }
+            newItems.push({
+                id: `guest-${Date.now()}`, // Temporary ID
+                productId,
+                variantId,
+                quantity,
+                product: productData || {},
+                variant: variantData || {}
+            });
+        }
+        saveGuestCart(newItems);
+        toast.success("Added to cart");
+        return;
     }
 
     try {
@@ -79,12 +186,21 @@ export const CartProvider = ({ children }) => {
 
   const updateQuantity = async (itemId, quantity) => {
     const item = state.items.find(i => i.id === itemId);
-    if (item) {
-        const stock = item.variant?.stock || 0;
-        if (quantity > stock) {
-            toast.error(`Cannot update quantity. Only ${stock} left in stock.`);
-            return;
-        }
+    if (!item) return;
+
+    const stock = item.variant?.stock || 0;
+    if (quantity > stock) {
+        toast.error(`Cannot update quantity. Only ${stock} left in stock.`);
+        return;
+    }
+
+    if (!user) {
+        // Guest Mode
+        const newItems = state.items.map(i => 
+            i.id === itemId ? { ...i, quantity } : i
+        );
+        saveGuestCart(newItems);
+        return;
     }
 
     try {
@@ -98,6 +214,13 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeItem = async (itemId) => {
+    if (!user) {
+        // Guest Mode
+        const newItems = state.items.filter(i => i.id !== itemId);
+        saveGuestCart(newItems);
+        return;
+    }
+
     try {
       const data = await CartService.removeItem(itemId);
       dispatch({ type: 'SET_CART', payload: data });
@@ -108,6 +231,12 @@ export const CartProvider = ({ children }) => {
   };
 
   const clearCart = async () => {
+    if (!user) {
+        localStorage.removeItem('guest_cart');
+        dispatch({ type: 'CLEAR_CART' });
+        return;
+    }
+
     try {
       await CartService.clearCart();
       dispatch({ type: 'CLEAR_CART' });

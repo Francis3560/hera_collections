@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   const isAdmin = user?.role === 'ADMIN';
 
   const calculatedTotal = items.reduce((sum: number, item: any) => {
-    const price = parseFloat(item.variant?.price || "0");
+    const price = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
     return sum + (price * item.quantity);
   }, 0);
 
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
-          price: parseFloat(item.variant?.price || "0")
+          price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
         })),
         customer: {
           firstName: formData.firstName,
@@ -478,7 +478,7 @@ export default function CheckoutPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{item.product?.title}</p>
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="text-sm font-semibold">{formatPrice(parseFloat(item.variant?.price || "0") * item.quantity)}</p>
+                      <p className="text-sm font-semibold">{formatPrice((item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")) * item.quantity)}</p>
                     </div>
                   </div>
                 ))}

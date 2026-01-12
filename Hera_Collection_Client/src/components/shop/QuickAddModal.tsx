@@ -11,7 +11,7 @@ interface QuickAddModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: any;
-  onAddToCart: (productId: number, variantId: number, quantity: number) => Promise<void>;
+  onAddToCart: (productId: number, variantId: number, quantity: number, product?: any, variant?: any) => Promise<void | any>;
 }
 
 export const QuickAddModal: React.FC<QuickAddModalProps> = ({
@@ -29,7 +29,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({
     if (!selectedVariant) return;
     setIsAdding(true);
     try {
-      await onAddToCart(product.id, selectedVariant.id, 1);
+      await onAddToCart(product.id, selectedVariant.id, 1, product, selectedVariant);
       onClose();
     } catch (error) {
       console.error(error);

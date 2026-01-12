@@ -19,6 +19,9 @@ interface CartItem {
     price: string;
     sku: string;
   };
+  price?: number | string;
+  originalPrice?: number | string;
+  appliedDiscount?: any;
 }
 
 interface Cart {
@@ -104,7 +107,16 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                      </p>
                    </div>
                    <div className="flex items-center justify-between mt-1">
-                     <p className="font-semibold text-sm">KES {price.toLocaleString()}</p>
+                     <div className="flex flex-col">
+                       {item.price !== undefined && Number(item.price) < Number(item.variant?.price || 0) ? (
+                         <>
+                            <span className="text-xs text-muted-foreground line-through">KES {Number(item.variant?.price || 0).toLocaleString()}</span>
+                            <span className="font-semibold text-sm text-red-500">KES {Number(item.price).toLocaleString()}</span>
+                         </>
+                       ) : (
+                         <p className="font-semibold text-sm">KES {price.toLocaleString()}</p>
+                       )}
+                     </div>
                      
                      <div className="flex items-center gap-1">
                        <Button 

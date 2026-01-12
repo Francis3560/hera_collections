@@ -26,8 +26,10 @@ export default function CartPage() {
   };
 
   const calculatedTotal = items.reduce((sum: number, item: any) => {
-    const price = parseFloat(item.variant?.price || "0");
-    return sum + (price * item.quantity);
+    // Backend/Provider provides 'price' which is already discounted if applicable
+    // Fallback to variant price if 'price' field is missing (legacy/safety)
+    const effectivePrice = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
+    return sum + (effectivePrice * item.quantity);
   }, 0);
 
   const displayTotal = calculatedTotal || total; // Fallback to context total if local matches
@@ -121,10 +123,26 @@ export default function CartPage() {
                 
                 <div className="text-right">
                   <div className="text-2xl font-bold text-primary">
-                    {formatPrice(parseFloat(item.variant?.price || "0") * item.quantity)}
+                    {formatPrice((item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")) * item.quantity)}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatPrice(parseFloat(item.variant?.price || "0"))} each
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm text-muted-foreground">
+                       {item.appliedDiscount ? (
+                         <div className="flex flex-col items-end">
+                            <span className="line-through text-xs text-muted-foreground/70">
+                               {formatPrice(item.originalPrice || parseFloat(item.variant?.price))}
+                            </span>
+                            <span className="text-red-500 font-medium text-xs">
+                              {formatPrice(item.price)} each
+                            </span>
+                            <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded mt-0.5">
+                               {item.appliedDiscount.percentage}% OFF
+                            </span>
+                         </div>
+                       ) : (
+                         <span>{formatPrice(parseFloat(item.variant?.price || "0"))} each</span>
+                       )}
+                    </span>
                   </div>
                 </div>
               </div>

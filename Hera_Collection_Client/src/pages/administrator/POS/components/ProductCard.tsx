@@ -21,6 +21,12 @@ interface Product {
   photos: { url: string; isPrimary: boolean }[];
   category?: { name: string };
   variants: ProductVariant[];
+  discounts?: {
+    id: number;
+    discountPercentage: number;
+    startDate: string;
+    endDate: string;
+  }[];
 }
 
 interface ProductCardProps {
@@ -99,8 +105,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAdd }) => {
       <CardContent className="p-3 flex-1">
         <div className="text-xs text-muted-foreground mb-1">{product.category?.name || 'Uncategorized'}</div>
         <h3 className="font-medium leading-tight line-clamp-2 mb-2" title={product.title}>{product.title}</h3>
-        <div className="font-bold text-lg text-primary">
-          KES {Number(displayPrice).toLocaleString()}
+        <div className="flex flex-col">
+          {product.discounts && product.discounts.length > 0 ? (
+             (() => {
+                const discount = product.discounts[0]; // Assume effective one
+                const original = Number(displayPrice);
+                const discounted = original - (original * discount.discountPercentage / 100);
+                return (
+                  <>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xs text-muted-foreground line-through">KES {original.toLocaleString()}</span>
+                       <Badge variant="destructive" className="px-1 py-0 text-[10px] h-4">{discount.discountPercentage}% OFF</Badge>
+                    </div>
+                    <div className="font-bold text-lg text-red-500">
+                      KES {discounted.toLocaleString()}
+                    </div>
+                  </>
+                );
+             })()
+          ) : (
+            <div className="font-bold text-lg text-primary">
+              KES {Number(displayPrice).toLocaleString()}
+            </div>
+          )}
         </div>
         <div className="text-xs text-muted-foreground mt-1">
           Stock: {stock}

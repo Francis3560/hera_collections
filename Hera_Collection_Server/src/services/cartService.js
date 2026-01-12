@@ -16,7 +16,18 @@ export async function getCart(userId, sessionId) {
           product: {
             include: {
               photos: true,
-              category: true
+              photos: true,
+              category: true,
+              discounts: {
+                where: { isActive: true },
+                select: {
+                  id: true,
+                  name: true,
+                  discountPercentage: true,
+                  startDate: true,
+                  endDate: true
+                }
+              }
             }
           },
           variant: true
@@ -66,17 +77,49 @@ export async function getCart(userId, sessionId) {
   // Ensure items is an array if not included
   if (!cart.items) cart.items = [];
 
-  // Calculate totals
-  const subtotal = cart.items.reduce((sum, item) => {
-    const price = item.variant ? item.variant.price : item.product.price; // Note: Product price might be needed if no variant
-    // However, schema says ProductVariant has price. Product doesn't explicitly serve as price source if variants exist? 
-    // Assuming Product has price if no variants.
-    // Wait, Product model doesn't have price?
-    // Let's check Product model again.
-    return sum + (Number(price || 0) * item.quantity);
+  // Calculate totals and apply discounts
+  const itemsWithDiscounts = cart.items.map(item => {
+    const product = item.product;
+    const variant = item.variant;
+    
+    // Determine base price
+    const originalPrice = Number(variant?.price || 0);
+    let finalPrice = originalPrice;
+    let appliedDiscount = null;
+
+    // Check for active discounts on product - Find first one that matches date criteria
+    const now = new Date();
+    const activeDiscount = product.discounts?.find(d => {
+       const startDate = new Date(d.startDate);
+       const endDate = new Date(d.endDate);
+       return now >= startDate && now <= endDate;
+    });
+
+    if (activeDiscount) {
+       const discountAmount = (originalPrice * activeDiscount.discountPercentage) / 100;
+       finalPrice = originalPrice - discountAmount;
+       appliedDiscount = {
+          id: activeDiscount.id,
+          name: activeDiscount.name,
+          percentage: activeDiscount.discountPercentage,
+          amountSaved: discountAmount
+       };
+    }
+
+    return {
+      ...item,
+      originalPrice,
+      price: finalPrice, // Override price with discounted price for frontend use
+      discountedPrice: finalPrice, // Explicit field
+      appliedDiscount
+    };
+  });
+
+  const subtotal = itemsWithDiscounts.reduce((sum, item) => {
+    return sum + (item.price * item.quantity);
   }, 0);
 
-  return { ...cart, subtotal };
+  return { ...cart, items: itemsWithDiscounts, subtotal };
 }
 
 /**
@@ -241,15 +284,18 @@ export async function checkoutCart(userId, sessionId, paymentData, customerData,
 
   // Prepare items for createOrder
   // createOrder expects: items: [{ productId, quantity, price, variantName, variantValue }]
+  // Create order items
   const items = cartData.items.map(item => {
-    const price = item.variant ? item.variant.price : 0; // Fix: Handle price logic
+    // item.price comes from getCart and includes discounts if applicable
+    const price = item.price !== undefined ? item.price : (item.variant ? item.variant.price : 0);
+    
     return {
       productId: item.productId,
       quantity: item.quantity,
       price: Number(price),
       variantName: item.variantName,
       variantValue: item.variantValue,
-      variantId: item.variantId // Added: Need variantId for stock management
+      variantId: item.variantId 
     };
   });
 

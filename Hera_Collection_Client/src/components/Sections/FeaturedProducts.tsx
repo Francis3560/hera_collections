@@ -4,31 +4,25 @@ import { Link } from "react-router-dom";
 import { 
   Star, 
   Heart, 
-  ShoppingBag, 
   Eye, 
   Tag, 
   Zap,
   TrendingUp,
   Shield,
-  Sparkles,
-  Palette
+  Sparkles
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useQuery } from "@tanstack/react-query";
 import ProductService from "@/api/product.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
-import { useCart } from "@/context/CartProvider";
 import { useWishlist } from "@/context/WishlistProvider";
 import { toast } from "sonner";
-import { QuickAddModal } from "@/components/shop/QuickAddModal";
+
 
 export default function FeaturedProducts() {
   const { theme } = useTheme();
-  const { addToCart } = useCart();
   const { addToWishlist, isInWishlist, removeFromWishlist, items: wishlistItems } = useWishlist();
   const [activeFilter, setActiveFilter] = useState("All Products");
-  const [quickViewProduct, setQuickViewProduct] = useState<any | null>(null);
-  const [quickAddProduct, setQuickAddProduct] = useState<any | null>(null);
 
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ["featured-products", activeFilter],
@@ -48,25 +42,7 @@ export default function FeaturedProducts() {
 
   const products = productsData?.items || [];
 
-  const handleAddToCart = async (product: any) => {
-    if (product.variants?.length > 1) {
-      setQuickAddProduct(product);
-      return;
-    }
 
-    try {
-      // Use first variant by default
-      const variantId = product.variants?.[0]?.id;
-      if (!variantId) {
-        toast.error("No variant available for this product");
-        return;
-      }
-      await addToCart(product.id, variantId, 1);
-      toast.success(`${product.title} added to bag`);
-    } catch (error) {
-      toast.error("Failed to add to bag");
-    }
-  };
 
   const handleToggleWishlist = async (product: any) => {
     try {
@@ -93,70 +69,10 @@ export default function FeaturedProducts() {
     return "/placeholder-product.png";
   };
 
-  const getProductPrice = (product: any) => {
-    const basePrice = parseFloat(product.variants?.[0]?.price || "0");
-    const activeDiscount = product.discounts?.[0];
-    if (activeDiscount) {
-      const discountPercentage = parseFloat(activeDiscount.discountPercentage);
-      const discountAmount = basePrice * (discountPercentage / 100);
-      return basePrice - discountAmount;
-    }
-    return basePrice;
-  };
 
-  const getOriginalPrice = (product: any) => {
-    const activeDiscount = product.discounts?.[0];
-    if (activeDiscount) {
-       return parseFloat(product.variants?.[0]?.price || "0");
-    }
-    return null; 
-  };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
 
-  const getProductColors = (product: any) => {
-    const colors = new Set<string>();
-    product.variants?.forEach((variant: any) => {
-      variant.optionValues?.forEach((ov: any) => {
-        if (ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
-            ov.optionValue?.option?.name?.toLowerCase().includes('colour')) {
-          colors.add(ov.optionValue.value);
-        }
-      });
-    });
-    return Array.from(colors);
-  };
-
-  const getColorHex = (colorName: string) => {
-    const colorMap: Record<string, string> = {
-      'Black': '#000000',
-      'White': '#FFFFFF',
-      'Red': '#EF4444',
-      'Blue': '#3B82F6',
-      'Green': '#10B981',
-      'Yellow': '#F59E0B',
-      'Pink': '#EC4899',
-      'Purple': '#8B5CF6',
-      'Gray': '#6B7280',
-      'Grey': '#6B7280',
-      'Brown': '#78350F',
-      'Orange': '#F97316',
-      'Tan': '#D2B48C',
-      'Beige': '#F5F5DC',
-      'Gold': '#FFD700',
-      'Silver': '#C0C0C0',
-      'Navy': '#000080',
-      'Burgundy': '#800020'
-    };
-    return colorMap[colorName] || colorName;
-  };
-
+  
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -291,14 +207,7 @@ export default function FeaturedProducts() {
                     />
                   </button>
                   
-                  {/* Quick View Button */}
-                  <button
-                    onClick={() => setQuickViewProduct(product)}
-                    className="absolute bottom-4 right-4 z-10 w-8 h-8 bg-background/90 dark:bg-background/80 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-                    aria-label="Quick view"
-                  >
-                    <Eye className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                  </button>
+
                   
                   {/* Product Image */}
                   <div className="aspect-square relative">
@@ -316,15 +225,15 @@ export default function FeaturedProducts() {
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     
-                    {/* Add to Cart Overlay */}
+                    {/* View Product Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                      <button 
-                        onClick={() => handleAddToCart(product)}
-                        className="bg-primary dark:bg-primary text-primary-foreground dark:text-primary-foreground font-medium py-3 px-8 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-2"
+                      <Link 
+                        to={`/product/${product.slug}`}
+                        className="bg-background/90 dark:bg-background/90 text-foreground w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
+                        title="View Product"
                       >
-                        <ShoppingBag className="h-4 w-4" />
-                        Add to Bag
-                      </button>
+                        <Eye className="h-6 w-6 text-primary" />
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -357,83 +266,9 @@ export default function FeaturedProducts() {
                   </h3>
                   
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground dark:text-muted-foreground mb-4 flex-1 line-clamp-2">
-                    {product.description}
-                  </p>
-                  
-                  {/* Variants */}
-                  {product.variants?.length > 1 && (
-                    <div className="mb-4">
-                      {getProductColors(product).length > 0 && (
-                        <div className="flex flex-col gap-2 mb-3">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                            <Palette className="h-3 w-3" />
-                            Available in
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {getProductColors(product).map((color) => (
-                              <div 
-                                key={color}
-                                className="group/swatch relative"
-                              >
-                                <div 
-                                  className="w-5 h-5 rounded-full border border-border/50 shadow-sm transition-transform hover:scale-125 cursor-help"
-                                  style={{ backgroundColor: getColorHex(color) }}
-                                />
-                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 bg-background border text-[8px] rounded opacity-0 group-hover/swatch:opacity-100 transition-opacity whitespace-nowrap z-20">
-                                   {color}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex items-center gap-1.5">
-                        <div className="flex -space-x-1.5 overflow-hidden">
-                          {product.variants.slice(0, 4).map((v: any, i: number) => (
-                            <div 
-                              key={v.id} 
-                              className="w-5 h-5 rounded-full border-2 border-background dark:border-background flex items-center justify-center bg-secondary/80 text-[8px] font-bold"
-                              title={v.sku}
-                            >
-                               {i === 3 && product.variants.length > 4 ? `+${product.variants.length - 3}` : ""}
-                            </div>
-                          ))}
-                        </div>
-                        <span className="text-[10px] font-medium text-muted-foreground">
-                          {product.variants.length} Options
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Price and Action */}
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/30 dark:border-border/40">
-                    <div>
-                      {/* Current Price */}
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl sm:text-2xl font-bold text-foreground dark:text-foreground">
-                            {formatPrice(getProductPrice(product))}
-                          </span>
-                          {getOriginalPrice(product) && (
-                            <span className="text-sm text-muted-foreground line-through decoration-red-500/50">
-                              {formatPrice(getOriginalPrice(product)!)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Quick Action Button */}
-                    <button 
-                      onClick={() => handleAddToCart(product)}
-                      className="w-10 h-10 bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary rounded-full flex items-center justify-center transition-all duration-300 hover:bg-primary hover:text-primary-foreground hover:scale-110"
-                    >
-                      <ShoppingBag className="h-4 w-4" />
-                    </button>
-                  </div>
+
+                  {/* Description */}
+
                 </div>
               </div>
             </motion.div>
@@ -472,13 +307,7 @@ export default function FeaturedProducts() {
           </div>
         </motion.div>
 
-        {/* Quick Add Modal */}
-        <QuickAddModal 
-          isOpen={!!quickAddProduct}
-          onClose={() => setQuickAddProduct(null)}
-          product={quickAddProduct}
-          onAddToCart={addToCart}
-        />
+
       </div>
     </section>
   );
