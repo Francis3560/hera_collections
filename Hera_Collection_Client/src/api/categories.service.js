@@ -7,7 +7,27 @@ const CategoryService = {
    */
   getAllCategories: async () => {
     const response = await axiosClient.get('/categories');
-    return response.data;
+
+    // Robustly handle different response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    // Check for nested data properties commonly used in APIs
+    if (response.data && typeof response.data === 'object') {
+      if (Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+      if (Array.isArray(response.data.categories)) {
+        return response.data.categories;
+      }
+      if (Array.isArray(response.data.items)) {
+        return response.data.items;
+      }
+    }
+
+    console.warn('getAllCategories: Expected array but got:', typeof response.data, response.data);
+    return [];
   },
 
   /**
@@ -19,7 +39,7 @@ const CategoryService = {
     const response = await axiosClient.get(`/categories/${id}`);
     return response.data;
   },
-  
+
   getCategoryBySlug: async (slug) => {
     const response = await axiosClient.get(`/categories/slug/${slug}`);
     return response.data;
