@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import userService from '@/api/userService';
+import userService from '@/api/user.service';
 import { User, UserFilters } from '../types/users';
 import { calculateStats, applyFilters } from '../utils/user.utils';
 
