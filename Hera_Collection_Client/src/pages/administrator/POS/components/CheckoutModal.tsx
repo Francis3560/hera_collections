@@ -111,24 +111,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }, 5000); 
   };
 
+  const getOrCreateCustomer = async () => {
+    let userId = selectedCustomer?.id;
+    if (!userId && customer.firstName && customer.phone) {
+      try {
+        const res = await customerService.createCustomer({
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          email: customer.email,
+          phone: customer.phone,
+          password: 'User@' + Math.random().toString(36).slice(-8)
+        });
+        userId = res.id || res.user?.id;
+      } catch (err) {
+        console.error("Auto-customer creation failed", err);
+      }
+    }
+    return userId;
+  };
+
   const finalizeCheckout = async () => {
     try {
-        let userId = selectedCustomer?.id;
-        // If no existing customer selected, and we have enough info, create a new customer record
-        if (!userId && customer.firstName && customer.phone) {
-          try {
-            const res = await customerService.createCustomer({
-              firstName: customer.firstName,
-              lastName: customer.lastName,
-              email: customer.email,
-              phone: customer.phone,
-              password: 'User@' + Math.random().toString(36).slice(-8)
-            });
-            userId = res.id || res.user?.id;
-          } catch (err) {
-            console.error("Auto-customer creation failed", err);
-          }
-        }
+        const userId = await getOrCreateCustomer();
 
         await onConfirm({
           payment: {
@@ -226,6 +230,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
         try {
             const formattedPhone = customer.phone.replace('+', '');
+            const userId = await getOrCreateCustomer();
+            
             const paymentData = {
                 items: items.map(item => ({
                     productId: item.productId,
@@ -238,7 +244,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   lastName: customer.lastName,
                   name: `${customer.firstName} ${customer.lastName}`,
                   email: customer.email || `${formattedPhone}@heracollection.com`,
-                  phone: formattedPhone
+                  phone: formattedPhone,
+                  userId 
                 },
                 payment: {
                     method: "MPESA",

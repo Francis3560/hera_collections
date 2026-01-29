@@ -237,10 +237,10 @@ export default function ProductShowcase() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-foreground mb-2"
+              className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-foreground mb-2"
               style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif" }}
             >
-              Best Selling Products
+              Best Selling <span className="text-primary dark:text-primary">Products</span>
             </motion.h2>
             
             {/* Breadcrumb style subtitle */}
@@ -456,7 +456,7 @@ export default function ProductShowcase() {
         >
           <Link
             to="/collections?sort=popular"
-            className="inline-flex items-center gap-2 border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-foreground hover:bg-gray-900 dark:hover:bg-gray-800 hover:text-white dark:hover:text-white font-medium py-3 px-8 rounded-none transition-all duration-300"
+            className="inline-flex items-center gap-2 border-2 border-gray-900 dark:border-gray-700 text-gray-900 dark:text-foreground hover:bg-gray-900 dark:hover:bg-gray-800 hover:text-white dark:hover:text-white font-medium py-3 px-10 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
           >
             <span>View All Bestsellers</span>
             <ChevronRight className="h-4 w-4" />

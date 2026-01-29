@@ -4,15 +4,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 
-import Hero1 from "@/components/Images/Hero1.png";
-import Hero2 from "@/components/Images/Hero2.png";
-import Hero3 from "@/components/Images/Heroo3.png";
-import Hero4 from "@/components/Images/Hero4.png";
+import { useTheme } from "@/components/ThemeProvider";
 
 const heroSlides = [
   {
     id: 1,
-    background: Hero1,
+    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_len3pf.png",
+    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_B_uol1cn.png",
     title: "ELEVATE YOUR CORPORATE PRESENCE",
     subtitle: "Executive Excellence",
     description: "Discover our premium collection of professional bags designed for the modern business leader. Crafted with precision and sophistication.",
@@ -21,7 +19,8 @@ const heroSlides = [
   },
   {
     id: 2,
-    background: Hero2,
+    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465243/7_yxmssx.png",
+    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465244/8_tmqduj.png",
     title: "MASTERFUL CRAFTSMANSHIP",
     subtitle: "Luxury Meets Functionality",
     description: "Experience unparalleled quality with our handcrafted leather bags, built to withstand the demands of corporate life while making a statement.",
@@ -30,7 +29,8 @@ const heroSlides = [
   },
   {
     id: 3,
-    background: Hero3,
+    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467638/Hera_Hero_B_jsm0uf.png",
+    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467637/Hera_Hero_W_kalxmy.png",
     title: "DESIGNED FOR PROFESSIONALS",
     subtitle: "Smart Organization",
     description: "Innovative compartments and intelligent design meet elegant aesthetics. Your perfect companion for meetings, travel, and daily commutes.",
@@ -39,7 +39,8 @@ const heroSlides = [
   },
   {
     id: 4,
-    background: Hero4,
+    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375593/3_f5csiv.png",
+    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375591/4_g4hcer.png",
     title: "SUSTAINABLE LUXURY",
     subtitle: "Ethical Elegance",
     description: "Commitment to sustainability without compromising on style. Our eco-friendly materials and ethical production redefine corporate accessories.",
@@ -51,6 +52,15 @@ const heroSlides = [
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const currentBackground = isDark ? heroSlides[currentSlide].darkBackground : heroSlides[currentSlide].lightBackground;
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -99,7 +109,7 @@ export default function HeroSection() {
       opacity: 1,
       transition: {
         duration: 0.8,
-        ease: "easeOut"
+        ease: "easeOut" as any
       }
     },
     exit: {
@@ -112,7 +122,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative h-screen w-full overflow-hidden">
+    <section className="relative h-[100dvh] w-full overflow-hidden bg-neutral-950">
       {/* Background Images Carousel */}
       <div className="relative h-full w-full">
         <AnimatePresence mode="wait" initial={false}>
@@ -130,11 +140,11 @@ export default function HeroSection() {
             className="absolute inset-0 w-full h-full"
           >
             <div className={`absolute inset-0 bg-gradient-to-r ${heroSlides[currentSlide].bgColor} opacity-90 z-10`} />
-            <img
-              src={heroSlides[currentSlide].background}
-              alt={`Hero Slide ${currentSlide + 1}`}
-              className="w-full h-full object-cover object-center"
-            />
+              <img
+                src={currentBackground}
+                alt={`Hero Slide ${currentSlide + 1}`}
+                className="w-full h-full object-cover object-center hidden md:block"
+              />
           </motion.div>
         </AnimatePresence>
       </div>
@@ -144,7 +154,7 @@ export default function HeroSection() {
         <div className="container mx-auto px-6 lg:px-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Text Content */}
-            <div className="text-white space-y-8 max-w-2xl">
+            <div className="text-white space-y-8 max-w-2xl text-center lg:text-left mx-auto lg:mx-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={`subtitle-${currentSlide}`}
@@ -156,7 +166,7 @@ export default function HeroSection() {
                 >
                   {/* Subtitle */}
                   <motion.p 
-                    className="text-lg lg:text-xl font-light tracking-widest uppercase text-primary-accent"
+                    className="text-primary md:text-lg lg:text-xl font-light tracking-widest uppercase text-primary-accent"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2, duration: 0.7 }}
@@ -166,7 +176,7 @@ export default function HeroSection() {
 
                   {/* Main Title */}
                   <motion.h1 
-                    className="text-2xl lg:text-3xl xl:text-4xl font-bold leading-tight tracking-tight"
+                    className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight tracking-tight px-4 md:px-0"
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.8 }}
@@ -176,7 +186,7 @@ export default function HeroSection() {
 
                   {/* Description */}
                   <motion.p 
-                    className="text-lg lg:text-xl font-light leading-relaxed text-white/90 max-w-lg"
+                    className="text-lg lg:text-xl font-light leading-relaxed text-white/90 max-w-lg mx-auto lg:mx-0 px-4 md:px-0"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6, duration: 0.7 }}
@@ -189,13 +199,24 @@ export default function HeroSection() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.8, duration: 0.7 }}
+                    className="flex justify-center lg:justify-start"
                   >
-                    <Link to="/collections">
+                      <Link to="/collections">
                       <Button 
                         size="lg"
-                        className="bg-primary hover:bg-primary-accent/90 text-primary-accent-foreground px-8 py-6 text-lg font-semibold rounded-none border-2 border-transparent hover:border-primary-accent/20 transition-all duration-300 hover:scale-105"
+                        className="bg-primary hover:bg-primary-dark text-white px-10 py-7 text-lg font-bold rounded-2xl border-none shadow-lg hover:shadow-primary/40 transition-all duration-500 hover:scale-110 active:scale-95 group overflow-hidden relative"
                       >
-                        {heroSlides[currentSlide].cta}
+                        <span className="relative z-10 flex items-center gap-2">
+                          {heroSlides[currentSlide].cta}
+                          <motion.span
+                            animate={{ x: [0, 5, 0] }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </motion.span>
+                        </span>
+                        <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 skew-x-12" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />
                       </Button>
                     </Link>
                   </motion.div>
@@ -212,7 +233,7 @@ export default function HeroSection() {
       </div>
 
       {/* Slide Indicators - Minimal */}
-      <div className="absolute bottom-8 right-8 z-30 flex space-x-2">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 md:left-auto md:right-8 md:translate-x-0 z-30 flex space-x-2">
         {heroSlides.map((_, index) => (
           <button
             key={index}

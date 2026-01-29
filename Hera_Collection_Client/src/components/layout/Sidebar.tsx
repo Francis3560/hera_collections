@@ -30,6 +30,7 @@ import {
   FileText,
   FileCheck,
   Percent,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,8 @@ const navigation: NavigationItem[] = [
 // No, I must make a valid change.
 // I will simply add a comment to 'Order Items' to confirm I saw it.
       { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
-      { name: "Order Items", href: "/admin/order-items", icon: Receipt }, // List of all order items
+      { name: "Order Items", href: "/admin/order-items", icon: Receipt },
+      { name: "Shipping Fees", href: "/admin/shipping-fees", icon: Truck },
       { name: "Customers", href: "/admin/customers", icon: UsersIcon },
     ],
   },

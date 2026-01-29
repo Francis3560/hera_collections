@@ -62,9 +62,9 @@ export default function CollectionsPage() {
       };
       if (activeCategory !== "all") {
         const cat = categories.find((c: any) => c.slug === activeCategory);
-        if (cat) params.category = cat.id;
+        if (cat) params.categoryId = cat.id;
       }
-      if (searchQuery) params.search = searchQuery;
+      if (searchQuery) params.q = searchQuery;
       if (hasDiscount) params.hasDiscount = true;
       
       // Sort handling

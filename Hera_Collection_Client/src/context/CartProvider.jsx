@@ -13,7 +13,7 @@ const cartReducer = (state, action) => {
       return { 
         ...state, 
         items: action.payload.items || [], 
-        total: action.payload.totalAmount || 0,
+        total: action.payload.subtotal || action.payload.totalAmount || 0,
         loading: false 
       };
     case 'SET_LOADING':
@@ -60,22 +60,16 @@ export const CartProvider = ({ children }) => {
       let appliedDiscount = null;
 
       // Check for active discounts on product (Guest logic mirroring backend)
-      // Find the first discount that is active and within valid date range
-      const now = new Date();
-      const activeDiscount = product.discounts?.find(d => {
-        const startDate = new Date(d.startDate);
-        const endDate = new Date(d.endDate);
-        const isActive = d.isActive !== false;
-        return isActive && now >= startDate && now <= endDate;
-      });
+      const activeDiscount = product.discounts?.find(d => d.isActive !== false);
 
       if (activeDiscount) {
-         const discountAmount = (originalPrice * activeDiscount.discountPercentage) / 100;
+         const percentage = parseFloat(activeDiscount.discountPercentage);
+         const discountAmount = (originalPrice * percentage) / 100;
          finalPrice = originalPrice - discountAmount;
          appliedDiscount = {
             id: activeDiscount.id,
             name: activeDiscount.name,
-            percentage: activeDiscount.discountPercentage,
+            percentage: percentage,
             amountSaved: discountAmount
          };
       }

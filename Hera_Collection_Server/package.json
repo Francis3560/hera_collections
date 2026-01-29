@@ -1,7 +1,7 @@
 {
-  "name": "kai-hub-backend",
+  "name": "hera-collection-backend",
   "version": "1.0.0",
-  "description": "Backend API for Kai Livestock Hub (Node.js + Express + Prisma + Cloudinary + M-Pesa)",
+  "description": "Backend API for Hera Collection (Node.js + Express + Prisma + Cloudinary + M-Pesa)",
   "type": "module",
   "main": "main.js",
   "scripts": {

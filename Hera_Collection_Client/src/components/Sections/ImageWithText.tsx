@@ -14,10 +14,14 @@ import {
   Zap
 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
-import Hero1 from "@/components/Images/ImageWithText.png";
-
 export default function BagPhilosophy() {
   const { theme } = useTheme();
+  
+  const lightImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769376118/ImageWithText_nx09ii.png";
+  const darkImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769376117/ImageWithText_1_x6sre9.png";
+  
+  const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const currentImage = isDark ? darkImage : lightImage;
 
   // Animation variants
   const containerVariants = {
@@ -39,7 +43,7 @@ export default function BagPhilosophy() {
         type: "spring",
         stiffness: 100,
         damping: 20
-      }
+      } as any
     }
   };
 
@@ -54,7 +58,7 @@ export default function BagPhilosophy() {
         stiffness: 100,
         damping: 25,
         delay: 0.3
-      }
+      } as any
     }
   };
 
@@ -67,7 +71,7 @@ export default function BagPhilosophy() {
         delay: 0.5 + i * 0.1,
         type: "spring",
         stiffness: 150
-      }
+      } as any
     })
   };
 
@@ -80,7 +84,7 @@ export default function BagPhilosophy() {
         delay: 0.8 + i * 0.15,
         type: "spring",
         stiffness: 200
-      }
+      } as any
     })
   };
 
@@ -120,7 +124,7 @@ export default function BagPhilosophy() {
               <div className="relative rounded-3xl sm:rounded-[2.5rem] overflow-hidden shadow-2xl group">
                 <div className="aspect-[4/5] sm:aspect-[3/4] relative">
                   <img
-                    src={Hero1}
+                    src={currentImage}
                     alt="Premium Luxury Bag Collection - Hera Collections"
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                   />

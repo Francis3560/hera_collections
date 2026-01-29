@@ -144,13 +144,13 @@ export default function FeaturedProducts() {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           viewport={{ once: true, margin: "-50px" }}
-          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 lg:mb-12 px-2"
+          className="flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 lg:mb-12 px-4 sm:px-2 overflow-x-auto sm:overflow-x-visible pb-4 sm:pb-0 scrollbar-hide"
         >
           {['All Products', 'Bestsellers', 'New Arrivals', 'On Sale', 'Luxury'].map((filter) => (
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm sm:text-base font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+              className={`flex-shrink-0 px-5 sm:px-6 py-2.5 rounded-full text-sm sm:text-base font-medium transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap ${
                 activeFilter === filter 
                   ? 'bg-primary dark:bg-primary text-primary-foreground dark:text-primary-foreground shadow-lg' 
                   : 'bg-secondary/50 dark:bg-secondary/30 text-foreground/80 dark:text-foreground/80 hover:bg-primary/10 dark:hover:bg-primary/20'

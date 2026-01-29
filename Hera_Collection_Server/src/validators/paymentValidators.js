@@ -20,6 +20,7 @@ export const paymentRequestSchema = Joi.object({
     name: Joi.string().max(255).optional().allow('', null),
     phone: Joi.string().max(32).required(),
     email: Joi.string().email().max(191).required(),
+    userId: Joi.number().integer().optional().allow(null),
   }).required(),
 
   payment: Joi.object({

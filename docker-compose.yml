@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: Hera_Collection
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+
+  server:
+    build:
+      context: ./Hera_Collection_Server
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=mysql://root:root@db:3306/Hera_Collection
+      - PORT=8080
+      - CORS_ORIGIN=http://localhost:5173
+      - JWT_SECRET=8ac9e81ec2403aca21313f33c6d918fc
+      - CLOUDINARY_CLOUD_NAME=dvkt0lsqb
+      - CLOUDINARY_API_KEY=463211981157676
+      - CLOUDINARY_API_SECRET=JFN5S6xlzEiP4OGDR69FpAE4uU4
+      - CLOUDINARY_UPLOAD_PRESET=unsigned_preset
+      - VITE_BACKEND_URL=http://localhost:8080
+      - GOOGLE_OAUTH_CLIENT_ID=22795732656-36ee1vmrg2pdmuimiil8netufbav85op.apps.googleusercontent.com
+      - REFRESH_TOKEN_SECRET=8ac9e81ec2403aca21313f33c6d918fc
+      - JWT_EXPIRES_IN=30m
+      - REFRESH_EXPIRES_IN=7d
+      - MPESA_SHORTCODE=174379
+      - MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+      - MPESA_CONSUMER_KEY=KGDAInGvXkRAztAt1eS7km6DI4W0MGzwKGChYihu3x5tXjqo
+      - MPESA_CONSUMER_SECRET=PSyx0TNHP2XwDnkEaEJsNGS9xnCSOlAZiHMikjDcNsbuG21StGGSh4bnhrpElKdu
+      - MPESA_CALLBACK_URL=https://bd10fd1e6fc7.ngrok-free.app/api/payments/mpesa/callback
+      - MPESA_BASE_URL=https://sandbox.safaricom.co.ke
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=jamradi80@gmail.com
+      - EMAIL_PASS=kbfjzltweekolakm
+      - ADMIN_EMAIL=jamradi80@gmail.com
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./Hera_Collection_Server/uploads:/app/uploads
+
+  client:
+    build:
+      context: ./Hera_Collection_Client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8080
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  mysql_data:

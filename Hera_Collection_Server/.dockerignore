@@ -1,0 +1,11 @@
+node_modules
+.env
+.git
+.gitignore
+README.md
+Dockerfile
+docker-compose.yml
+uploads
+# We might want to keep migrations if we want to deploy them, 
+# but usually they are copied separately or handled by the app.
+# For now, let's just ignore the obvious stuff.

@@ -26,6 +26,7 @@ import cartRoutes from './src/routes/cartRoutes.js';
 import wishlistRoutes from './src/routes/wishlistRoutes.js';
 import reportRoutes from './src/routes/reportRoutes.js';
 import discountRoutes from './src/routes/discountRoutes.js';
+import shippingRoutes from './src/routes/shippingRoutes.js';
 
 // Import services and utilities
 import { webSocketService } from './src/services/websocket.service.js';
@@ -47,7 +48,7 @@ const allowedOrigins = (process.env.CORS_ORIGIN?.split(',') || [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:8080',
-  'https://13e848888f1d.ngrok-free.app',
+  'https://bd10fd1e6fc7.ngrok-free.app',
 ]).map(s => s.trim()).filter(Boolean);
 
 // CORS middleware
@@ -256,6 +257,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/discounts', discountRoutes);
+app.use('/api/shipping-regions', shippingRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));

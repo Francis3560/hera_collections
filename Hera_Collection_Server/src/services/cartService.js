@@ -16,7 +16,6 @@ export async function getCart(userId, sessionId) {
           product: {
             include: {
               photos: true,
-              photos: true,
               category: true,
               discounts: {
                 where: { isActive: true },
@@ -40,24 +39,28 @@ export async function getCart(userId, sessionId) {
     try {
       cart = await prisma.cart.create({
         data: {
-          userId: userId || null, // Ensure explicit null
-          sessionId: userId ? null : sessionId // Only use sessionId if no userId
+          userId: userId || null,
+          sessionId: userId ? null : sessionId
         },
         include: {
           items: true
         }
       });
-      // Important to initialize items array for new carts
       cart.items = [];
     } catch (e) {
-      // Handle race condition where cart might have been created by another request in parallel
       if (e.code === 'P2002') {
          cart = await prisma.cart.findFirst({
             where,
             include: {
               items: {
                   include: {
-                      product: { include: { photos: true, category: true } },
+                      product: { 
+                        include: { 
+                          photos: true, 
+                          category: true,
+                          discounts: { where: { isActive: true } }
+                        } 
+                      },
                       variant: true
                   }
               }
@@ -69,39 +72,28 @@ export async function getCart(userId, sessionId) {
     }
   }
 
-  // Safety check
-  if (!cart) {
-      throw new Error("Failed to initialize cart");
-  }
-  
-  // Ensure items is an array if not included
+  if (!cart) throw new Error("Failed to initialize cart");
   if (!cart.items) cart.items = [];
 
-  // Calculate totals and apply discounts
   const itemsWithDiscounts = cart.items.map(item => {
     const product = item.product;
     const variant = item.variant;
     
-    // Determine base price
     const originalPrice = Number(variant?.price || 0);
     let finalPrice = originalPrice;
     let appliedDiscount = null;
 
-    // Check for active discounts on product - Find first one that matches date criteria
-    const now = new Date();
-    const activeDiscount = product.discounts?.find(d => {
-       const startDate = new Date(d.startDate);
-       const endDate = new Date(d.endDate);
-       return now >= startDate && now <= endDate;
-    });
+    // Check for active discounts on product
+    const activeDiscount = product.discounts?.[0]; // Prisma query already filters for isActive: true
 
     if (activeDiscount) {
-       const discountAmount = (originalPrice * activeDiscount.discountPercentage) / 100;
+       const percentage = Number(activeDiscount.discountPercentage);
+       const discountAmount = (originalPrice * percentage) / 100;
        finalPrice = originalPrice - discountAmount;
        appliedDiscount = {
           id: activeDiscount.id,
           name: activeDiscount.name,
-          percentage: activeDiscount.discountPercentage,
+          percentage: percentage,
           amountSaved: discountAmount
        };
     }
@@ -109,15 +101,13 @@ export async function getCart(userId, sessionId) {
     return {
       ...item,
       originalPrice,
-      price: finalPrice, // Override price with discounted price for frontend use
-      discountedPrice: finalPrice, // Explicit field
+      price: finalPrice,
+      discountedPrice: finalPrice,
       appliedDiscount
     };
   });
 
-  const subtotal = itemsWithDiscounts.reduce((sum, item) => {
-    return sum + (item.price * item.quantity);
-  }, 0);
+  const subtotal = itemsWithDiscounts.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return { ...cart, items: itemsWithDiscounts, subtotal };
 }
@@ -164,24 +154,37 @@ export async function addToCart(userId, sessionId, itemData) {
   let variantValue = null;
 
   if (variantId) {
-    const variant = product.variants.find(v => v.id === variantId);
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: variantId },
+      include: {
+        optionValues: {
+          include: { optionValue: { include: { option: true } } }
+        }
+      }
+    });
+
     if (!variant) throw new Error('Variant not found');
     if (variant.stock < quantity) throw new Error('Insufficient stock for variant');
+    
     price = variant.price;
-    // We might want to fetch option values to populate variantName/Value properly, 
-    // but for now we'll leave them null or fetch if needed specifically.
-    // The schema has variantName/Value in CartItem.
+    
+    // Construct variant strings (e.g., "Color", "Red")
+    if (variant.optionValues && variant.optionValues.length > 0) {
+      variantName = variant.optionValues.map(ov => ov.optionValue.option.name).join(' / ');
+      variantValue = variant.optionValues.map(ov => ov.optionValue.value).join(' / ');
+    } else {
+      variantName = 'Default';
+      variantValue = variant.sku || 'Default';
+    }
   } else {
-    // If product has no variants, maybe it has a base price? 
-    // The Product model in schema doesn't show a price field? 
-    // Wait, I need to check Schema for Product price.
-    // Schema lines 166-214: Product has no price field! Only ProductVariant has price.
-    // This implies ALL products must have at least one variant? Or I missed it.
-    // Let's assume for now we use the variant.
-    if (product.variants.length > 0 && !variantId) {
-        // If product has variants, one must be selected.
-        // Or maybe there is a default variant?
-        throw new Error('Product variant must be selected');
+    // If product has variants, one must be selected.
+    const productWithVariants = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { variants: { where: { isActive: true } } }
+    });
+    
+    if (productWithVariants?.variants.length > 0) {
+      throw new Error('Product variant must be selected');
     }
   }
 
@@ -314,10 +317,13 @@ export async function checkoutCart(userId, sessionId, paymentData, customerData,
     shipping: shippingData
   };
 
-  // Create Order
-  const order = await createOrder(userId, orderData);
+  // Determine the buyer. For POS, the cashier triggers this but the buyer is the customer.
+  const buyerId = customerData?.userId || userId;
 
-  // Clear Cart
+  // Create Order
+  const order = await createOrder(buyerId, orderData);
+
+  // Clear the cart used for this checkout (the auth'd user/session cart)
   await clearCart(userId, sessionId);
 
   return order;

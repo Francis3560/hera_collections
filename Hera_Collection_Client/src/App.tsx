@@ -53,6 +53,7 @@ import ProductDetailsPage from "./pages/shop/ProductDetailsPage";
 import CollectionsPage from "./pages/shop/CollectionsPage";
 import CollectionPage from "./pages/shop/CollectionPage";
 import ThankYouPage from "./pages/shop/ThankYouPage";
+import ShippingFeesPage from "./pages/administrator/Shipping/ShippingFeesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -151,6 +152,7 @@ const App = () => (
                     <Route path="orders" element={<OrdersList />} />
                     <Route path="orders/:id" element={<OrderDetails />} />
                     <Route path="order-items" element={<OrderItemsList />} />
+                    <Route path="shipping-fees" element={<ShippingFeesPage />} />
                     <Route path="customers" element={<CustomersList />} />
 
                     {/* POS & Sales */}

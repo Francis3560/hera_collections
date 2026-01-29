@@ -858,3 +858,17 @@ model Notification {
   @@index([isRead])
   @@index([createdAt])
 }
+
+model ShippingRegion {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique @db.VarChar(120)
+  description   String?  @db.Text
+  fee           Decimal  @db.Decimal(10, 2)
+  isActive      Boolean  @default(true)
+  estimatedDays String?  @db.VarChar(50)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+}

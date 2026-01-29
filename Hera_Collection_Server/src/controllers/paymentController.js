@@ -74,6 +74,10 @@ export async function startMpesaPayment(req, res) {
     // Generate order reference
     const orderReference = `VZG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Determine the buyer ID. For POS, the cashier is auth'd but the buyer is the customer.
+    // If customer.userId is provided (from POS), use it. otherwise use req.auth.userId.
+    const buyerId = customer?.userId || req.auth.userId;
+
     // Initiate M-Pesa STK Push
     const response = await initiateStkPush({
       amount: amounts.total,
@@ -94,7 +98,7 @@ export async function startMpesaPayment(req, res) {
     // Create payment intent with order data
     const paymentIntent = await prisma.paymentIntent.create({
       data: {
-        buyerId: req.auth.userId,
+        buyerId: buyerId,
         mpesaCheckoutRequestId: response.CheckoutRequestID,
         mpesaMerchantRequestId: response.MerchantRequestID,
         phone: payment.phone,

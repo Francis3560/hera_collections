@@ -256,7 +256,7 @@ export default function CustomerReviews() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full lg:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full lg:w-auto">
             {[
               { label: "Verified Buyers", value: "98%" },
               { label: "Would Recommend", value: "96%" },

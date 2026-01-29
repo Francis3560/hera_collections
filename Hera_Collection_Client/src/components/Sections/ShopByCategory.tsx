@@ -153,7 +153,7 @@ export default function ShopByCategory() {
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true, margin: "-50px" }}
-              className="text-2xl sm:text-3xl md:text-4xl font-light text-foreground dark:text-foreground tracking-wide uppercase text-center sm:text-left"
+              className="text-2xl sm:text-3xl md:text-4xl font-light text-foreground dark:text-foreground tracking-wide uppercase text-center sm:text-left mx-auto sm:mx-0"
               style={{ 
                 fontFamily: "'Helvetica Neue', Arial, sans-serif", 
                 letterSpacing: '0.05em'

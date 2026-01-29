@@ -117,6 +117,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         shippingCountry: shipping?.country || null,
         notes: shipping?.notes || null,
         subtotalAmount: new Prisma.Decimal(amounts.subtotal),
+        shippingCost: new Prisma.Decimal(amounts.shipping || 0),
         totalAmount: new Prisma.Decimal(amounts.total),
         paymentIntentId,
         items: {

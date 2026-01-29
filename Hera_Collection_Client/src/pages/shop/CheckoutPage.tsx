@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Truck, User, ArrowLeft, Loader2, CheckCircle2, Search, Check, Info } from "lucide-react";
+import { CreditCard, Truck, User, ArrowLeft, Loader2, CheckCircle2, Search, Check, Info, MapPin, Navigation, AlertCircle } from "lucide-react";
 import PaymentService from "@/api/payment.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import customerService from "@/api/customer.service";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { OrderSuccessSplash } from "@/components/shared/OrderSuccessSplash";
+import ShippingService from "@/api/shipping.service";
 
 export default function CheckoutPage() {
   const { items, total, cartCount, clearCart } = useCart();
@@ -39,6 +40,9 @@ export default function CheckoutPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isAdmin = user?.role === 'ADMIN';
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [shippingRegions, setShippingRegions] = useState<any[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<any>(null);
 
   const calculatedTotal = items.reduce((sum: number, item: any) => {
     const price = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
@@ -57,6 +61,25 @@ export default function CheckoutPage() {
     governorate: "Nairobi", // Default
     notes: ""
   });
+
+  useEffect(() => {
+    const fetchShippingRegions = async () => {
+      try {
+        const data = await ShippingService.getAllRegions({ isActive: true });
+        setShippingRegions(data);
+        if (data.length > 0) {
+          // If city matches an existing region, auto-select it?
+          // For now just keep it empty to force choice
+        }
+      } catch (error) {
+        console.error("Failed to fetch shipping regions", error);
+      }
+    };
+    fetchShippingRegions();
+  }, []);
+
+  const shippingFee = selectedRegion ? parseFloat(selectedRegion.fee) : 0;
+  const grandTotal = displayTotal + shippingFee;
 
   const searchCustomers = useCallback(
     debounce(async (query: string) => {
@@ -101,6 +124,58 @@ export default function CheckoutPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Using Nominatim for a free reverse geocoding service
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          
+          if (data) {
+            const addr = data.address || {};
+            const road = addr.road || "";
+            const house = addr.house_number || "";
+            const neighborhood = addr.suburb || addr.neighbourhood || addr.city_district || "";
+            const city = addr.city || addr.town || addr.village || "";
+            const state = addr.state || addr.region || "";
+            
+            // Construct a cleaner detailed address string
+            const shortAddress = [house, road, neighborhood].filter(Boolean).join(", ");
+            
+            setFormData(prev => ({
+              ...prev,
+              address: shortAddress || data.display_name,
+              city: city || prev.city,
+              governorate: state || prev.governorate
+            }));
+            toast.success("Location updated!");
+          }
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          toast.error("Failed to retrieve detailed address");
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        setLocationLoading(false);
+        console.error("Geolocation error:", error);
+        toast.error("Could not access your location");
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
   const handleSelectCustomer = (c: any) => {
     setSelectedCustomer(c);
     
@@ -143,6 +218,13 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!selectedRegion) {
+      toast.error("Please select a shipping plan");
+      const element = document.getElementById("address");
+      if (element) element.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
     setLoading(true);
     setPaymentStatus("PENDING");
 
@@ -177,8 +259,8 @@ export default function CheckoutPage() {
         },
         amounts: {
             subtotal: displayTotal,
-            shipping: 0,
-            total: displayTotal
+            shipping: shippingFee,
+            total: grandTotal
         }
       };
 
@@ -369,16 +451,80 @@ export default function CheckoutPage() {
                     <Input id="lastName" value={formData.lastName} onChange={handleInputChange} required className="rounded-xl" />
                   </div>
                   <div className="md:col-span-2 space-y-2">
-                    <Label htmlFor="address">Detailed Address</Label>
-                    <Input id="address" placeholder="Street name, Building, Apartment No." value={formData.address} onChange={handleInputChange} required className="rounded-xl" />
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="address">Detailed Address</Label>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleGetCurrentLocation}
+                        disabled={locationLoading}
+                        className="text-xs text-primary h-7 gap-1.5 rounded-full hover:bg-primary/10"
+                      >
+                        {locationLoading ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Navigation className="w-3 h-3" />
+                        )}
+                        Use Current Location
+                      </Button>
+                    </div>
+                    <div className="relative">
+                      <Input 
+                        id="address" 
+                        placeholder="Street name, Building, Apartment No." 
+                        value={formData.address} 
+                        onChange={handleInputChange} 
+                        required 
+                        className="rounded-xl pr-10" 
+                      />
+                      <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="city">City / Area</Label>
                     <Input id="city" value={formData.city} onChange={handleInputChange} required className="rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="governorate">Governorate</Label>
+                    <Label htmlFor="governorate">Governorate / State</Label>
                     <Input id="governorate" value={formData.governorate} onChange={handleInputChange} required className="rounded-xl" />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-4 pt-4 border-t border-border/40 mt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Truck className="w-5 h-5 text-primary" />
+                      <Label className="text-lg font-semibold">Shipping Plan</Label>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {shippingRegions.map((region) => (
+                        <div 
+                           key={region.id}
+                           onClick={() => setSelectedRegion(region)}
+                           className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-1 ${selectedRegion?.id === region.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                        >
+                           <div className="flex justify-between items-center">
+                              <span className="font-bold">{region.name}</span>
+                              <span className="text-primary font-bold">{formatPrice(Number(region.fee))}</span>
+                           </div>
+                           {region.estimatedDays && (
+                             <span className="text-xs text-muted-foreground">Est. Delivery: {region.estimatedDays}</span>
+                           )}
+                           {region.description && (
+                             <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{region.description}</span>
+                           )}
+                        </div>
+                      ))}
+                      {shippingRegions.length === 0 && (
+                        <div className="col-span-full py-6 text-center bg-muted/20 rounded-2xl border-2 border-dashed">
+                           <p className="text-muted-foreground text-sm">Loading shipping options...</p>
+                        </div>
+                      )}
+                    </div>
+                    {!selectedRegion && shippingRegions.length > 0 && (
+                      <p className="text-xs text-destructive flex items-center gap-1.5 px-1">
+                        <AlertCircle className="w-3.5 h-3.5" /> Please select a shipping destination to continue.
+                      </p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -492,12 +638,14 @@ export default function CheckoutPage() {
                   <span>{formatPrice(displayTotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Standard Shipping</span>
-                  <span className="text-green-600">Free</span>
+                  <span>Shipping ({selectedRegion?.name || 'Standard'})</span>
+                  <span className={shippingFee > 0 ? "text-foreground" : "text-green-600"}>
+                    {shippingFee > 0 ? formatPrice(shippingFee) : 'Free'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-xl font-bold pt-4 text-primary">
                   <span>Total</span>
-                  <span>{formatPrice(displayTotal)}</span>
+                  <span>{formatPrice(grandTotal)}</span>
                 </div>
               </div>
               
@@ -505,7 +653,9 @@ export default function CheckoutPage() {
                 <Truck className="w-5 h-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold">Estimated Delivery</p>
-                  <p className="text-xs text-muted-foreground">2 working days</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedRegion?.estimatedDays || "2 working days"}
+                  </p>
                 </div>
               </div>
             </div>
