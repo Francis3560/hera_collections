@@ -16,8 +16,16 @@ export const upload = multer({
 
 export const getAllCategories = async (req, res) => {
   try {
+    const { tree } = req.query;
     const categories = await prisma.category.findMany({
       orderBy: { name: 'asc' },
+      include: tree === 'true' ? {
+        subCategories: true,
+      } : {
+        _count: {
+          select: { products: true, subCategories: true }
+        }
+      },
     });
     res.status(200).json(categories);
   } catch (error) {
@@ -68,7 +76,8 @@ export const getCategoryBySlug = async (req, res) => {
                where: { isActive: true }
             }
           },
-        }
+        },
+        subCategories: true
       },
     });
 
@@ -85,7 +94,7 @@ export const getCategoryBySlug = async (req, res) => {
 
 export const createCategory = async (req, res) => {
   try {
-    const { name, description, slug } = req.body;
+    const { name, description, slug, parentId } = req.body;
     if (!name || !slug) {
       return res.status(400).json({ message: 'Name and slug are required' });
     }

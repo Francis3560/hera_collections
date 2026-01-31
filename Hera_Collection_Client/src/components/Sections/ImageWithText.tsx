@@ -17,8 +17,8 @@ import { useTheme } from "@/components/ThemeProvider";
 export default function BagPhilosophy() {
   const { theme } = useTheme();
   
-  const lightImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769376118/ImageWithText_nx09ii.png";
-  const darkImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769376117/ImageWithText_1_x6sre9.png";
+  const lightImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769845300/ImageWithText_Lates_uodorf.png";
+  const darkImage = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769845300/ImageWithText_Lates-removebg-preview_ldie1u.png";
   
   const isDark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   const currentImage = isDark ? darkImage : lightImage;

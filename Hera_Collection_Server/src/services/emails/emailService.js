@@ -10,6 +10,9 @@ import {
   createPaymentSuccessEmail,
   createPaymentFailedEmail
 } from './paymentTemplates.js';
+import { wrapWithLayout } from './emailLayout.js';
+
+const BRAND_PRIMARY = '#7C3AED';
 
 const createTransporter = () => {
   try {
@@ -44,266 +47,69 @@ const verifyTransporter = async () => {
 };
 
 const createVerificationEmailTemplate = (userName, verificationCode) => {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Verification</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px 10px 0 0;
-            color: white;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .verification-code {
-            display: inline-block;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            padding: 15px 30px;
-            border-radius: 8px;
-            letter-spacing: 5px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .instructions {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #667eea;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
-        }
-        .button {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-        .note {
-            color: #666;
-            font-size: 12px;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collections</div>
-            <h1>Verify Your Email</h1>
+  const content = `
+    <p>Hello ${userName || 'valued customer'},</p>
+    <p>Thank you for choosing Hera Collections. To secure your account and complete your registration, please verify your email address using the code below.</p>
+    
+    <div style="text-align: center; margin: 40px 0;">
+        <div style="display: inline-block; background: #f3f4f6; border: 2px solid ${BRAND_PRIMARY}; color: ${BRAND_PRIMARY}; font-size: 48px; font-weight: 800; padding: 24px 48px; border-radius: 20px; letter-spacing: 12px; font-family: 'Courier New', monospace;">
+            ${verificationCode}
         </div>
-        <div class="content">
-            <p>Hello ${userName || 'User'},</p>
-            <p>Thank you for signing up! To complete your registration and start using your account, please verify your email address.</p>
-            
-            <div style="text-align: center;">
-                <div class="verification-code">${verificationCode}</div>
-            </div>
-            
-            <p>Enter this 6-digit verification code on the verification page to activate your account.</p>
-            
-            <div class="instructions">
-                <p><strong>How to verify:</strong></p>
-                <ol>
-                    <li>Copy the 6-digit code above</li>
-                    <li>Return to the verification page</li>
-                    <li>Enter the code in the verification field</li>
-                    <li>Click "Verify Email"</li>
-                </ol>
-            </div>
-            
-            <p>If you didn't create an account with us, please ignore this email.</p>
-            
-            <p class="note">
-                <strong>Note:</strong> This verification code will expire in 24 hours for security reasons.
-            </p>
-        </div>
-        <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
-            <p>This is an automated email, please do not reply.</p>
-        </div>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 16px;">This code will expire in 24 hours.</p>
     </div>
-</body>
-</html>
+    
+    <div class="section">
+        <span class="section-title">Next Steps</span>
+        <ol style="margin: 0; padding-left: 20px; color: #4b5563;">
+            <li style="margin-bottom: 8px;">Copy the 6-digit code above</li>
+            <li style="margin-bottom: 8px;">Return to the verification page</li>
+            <li style="margin-bottom: 8px;">Enter the code to activate your account</li>
+        </ol>
+    </div>
+    
+    <p style="font-size: 13px; color: #9ca3af; text-align: center;">If you did not request this, please ignore this email or contact support if you have concerns.</p>
   `;
+
+  return wrapWithLayout('Verify Your Account', content);
 };
 
 // Welcome email template (after verification)
 const createWelcomeEmailTemplate = (userName) => {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Hera Collections</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            border-radius: 10px 10px 0 0;
-            color: white;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .welcome-icon {
-            font-size: 60px;
-            text-align: center;
-            color: #4CAF50;
-            margin: 20px 0;
-        }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .feature {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
-        }
-        .button {
-            display: inline-block;
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            color: white;
-            text-decoration: none;
-            padding: 12px 30px;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collections</div>
-            <h1>Welcome to Our Community!</h1>
-        </div>
-        <div class="content">
-            <div class="welcome-icon">🎉</div>
-            
-            <p>Hello <strong>${userName || 'there'}</strong>,</p>
-            
-            <p>Congratulations! Your email has been successfully verified and your account is now fully activated.</p>
-            
-            <p>You now have access to all features of Hera Collections:</p>
-            
-            <div class="features">
-                <div class="feature">
-                    <div class="feature-icon">🛒</div>
-                    <h3>Shop Products</h3>
-                    <p>Browse and purchase from our wide selection</p>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">📱</div>
-                    <h3>Manage Orders</h3>
-                    <p>Track and manage your purchases</p>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">💬</div>
-                    <h3>Connect</h3>
-                    <p>Message sellers and get support</p>
+  const content = `
+    <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 24px;">✨</div>
+        <p>Hello <strong>${userName || 'there'}</strong>,</p>
+        <p>Welcome to the family! Your account is now fully active, and you're ready to experience the finest collections.</p>
+    </div>
+    
+    <div class="section">
+        <span class="section-title">What's Next?</span>
+        <div style="display: grid; gap: 20px;">
+            <div style="display: flex; gap: 16px;">
+                <div style="font-size: 24px;">👜</div>
+                <div>
+                    <div style="font-weight: 700;">Explore Collections</div>
+                    <div style="font-size: 14px; color: #6b7280;">Discover our latest premium bags and accessories.</div>
                 </div>
             </div>
-            
-            <div style="text-align: center;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" class="button">
-                    Go to Dashboard
-                </a>
+            <div style="display: flex; gap: 16px;">
+                <div style="font-size: 24px;">👔</div>
+                <div>
+                    <div style="font-weight: 700;">Curated Picks</div>
+                    <div style="font-size: 14px; color: #6b7280;">Hand-picked items tailored for your lifestyle.</div>
+                </div>
             </div>
-            
-            <p>If you have any questions or need assistance, feel free to reply to this email or contact our support team.</p>
-            
-            <p>Happy shopping!</p>
-            <p><strong>The Hera Collections Team</strong></p>
-        </div>
-        <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
-            <p>This is an automated email, please do not reply.</p>
         </div>
     </div>
-</body>
-</html>
+    
+    <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/collections" class="button">Start Shopping</a>
+    </div>
+    
+    <p style="text-align: center; color: #6b7280; font-size: 14px;">If you have any questions, our support team is always here to help.</p>
   `;
+
+  return wrapWithLayout('Welcome to Hera Collection', content);
 };
 
 const sendEmail = async (to, subject, html, text = null) => {
@@ -396,63 +202,39 @@ export const sendAdminOrderNotification = async (order, items, customerName) => 
 };
 
 export const sendOrderStatusUpdateEmail = async (order, customerName, oldStatus, newStatus) => {
-  const statusMap = {
-    'PENDING': { color: '#ff9800', text: 'Pending' },
-    'PAID': { color: '#4CAF50', text: 'Paid' },
-    'PROCESSING': { color: '#2196F3', text: 'Processing' },
-    'SHIPPED': { color: '#9C27B0', text: 'Shipped' },
-    'DELIVERED': { color: '#607D8B', text: 'Delivered' },
-    'CANCELLED': { color: '#f44336', text: 'Cancelled' },
-    'FULFILLED': { color: '#4CAF50', text: 'Fulfilled' }
-  };
-
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Status Updated - Hera Collections</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .status-change { 
-            background: #f5f5f5; 
-            padding: 15px; 
-            border-radius: 5px; 
-            margin: 20px 0; 
-            text-align: center;
-        }
-        .old-status { color: #666; text-decoration: line-through; }
-        .new-status { 
-            font-size: 20px; 
-            font-weight: bold; 
-            color: ${statusMap[newStatus]?.color || '#333'};
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Order Status Updated</h2>
-        <p>Dear ${customerName},</p>
-        
-        <p>The status of your order <strong>${order.orderNumber}</strong> has been updated:</p>
-        
-        <div class="status-change">
-            <span class="old-status">${statusMap[oldStatus]?.text || oldStatus}</span>
-            &nbsp;→&nbsp;
-            <span class="new-status">${statusMap[newStatus]?.text || newStatus}</span>
+  const content = `
+    <p>Dear ${customerName},</p>
+    <p>The status of your order <strong>#${order.orderNumber}</strong> has been updated.</p>
+    
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 20px; padding: 32px; text-align: center; margin: 32px 0;">
+        <div style="font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;">Order Status</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+            <span style="color: #9ca3af; text-decoration: line-through; font-size: 18px;">${statusMap[oldStatus]?.text || oldStatus}</span>
+            <span style="font-size: 24px; color: #6b7280;">→</span>
+            <span class="status-badge" style="background: ${statusMap[newStatus]?.color || '#f3f4f6'}; color: white; font-size: 24px; padding: 8px 24px;">
+                ${statusMap[newStatus]?.text || newStatus}
+            </span>
         </div>
-        
-        <p>Order Total: KES ${order.totalAmount.toFixed(2)}</p>
-        
-        <p>You can view your order details by logging into your account.</p>
-        
-        <p>Thank you for shopping with Hera Collections!</p>
     </div>
-</body>
-</html>
+    
+    <div class="section">
+        <span class="section-title">Order Summary</span>
+        <div class="item-row">
+            <div style="color: #6b7280;">Order Total</div>
+            <div style="font-weight: 700;">KES ${order.totalAmount.toLocaleString()}</div>
+        </div>
+        <div class="item-row">
+            <div style="color: #6b7280;">Shipping Status</div>
+            <div style="font-weight: 600;">${newStatus === 'SHIPPED' ? 'In Transit' : 'Processing'}</div>
+        </div>
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/orders/${order.id}" class="button">View Order Details</a>
+    </div>
   `;
+
+  const html = wrapWithLayout('Order Status Updated', content);
 
   const subject = `Order Status Updated: ${order.orderNumber} is now ${statusMap[newStatus]?.text || newStatus}`;
   
@@ -492,172 +274,38 @@ export const sendPaymentFailedEmail = async (paymentIntent, customer, failureRea
 export const sendLowStockAlertEmail = async (product, currentStock, threshold) => {
   const subject = `⚠️ Low Stock Alert: ${product.title}`;
   
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Low Stock Alert - ${product.title}</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
-            border-radius: 10px 10px 0 0;
-            color: white;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .alert-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-            color: #ff9800;
-        }
-        .stock-info {
-            background-color: #fff3e0;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #ff9800;
-        }
-        .stock-level {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ff5722;
-            text-align: center;
-            margin: 10px 0;
-        }
-        .action-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 30px 0;
-        }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            text-align: center;
-            min-width: 150px;
-        }
-        .button-primary {
-            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-            color: white;
-        }
-        .button-secondary {
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            color: white;
-        }
-        .product-details {
-            background-color: #f5f5f5;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collections</div>
-            <h1>⚠️ Low Stock Alert</h1>
+  const content = `
+    <div style="background: #FFFBEB; border: 1px solid #FEF3C7; color: #92400E; padding: 16px; border-radius: 12px; text-align: center; margin-bottom: 32px; font-weight: 700;">
+        ⚠️ LOW STOCK NOTIFICATION
+    </div>
+    
+    <p>The following product has reached its low stock threshold and may need restocking soon.</p>
+    
+    <div class="section">
+        <span class="section-title">Product Details</span>
+        <div class="item-row">
+            <div style="color: #6b7280;">Product Name</div>
+            <div style="font-weight: 700;">${product.title}</div>
         </div>
-        
-        <div class="content">
-            <div class="alert-icon">📦</div>
-            
-            <p>A product in your inventory is running low on stock and requires attention.</p>
-            
-            <div class="stock-info">
-                <h3>Product: ${product.title}</h3>
-                <p><strong>SKU:</strong> ${product.sku || 'N/A'}</p>
-                <p><strong>Category:</strong> ${product.category?.name || 'Uncategorized'}</p>
-                <p><strong>Alert Threshold:</strong> ${threshold} units</p>
-                
-                <div class="stock-level">
-                    Current Stock: ${currentStock} units
-                </div>
-                
-                <p style="text-align: center; color: #ff5722; font-weight: bold;">
-                    ⚠️ ${currentStock} units remaining (Below threshold of ${threshold})
-                </p>
-            </div>
-            
-            <div class="product-details">
-                <h4>Product Information</h4>
-                <p><strong>Current Stock Level:</strong> ${currentStock} units</p>
-                <p><strong>Alert Threshold:</strong> ${threshold} units</p>
-                <p><strong>Remaining Buffer:</strong> ${currentStock} units</p>
-                <p><strong>Status:</strong> ${currentStock <= 0 ? 'OUT OF STOCK' : 'LOW STOCK'}</p>
-            </div>
-            
-            <h3>Recommended Actions:</h3>
-            <ol>
-                <li>Review sales trends for this product</li>
-                <li>Consider placing a restock order</li>
-                <li>Update product status if necessary</li>
-                <li>Adjust pricing if stock is critically low</li>
-            </ol>
-            
-            <div class="action-buttons">
-                <a href="${process.env.ADMIN_URL || 'http://localhost:3000/admin'}/products/${product.id}" 
-                   class="button button-primary">
-                    View Product
-                </a>
-                <a href="${process.env.ADMIN_URL || 'http://localhost:3000/admin'}/stock/add/${product.id}" 
-                   class="button button-secondary">
-                    Add Stock
-                </a>
-            </div>
-            
-            <p>This is an automated alert. Please take appropriate action to avoid stockouts.</p>
-            
-            <p><strong>Inventory Management System</strong><br>
-            Hera Collections</p>
+        <div class="item-row">
+            <div style="color: #6b7280;">Current Inventory</div>
+            <div style="font-weight: 800; color: #b91c1c; font-size: 20px;">${currentStock} units</div>
         </div>
-        
-        <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collections. All rights reserved.</p>
-            <p>This is an automated email, please do not reply.</p>
+        <div class="item-row">
+            <div style="color: #6b7280;">Threshold Level</div>
+            <div style="font-weight: 600;">${threshold} units</div>
         </div>
     </div>
-</body>
-</html>
+    
+    <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.ADMIN_URL || 'http://localhost:3000/admin'}/products/${product.id}" class="button" style="background: #111827; margin-right: 12px;">View Product</a>
+        <a href="${process.env.ADMIN_URL || 'http://localhost:3000/admin'}/inventory" class="button">Manage Inventory</a>
+    </div>
+    
+    <p style="font-size: 13px; color: #6b7280; text-align: center;">This is an automated operational alert from your inventory management system.</p>
   `;
+
+  const html = wrapWithLayout('Low Stock Alert', content);
 
   const adminEmail = process.env.ADMIN_EMAIL || config.email.user;
   if (!adminEmail) {
@@ -671,51 +319,26 @@ export const sendLowStockAlertEmail = async (product, currentStock, threshold) =
 
 
 const createGoogleWelcomeEmailTemplate = (userName) => {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Hera Collections</title>
-    <style>
-        /* ... existing styles ... */
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collections</div>
-            <h1>Welcome to Our Community!</h1>
-        </div>
-        <div class="content">
-            <div class="welcome-icon">🎉</div>
-            
-            <p>Hello <strong>${userName || 'there'}</strong>,</p>
-            
-            <p>Thank you for joining Hera Collections with your Google account!</p>
-            
-            <div class="features">
-                <!-- Same features as regular welcome email -->
-            </div>
-            
-            <div style="text-align: center;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" class="button">
-                    Go to Dashboard
-                </a>
-            </div>
-            
-            <p><strong>Note:</strong> Your Google email is already verified, so you have full access to all features.</p>
-            
-            <p>If you have any questions or need assistance, feel free to reply to this email.</p>
-            
-            <p>Happy shopping!</p>
-            <p><strong>The Hera Collections Team</strong></p>
-        </div>
+  const content = `
+    <div style="text-align: center;">
+        <div style="font-size: 64px; margin-bottom: 24px;">✨</div>
+        <p>Hello <strong>${userName || 'there'}</strong>,</p>
+        <p>Thank you for joining Hera Collections with your Google account! Your account is verified and ready for use.</p>
     </div>
-</body>
-</html>
+    
+    <div class="section">
+        <span class="section-title">Get Started</span>
+        <p>Explore our curated collections of premium bags and accessories. As a Google user, you have instant access to all our membership features.</p>
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard" class="button">Go to Dashboard</a>
+    </div>
+    
+    <p style="text-align: center; color: #6b7280; font-size: 14px;">If you have any questions, feel free to reply to this email.</p>
   `;
+
+  return wrapWithLayout('Welcome to Hera Collection', content);
 };
 
 export const sendGoogleWelcomeEmail = async (userEmail, userName) => {
@@ -725,155 +348,40 @@ export const sendGoogleWelcomeEmail = async (userEmail, userName) => {
   return await sendEmail(userEmail, subject, html);
 };
 const createPasswordResetEmailTemplate = (userName, resetLink) => {
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Your Password - Hera Collection</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px 10px 0 0;
-            color: white;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .reset-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-            color: #667eea;
-        }
-        .button {
-            display: block;
-            width: 200px;
-            margin: 30px auto;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            padding: 14px 30px;
-            border-radius: 5px;
-            font-weight: bold;
-            text-align: center;
-        }
-        .instructions {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #667eea;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
-        }
-        .note {
-            color: #666;
-            font-size: 12px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .reset-link {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 12px;
-            text-align: center;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collection</div>
-            <h1>Password Reset Request</h1>
+  const content = `
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="font-size: 64px; margin-bottom: 24px;">🔐</div>
+      <p>Hello <strong>${userName || 'User'}</strong>,</p>
+      <p>We received a request to reset the password for your Hera Collection account.</p>
+    </div>
+    
+    <div class="section">
+        <span class="section-title">Reset Your Password</span>
+        <p>To create a new password, please click the button below. This link will expire in 1 hour for your security.</p>
+        
+        <div style="text-align: center;">
+            <a href="${resetLink}" class="button" style="margin: 20px 0;">Reset Password</a>
         </div>
         
-        <div class="content">
-            <div class="reset-icon">🔐</div>
-            
-            <p>Hello <strong>${userName || 'User'}</strong>,</p>
-            
-            <p>We received a request to reset the password for your Hera Collection account.</p>
-            
-            <div class="instructions">
-                <p><strong>To reset your password:</strong></p>
-                <ol>
-                    <li>Click the button below</li>
-                    <li>Create a new secure password</li>
-                    <li>Confirm your new password</li>
-                </ol>
-            </div>
-            
-            <div style="text-align: center;">
-                <a href="${resetLink}" class="button">
-                    Reset Password
-                </a>
-            </div>
-            
-            <p>Or copy and paste this link into your browser:</p>
-            <div class="reset-link">
+        <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+            <p style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">If the button doesn't work, copy and paste this link:</p>
+            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 11px; word-break: break-all; color: #4b5563;">
                 ${resetLink}
             </div>
-            
-            <div class="instructions">
-                <p><strong>Security Tips:</strong></p>
-                <ul>
-                    <li>This link will expire in 1 hour</li>
-                    <li>Use a strong password with at least 8 characters</li>
-                    <li>Include uppercase, lowercase, numbers, and symbols</li>
-                    <li>Don't reuse passwords from other sites</li>
-                </ul>
-            </div>
-            
-            <p>If you didn't request this password reset, please ignore this email or contact support if you're concerned.</p>
-            
-            <p class="note">
-                <strong>Note:</strong> For security reasons, all your existing sessions will be logged out after password reset.
-            </p>
-        </div>
-        
-        <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collection. All rights reserved.</p>
-            <p>This is an automated email, please do not reply.</p>
         </div>
     </div>
-</body>
-</html>
+    
+    <div class="section" style="background: #f9fafb;">
+        <span class="section-title">Security Reminder</span>
+        <ul style="color: #6b7280; font-size: 13px; margin: 0; padding-left: 20px;">
+            <li style="margin-bottom: 6px;">Use at least 8 characters with numbers and symbols</li>
+            <li style="margin-bottom: 6px;">Don't use the same password as other sites</li>
+            <li>If you didn't request this, you can safely ignore this email</li>
+        </ul>
+    </div>
   `;
+
+  return wrapWithLayout('Password Reset Request', content);
 };
 
 export const sendPasswordResetEmail = async (userEmail, userName, resetToken) => {
@@ -886,113 +394,76 @@ export const sendPasswordResetEmail = async (userEmail, userName, resetToken) =>
 
 export const sendPasswordChangedEmail = async (userEmail, userName) => {
   const subject = 'Password Changed - Hera Collection';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Changed - Hera Collection</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-            border-radius: 10px 10px 0 0;
-            color: white;
-        }
-        .logo {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .content {
-            padding: 30px;
-        }
-        .success-icon {
-            text-align: center;
-            font-size: 60px;
-            margin: 20px 0;
-            color: #4CAF50;
-        }
-        .security-info {
-            background-color: #e8f5e9;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            border-left: 4px solid #4CAF50;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-            font-size: 14px;
-            border-top: 1px solid #eee;
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">Hera Collection</div>
-            <h1>Password Changed Successfully</h1>
-        </div>
-        
-        <div class="content">
-            <div class="success-icon">✅</div>
-            
-            <p>Hello <strong>${userName || 'User'}</strong>,</p>
-            
-            <p>Your Hera Collection account password was changed successfully on ${new Date().toLocaleString()}.</p>
-            
-            <div class="security-info">
-                <p><strong>Security Information:</strong></p>
-                <ul>
-                    <li>All your existing sessions have been logged out</li>
-                    <li>You'll need to log in again with your new password</li>
-                    <li>If you didn't make this change, please contact support immediately</li>
-                </ul>
-            </div>
-            
-            <p>If you made this change, no further action is required.</p>
-            
-            <p>If you did NOT request this password change, please:</p>
-            <ol>
-                <li>Contact our support team immediately</li>
-                <li>Check your account for any suspicious activity</li>
-                <li>Consider enabling two-factor authentication</li>
-            </ol>
-            
-            <p>Thank you for helping us keep your account secure!</p>
-            
-            <p><strong>The Hera Collection Security Team</strong></p>
-        </div>
-        
-        <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collection. All rights reserved.</p>
-            <p>This is an automated security email.</p>
-        </div>
+  const content = `
+    <div style="text-align: center; margin-bottom: 32px;">
+      <div style="font-size: 64px; margin-bottom: 24px;">✅</div>
+      <p>Hello <strong>${userName || 'User'}</strong>,</p>
+      <p>Your Hera Collection account password was changed successfully on ${new Date().toLocaleString()}.</p>
     </div>
-</body>
-</html>
+    
+    <div class="section">
+        <span class="section-title">Security Information</span>
+        <ul style="color: #6b7280; font-size: 14px; margin: 0; padding-left: 20px;">
+            <li style="margin-bottom: 12px;">All your existing active sessions have been logged out</li>
+            <li style="margin-bottom: 12px;">You'll need to log in again with your new password on all devices</li>
+            <li>If you did not perform this action, please contact our security team immediately</li>
+        </ul>
+    </div>
+    
+    <p style="text-align: center; color: #6b7280; font-size: 13px; margin-top: 32px;">
+        Thank you for helping us keep your account secure.
+    </p>
   `;
+
+  const html = wrapWithLayout('Password Changed Successfully', content);
   
   return await sendEmail(userEmail, subject, html);
+};
+
+const createContactEmailTemplate = (name, email, subject, message) => {
+  const content = `
+    <div style="background: #111827; color: white; padding: 24px; border-radius: 12px; margin-bottom: 32px; text-align: center;">
+        📬 NEW INQUIRY RECEIVED
+    </div>
+    
+    <div class="section">
+        <span class="section-title">Sender Information</span>
+        <div class="item-row">
+            <div style="color: #6b7280;">Name</div>
+            <div style="font-weight: 700;">${name}</div>
+        </div>
+        <div class="item-row">
+            <div style="color: #6b7280;">Email</div>
+            <div style="font-weight: 600;">${email}</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <span class="section-title">Message Details</span>
+        <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 4px;">Subject</div>
+            <div style="font-weight: 700; color: #111827;">${subject}</div>
+        </div>
+        <div>
+            <div style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin-bottom: 8px;">Message Content</div>
+            <div style="background: white; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; line-height: 1.8; color: #374151;">
+                ${message}
+            </div>
+        </div>
+    </div>
+    
+    <div style="text-align: center;">
+        <a href="mailto:${email}?subject=Re: ${subject}" class="button" style="background: #111827;">Reply Directly</a>
+    </div>
+  `;
+
+  return wrapWithLayout('New Contact Inquiry', content);
+};
+
+export const sendContactEmail = async (contactData) => {
+  const { name, email, subject, message } = contactData;
+  const html = createContactEmailTemplate(name, email, subject, message);
+  const adminEmail = process.env.ADMIN_EMAIL || config.email.user;
+  
+  return await sendEmail(adminEmail, `New Contact Inquiry: ${subject}`, html);
 };

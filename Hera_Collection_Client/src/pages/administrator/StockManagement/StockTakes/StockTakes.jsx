@@ -139,10 +139,10 @@ const StockTakes = () => {
       {/* Premium Header */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
         <div className="space-y-3">
-          <Badge variant="outline" className="px-4 py-1.5 border-primary/20 bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest italic">
+          <Badge variant="outline" className="px-4 py-1.5 border-primary/20 bg-primary/5 text-primary text-[10px] font-bold tracking-wider">
             Physical Inventory Audit
           </Badge>
-          <h2 className="text-5xl lg:text-7xl font-black tracking-tight gradient-text leading-tight uppercase italic tracking-tighter">
+          <h2 className="text-4xl lg:text-6xl font-bold leading-tight">
             Digital Records vs Reality
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl font-medium">
@@ -153,7 +153,7 @@ const StockTakes = () => {
         <div className="flex flex-wrap items-center gap-4">
           <Button 
             onClick={() => setIsCreateModalOpen(true)} 
-            className="btn-primary h-20 px-10 rounded-3xl text-xl font-black group shadow-elegant italic"
+            className="btn-primary h-16 px-10 rounded-2xl text-lg font-bold group shadow-elegant"
           >
             <Plus className="h-6 w-6 mr-3 group-hover:rotate-90 transition-transform duration-500" />
             New Audit Session
@@ -172,8 +172,8 @@ const StockTakes = () => {
              <CardContent className="p-8">
                 <div className="flex justify-between items-center">
                    <div className="space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</p>
-                      <h3 className="text-5xl font-black italic tracking-tighter">{stat.value}</h3>
+                      <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{stat.label}</p>
+                      <h3 className="text-4xl font-bold tracking-tight">{stat.value}</h3>
                    </div>
                    <div className={cn("p-4 rounded-2xl shadow-inner group-hover:scale-110 transition-transform duration-500", stat.bg, stat.color)}>
                       <stat.icon className="w-8 h-8" />
@@ -202,7 +202,7 @@ const StockTakes = () => {
                 variant={statusFilter === status ? "default" : "outline"}
                 onClick={() => setStatusFilter(status)}
                 className={cn(
-                  "h-16 px-6 rounded-2xl font-black text-xs uppercase tracking-widest transition-all",
+                  "h-16 px-6 rounded-2xl font-bold text-xs tracking-wider transition-all",
                   statusFilter === status ? "bg-primary text-white shadow-lg" : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
                 )}
               >
@@ -218,7 +218,7 @@ const StockTakes = () => {
            {loading ? (
              <div className="col-span-full py-40 flex flex-col items-center justify-center gap-6">
                 <Loader2 className="w-16 h-16 animate-spin text-primary opacity-20" />
-                <p className="font-black uppercase tracking-[0.3em] text-xs text-muted-foreground animate-pulse">Synchronizing Session Vault...</p>
+                <p className="font-bold tracking-wider text-xs text-muted-foreground animate-pulse">Synchronizing Session Vault...</p>
              </div>
            ) : filteredStockTakes.length === 0 ? (
              <div className="col-span-full py-40 flex flex-col items-center justify-center gap-8 text-center">
@@ -226,10 +226,10 @@ const StockTakes = () => {
                    <ClipboardList className="w-14 h-14 text-white/10" />
                 </div>
                 <div className="space-y-2">
-                   <h3 className="text-3xl font-black uppercase italic">No session found</h3>
+                   <h3 className="text-2xl font-bold">No session found</h3>
                    <p className="text-muted-foreground font-medium max-w-sm">Initiate a new audit session to start reconciling your inventory reality.</p>
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)} className="btn-primary h-16 px-10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-elegant">
+                <Button onClick={() => setIsCreateModalOpen(true)} className="btn-primary h-16 px-10 rounded-2xl font-bold text-sm tracking-wider shadow-elegant text-white">
                    Initiate First Session
                 </Button>
              </div>
@@ -252,17 +252,17 @@ const StockTakes = () => {
                          <div className="space-y-1">
                             <div className="flex items-center gap-3 mb-1">
                                <Badge className={cn(
-                                 "rounded-lg px-2 text-[8px] font-black uppercase h-5",
+                                 "rounded-lg px-2 text-[8px] font-bold h-5",
                                  st.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' : 
                                  st.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' : 'bg-amber-500/10 text-amber-500'
                                )}>
                                  {st.status}
                                </Badge>
-                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                               <span className="text-[10px] font-bold text-muted-foreground tracking-wider flex items-center gap-1.5 uppercase">
                                  <Calendar className="w-3 h-3" /> {format(new Date(st.createdAt), 'MMM dd, yyyy')}
                                </span>
                             </div>
-                            <h3 className="text-3xl font-black italic uppercase tracking-tighter group-hover:text-primary transition-colors">{st.title}</h3>
+                            <h3 className="text-xl font-bold group-hover:text-primary transition-colors">{st.title}</h3>
                          </div>
                          <div className="h-12 w-12 rounded-xl bg-background/50 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <ChevronRight className="w-6 h-6" />
@@ -271,17 +271,17 @@ const StockTakes = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                          <div className="bg-white/5 p-4 rounded-2xl space-y-3">
-                            <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground tracking-widest">
+                            <div className="flex justify-between text-[8px] font-bold text-muted-foreground tracking-wider uppercase">
                                <span>Coverage</span>
                                <span className="text-foreground">{st.summary?.accuracyRate?.toFixed(0) || 0}% Accuracy</span>
                             </div>
                             <Progress value={st.summary?.accuracyRate || 0} className="h-1.5" />
                          </div>
                          <div className="bg-white/5 p-4 rounded-2xl flex flex-col justify-between">
-                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Reconciliation Impact</p>
+                            <p className="text-[8px] font-bold text-muted-foreground tracking-wider uppercase">Impact</p>
                             <p className={cn(
-                              "text-xl font-black italic",
-                              st.status === 'COMPLETED' ? (st.summary?.accuracyRate >= 98 ? 'text-green-500' : 'text-red-500') : 'text-foreground'
+                               "text-lg font-bold",
+                               st.status === 'COMPLETED' ? (st.summary?.accuracyRate >= 98 ? 'text-green-500' : 'text-red-500') : 'text-foreground'
                             )}>
                                KES {st.discrepancyValue || '0.00'}
                             </p>
@@ -297,12 +297,12 @@ const StockTakes = () => {
                                  </div>
                                ))}
                             </div>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase italic underline decoration-primary decoration-2 underline-offset-4">
+                            <span className="text-[10px] font-medium text-muted-foreground">
                                {st.createdBy?.name || 'System Auditor'}
                             </span>
                          </div>
-                         <Button variant="link" className="text-xs font-black uppercase tracking-widest text-primary gap-2 hover:gap-3 transition-all p-0 h-auto">
-                            ENTER SESSION VAULT <ArrowRight className="w-4 h-4" />
+                         <Button variant="link" className="text-xs font-bold text-primary gap-2 hover:gap-3 transition-all p-0 h-auto">
+                            VIEW SESSION <ArrowRight className="w-4 h-4" />
                          </Button>
                       </div>
                    </div>
@@ -317,7 +317,7 @@ const StockTakes = () => {
         <DialogContent className="glass-card border-none max-w-xl p-0 overflow-hidden shadow-2xl">
            <div className="p-12 space-y-10 relative">
               <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                 <ClipboardList className="w-40 h-40 rotate-12" />
+                 <ClipboardList className="w-40 h-40" />
               </div>
               
               <DialogHeader className="space-y-4">
@@ -325,7 +325,7 @@ const StockTakes = () => {
                     <LayoutGrid className="h-8 w-8" />
                  </div>
                  <div>
-                    <DialogTitle className="text-4xl font-black italic tracking-tight gradient-text">Initiate Audit Session</DialogTitle>
+                    <DialogTitle className="text-3xl font-bold">Initiate Audit Session</DialogTitle>
                     <DialogDescription className="text-base font-medium mt-2 leading-relaxed max-w-md">
                        Establish a new digital-to-reality verification session. You'll be able to freeze current snapshots and reconcile counts.
                     </DialogDescription>
@@ -339,9 +339,9 @@ const StockTakes = () => {
                       name="title"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-black uppercase tracking-widest mb-3 block opacity-50">Audit Descriptor</FormLabel>
+                          <FormLabel className="text-xs font-bold tracking-wider mb-2 block opacity-70 uppercase">Audit Descriptor</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g. Q4 Luxury Retail Audit - 2026" className="h-16 bg-background/50 border-white/5 rounded-2xl focus:bg-white/10 transition-all font-bold italic text-lg" {...field} />
+                            <Input placeholder="e.g. Q4 Luxury Retail Audit - 2026" className="h-16 bg-background/50 border-white/5 rounded-2xl focus:bg-white/10 transition-all font-medium text-lg" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -352,9 +352,9 @@ const StockTakes = () => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-black uppercase tracking-widest mb-3 block opacity-50">Strategic Notes (Optional)</FormLabel>
+                          <FormLabel className="text-xs font-bold tracking-wider mb-2 block opacity-70 uppercase">Strategic Notes (Optional)</FormLabel>
                           <FormControl>
-                            <Input placeholder="Scope, warehouse zone, or personnel instructions..." className="h-16 bg-background/50 border-white/5 rounded-2xl focus:bg-white/10 transition-all" {...field} />
+                            <Input placeholder="Scope, warehouse zone, or personnel instructions..." className="h-16 bg-background/50 border-white/5 rounded-2xl focus:bg-white/10 transition-all font-medium" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -362,8 +362,8 @@ const StockTakes = () => {
                    />
                    
                    <div className="grid grid-cols-2 gap-4 pt-10">
-                      <Button type="button" variant="ghost" className="h-16 rounded-3xl font-black uppercase tracking-widest text-xs border border-white/5 hover:bg-white/5" onClick={() => setIsCreateModalOpen(false)}>Abort Initiation</Button>
-                      <Button type="submit" disabled={loading} className="btn-primary h-16 rounded-3xl font-black uppercase tracking-widest text-xs shadow-elegant">
+                      <Button type="button" variant="ghost" className="h-16 rounded-2xl font-bold text-xs border border-white/5 hover:bg-white/5" onClick={() => setIsCreateModalOpen(false)}>Abort Initiation</Button>
+                      <Button type="submit" disabled={loading} className="btn-primary h-16 rounded-2xl font-bold text-xs shadow-elegant text-white">
                         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="w-4 h-4 mr-2" />}
                         Begin Digital Snapshot
                       </Button>

@@ -1,6 +1,7 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,40 +16,53 @@ import ChangePasswordModal from "./ChangePasswordModal";
 
 
 const ProfileOverview = () => {
-  const { userProfile, userStats } = useAuth();
+  const navigate = useNavigate();
+  const { userProfile, userStats, userActivity, getActivity } = useAuth();
+
+  React.useEffect(() => {
+    getActivity(1, 5);
+  }, [getActivity]);
+
+  const formatActivityDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome back, {userProfile?.name || "User"}!</CardTitle>
+      <Card className="border-none shadow-md overflow-hidden bg-gradient-to-br from-background to-secondary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-2xl">Welcome back, {userProfile?.name?.split(' ')[0] || "User"}!</CardTitle>
+          <CardDescription>Here's what's happening with your account today.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-primary">Quick Profile Overview</h3>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Email:</p>
-                  <p className="font-medium">{userProfile?.email}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Member since:</p>
-                  <p className="font-medium">
-                    {new Date(userProfile?.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">Account type:</p>
-                  <Badge variant="outline" className="mt-1">
-                    {userProfile?.role === "ADMIN" ? "Administrator" : "Regular User"}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Account Summary</h3>
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border/50">
+                  <span className="text-sm text-muted-foreground">Email Status</span>
+                  <Badge variant={userProfile?.isVerified ? "default" : "destructive"} className="text-[10px] font-bold uppercase">
+                    {userProfile?.isVerified ? "Verified" : "Action Required"}
                   </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border/50">
+                  <span className="text-sm text-muted-foreground">Member Since</span>
+                  <span className="text-sm font-bold">
+                    {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : "N/A"}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Quick Actions</h3>
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col justify-center">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Quick Actions</h3>
+              <div className="flex flex-wrap gap-3">
                 <UpdateProfileModal />
                 <ChangePasswordModal />
               </div>
@@ -59,145 +73,106 @@ const ProfileOverview = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-2xl font-bold">{userStats?.orders || 0}</p>
+        {[
+          { label: "Total Orders", value: userStats?.orders || 0, icon: ShoppingBag, color: "blue" },
+          { label: "Total Spent", value: `KES ${userStats?.totalSpent?.toLocaleString() || "0"}`, icon: DollarSign, color: "green" },
+          { label: "Wishlist", value: userStats?.wishlist || 0, icon: Heart, color: "pink" },
+          { label: "Reviews", value: userStats?.reviews || 0, icon: Star, color: "yellow" },
+        ].map((stat, i) => (
+          <Card key={i} className="border-none shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">{stat.label}</p>
+                  <p className="text-2xl font-black mt-1">{stat.value}</p>
+                </div>
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center bg-${stat.color}-500/10`}>
+                  <stat.icon className={`h-6 w-6 text-${stat.color}-500`} />
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <ShoppingBag className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Spent</p>
-                <p className="text-2xl font-bold">
-                  ${userStats?.totalSpent?.toFixed(2) || "0.00"}
-                </p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Wishlist Items</p>
-                <p className="text-2xl font-bold">{userStats?.wishlist || 0}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-pink-100 dark:bg-pink-900/20 flex items-center justify-center">
-                <Heart className="h-6 w-6 text-pink-600 dark:text-pink-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Reviews</p>
-                <p className="text-2xl font-bold">{userStats?.reviews || 0}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center">
-                <Star className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Profile Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Profile Details</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Details */}
+        <Card className="lg:col-span-2 border-none shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Profile Information</CardTitle>
             <UpdateProfileModal 
               trigger={
-                <Button variant="ghost" size="sm" className="gap-2">
-                  Edit
+                <Button variant="outline" size="sm" className="rounded-full px-4">
+                  Update
                 </Button>
               }
             />
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Full Name</h4>
-                <p className="text-lg">{userProfile?.name || "Not set"}</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Full Name</span>
+                <p className="font-semibold">{userProfile?.name || "Not set"}</p>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
-                <p className="text-lg">{userProfile?.email}</p>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Phone Number</span>
+                <p className="font-semibold">{userProfile?.phone || "Not linked"}</p>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Phone</h4>
-                <p className="text-lg">{userProfile?.phone || "Not set"}</p>
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Primary Location</span>
+                <p className="font-semibold">{userProfile?.location || "Global"}</p>
               </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
-                <p className="text-lg">{userProfile?.location || "Not set"}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Bio</h4>
-                <p className="text-lg">{userProfile?.bio || "Not set"}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Date of Birth</h4>
-                <p className="text-lg">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Birth Date</span>
+                <p className="font-semibold">
                   {userProfile?.dateOfBirth 
-                    ? new Date(userProfile.dateOfBirth).toLocaleDateString() 
-                    : "Not set"}
+                    ? new Date(userProfile.dateOfBirth).toLocaleDateString(undefined, { dateStyle: 'long' }) 
+                    : "Hidden/Not set"}
                 </p>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            {userProfile?.bio && (
+              <div className="pt-4 border-t border-border/50">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Short Bio</span>
+                <p className="text-sm italic text-muted-foreground leading-relaxed">"{userProfile.bio}"</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30">
-              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="font-medium">Order #ORD-12345 placed</p>
-                <p className="text-sm text-muted-foreground">2 days ago</p>
-              </div>
+        {/* Recent Activity */}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-5">
+              {userActivity && userActivity.length > 0 ? (
+                userActivity.slice(0, 4).map((activity) => (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold leading-none">{activity.action}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 uppercase font-bold tracking-tighter">
+                        {formatActivityDate(activity.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center bg-secondary/20 rounded-2xl">
+                   <p className="text-xs font-medium text-muted-foreground">No recent activity found.</p>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/30">
-              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <Star className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="font-medium">Review submitted</p>
-                <p className="text-sm text-muted-foreground">1 week ago</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            {userActivity && userActivity.length > 4 && (
+              <Button variant="ghost" className="w-full mt-4 text-xs font-bold" onClick={() => navigate('/profile/activity')}>
+                View Entire Log
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

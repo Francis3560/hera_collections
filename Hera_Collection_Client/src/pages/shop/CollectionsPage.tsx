@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ProductService from "@/api/product.service";
 import CategoryService from "@/api/categories.service";
+import SubCategoryService from "@/api/subcategory.service";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { QuickAddModal } from "@/components/shop/QuickAddModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { LiveChat } from "@/components/chat/LiveChat";
 
 export default function CollectionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,31 +41,62 @@ export default function CollectionsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [quickAddProduct, setQuickAddProduct] = useState<any | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Search & Filter state from URL
   const activeCategory = searchParams.get("category") || "all";
+  const activeSubCategory = searchParams.get("subcategory") || "all";
   const sortBy = searchParams.get("sort") || "newest";
   const searchQuery = searchParams.get("search") || "";
   const hasDiscount = searchParams.get("discounted") === "true";
 
-  // Fetch Categories
+  // Scroll to top when filters change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeCategory, activeSubCategory, sortBy, searchQuery]);
+
+  // Fetch Categories with tree structure (this is now our primary source of truth for IDs)
   const { data: categories = [] } = useQuery<any[]>({
-    queryKey: ["all-categories"],
-    queryFn: CategoryService.getAllCategories
+    queryKey: ["all-categories-tree"],
+    queryFn: () => CategoryService.getAllCategories({ tree: 'true' })
+  });
+
+  // Fetch Subcategories (keeping as fallback or for other uses if any)
+  const { data: subCategoriesList = [] } = useQuery<any[]>({
+    queryKey: ["all-subcategories"],
+    queryFn: () => SubCategoryService.getAllSubCategories()
   });
 
   // Fetch Products
   const { data: productsData, isLoading } = useQuery({
-    queryKey: ["products", activeCategory, sortBy, searchQuery, categories, hasDiscount],
-    queryFn: () => {
+    queryKey: ["products", activeCategory, activeSubCategory, sortBy, searchQuery, hasDiscount],
+    queryFn: async () => {
       const params: any = {
         isPublished: true,
-        pageSize: 20
+        pageSize: 50
       };
+
+      // Resolve IDs from slugs
       if (activeCategory !== "all") {
         const cat = categories.find((c: any) => c.slug === activeCategory);
         if (cat) params.categoryId = cat.id;
       }
+
+      if (activeSubCategory !== "all") {
+        let subId = null;
+        // Try to find in categories tree
+        for (const cat of categories) {
+          const found = cat.subCategories?.find((s: any) => s.slug === activeSubCategory);
+          if (found) { subId = found.id; break; }
+        }
+        // Fallback to flat list
+        if (!subId) {
+          const sub = subCategoriesList.find((s: any) => s.slug === activeSubCategory);
+          if (sub) subId = sub.id;
+        }
+        if (subId) params.subCategoryId = subId;
+      }
+
       if (searchQuery) params.q = searchQuery;
       if (hasDiscount) params.hasDiscount = true;
       
@@ -84,8 +117,9 @@ export default function CollectionsPage() {
       
       return ProductService.getAllProducts(params);
     },
-    // Only fetch products once categories are loaded if we're filtering by category slug
-    enabled: activeCategory === "all" || categories.length > 0
+    // We want this to be enabled as long as we have the slugs, 
+    // even if categories are still loading (it will re-run once categories load and IDs are found)
+    enabled: true
   });
 
   const products = (productsData as any)?.items || [];
@@ -133,14 +167,26 @@ export default function CollectionsPage() {
     }
   };
 
-  const updateSearchParam = (key: string, value: string) => {
-    const nextParams = new URLSearchParams(searchParams);
-    if (value === "all" || !value) {
-      nextParams.delete(key);
+  const handleCategoryClick = (catSlug: string) => {
+    if (catSlug === "all") {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("category");
+      nextParams.delete("subcategory");
+      setSearchParams(nextParams);
+      setIsFilterOpen(false);
+      setExpandedCategory(null);
     } else {
-      nextParams.set(key, value);
+      // Just toggle the dropdown without navigating
+      setExpandedCategory(expandedCategory === catSlug ? null : catSlug);
     }
+  };
+
+  const handleSubCategoryClick = (catSlug: string, subSlug: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("category", catSlug);
+    nextParams.set("subcategory", subSlug);
     setSearchParams(nextParams);
+    setIsFilterOpen(false);
   };
 
   const formatPrice = (price: number) => {
@@ -206,7 +252,11 @@ export default function CollectionsPage() {
             className="relative z-10 text-center px-4"
           >
             <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter mb-4">
-              {activeCategory === "all" ? "The Collections" : activeCategory.replace("-", " ")}
+              {activeSubCategory !== "all" 
+                ? activeSubCategory.replace("-", " ") 
+                : activeCategory === "all" 
+                  ? "The Collections" 
+                  : activeCategory.replace("-", " ")}
             </h1>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground uppercase tracking-widest">
               <Link to="/" className="hover:text-primary">Home</Link>
@@ -257,7 +307,12 @@ export default function CollectionsPage() {
                   <Input 
                     placeholder="Find your bag..." 
                     value={searchQuery}
-                    onChange={(e) => updateSearchParam("search", e.target.value)}
+                    onChange={(e) => {
+                      const nextParams = new URLSearchParams(searchParams);
+                      if (e.target.value) nextParams.set("search", e.target.value);
+                      else nextParams.delete("search");
+                      setSearchParams(nextParams);
+                    }}
                     className="rounded-xl border-none bg-secondary/30 focus-visible:ring-primary/20"
                   />
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -272,7 +327,7 @@ export default function CollectionsPage() {
                 </h3>
                 <div className="flex flex-col gap-1">
                   <button 
-                    onClick={() => updateSearchParam("category", "all")}
+                    onClick={() => handleCategoryClick("all")}
                     className={`text-left px-3 py-2 rounded-lg transition-all ${
                       activeCategory === "all" 
                         ? "bg-primary text-primary-foreground font-bold" 
@@ -281,19 +336,47 @@ export default function CollectionsPage() {
                   >
                     All Items
                   </button>
-                  {categories.map((cat: any) => (
-                    <button 
-                      key={cat.id}
-                      onClick={() => updateSearchParam("category", cat.slug)}
-                      className={`text-left px-3 py-2 rounded-lg transition-all ${
-                        activeCategory === cat.slug 
-                          ? "bg-primary text-primary-foreground font-bold" 
-                          : "hover:bg-secondary/50 text-muted-foreground"
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+                  {categories.map((cat: any) => {
+                    const isAnySubActive = cat.subCategories?.some((s: any) => s.slug === activeSubCategory);
+                    const isExpanded = expandedCategory === cat.slug || (isAnySubActive && expandedCategory === null);
+                    const isActive = activeCategory === cat.slug;
+                    
+                    return (
+                      <div key={cat.id} className="space-y-1">
+                        <button 
+                          onClick={() => handleCategoryClick(cat.slug)}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center justify-between ${
+                            isActive 
+                              ? "bg-primary/10 text-primary font-bold shadow-sm" 
+                              : "hover:bg-secondary/50 text-muted-foreground"
+                          }`}
+                        >
+                          <span className="truncate">{cat.name}</span>
+                          {cat.subCategories?.length > 0 && (
+                            <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+                          )}
+                        </button>
+                        
+                        {isExpanded && cat.subCategories?.length > 0 && (
+                          <div className="ml-4 flex flex-col gap-1 border-l border-border/50 pl-3 py-1">
+                            {cat.subCategories.map((sub: any) => (
+                              <button
+                                key={sub.id}
+                                onClick={() => handleSubCategoryClick(cat.slug, sub.slug)}
+                                className={`text-left px-3 py-1.5 rounded-md text-sm transition-all ${
+                                  activeSubCategory === sub.slug
+                                    ? "text-primary font-bold bg-primary/5"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                                }`}
+                              >
+                                {sub.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -321,7 +404,11 @@ export default function CollectionsPage() {
                         "{searchQuery}"
                         <X 
                           className="h-3 w-3 cursor-pointer" 
-                          onClick={() => updateSearchParam("search", "")} 
+                          onClick={() => {
+                            const nextParams = new URLSearchParams(searchParams);
+                            nextParams.delete("search");
+                            setSearchParams(nextParams);
+                          }} 
                         />
                       </Badge>
                     )}
@@ -331,7 +418,11 @@ export default function CollectionsPage() {
                     <div className="relative group">
                       <select 
                         value={sortBy}
-                        onChange={(e) => updateSearchParam("sort", e.target.value)}
+                        onChange={(e) => {
+                          const nextParams = new URLSearchParams(searchParams);
+                          nextParams.set("sort", e.target.value);
+                          setSearchParams(nextParams);
+                        }}
                         className="w-full sm:w-44 bg-secondary/30 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer pr-10"
                       >
                         <option value="newest">Latest Arrival</option>
@@ -379,9 +470,7 @@ export default function CollectionsPage() {
                   <p className="text-muted-foreground max-w-sm mx-auto">
                     We couldn't find any products matching your current filters. Try adjusting your search or explore other collections.
                   </p>
-                  <Button variant="outline" onClick={() => {
-                    setSearchParams({});
-                  }} className="rounded-xl">Clear All Filters</Button>
+                  <Button variant="outline" onClick={() => handleCategoryClick("all")} className="rounded-xl">Clear All Filters</Button>
                 </div>
               ) : viewMode === "grid" ? (
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-8">
@@ -559,7 +648,12 @@ export default function CollectionsPage() {
                     <Input 
                       placeholder="I'm looking for..." 
                       value={searchQuery}
-                      onChange={(e) => updateSearchParam("search", e.target.value)}
+                      onChange={(e) => {
+                        const nextParams = new URLSearchParams(searchParams);
+                        if (e.target.value) nextParams.set("search", e.target.value);
+                        else nextParams.delete("search");
+                        setSearchParams(nextParams);
+                      }}
                       className="bg-secondary/30 border-none rounded-xl"
                     />
                     <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -568,26 +662,54 @@ export default function CollectionsPage() {
 
                 <div className="space-y-4">
                    <h3 className="font-bold">Collections</h3>
-                   <div className="flex flex-wrap gap-2">
+                   <div className="flex flex-col gap-2">
                      <button 
-                       onClick={() => updateSearchParam("category", "all")}
-                       className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                       onClick={() => handleCategoryClick("all")}
+                       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                          activeCategory === "all" ? "bg-primary text-white shadow-lg" : "bg-secondary text-muted-foreground"
                        }`}
                      >
-                       All
+                       All items
                      </button>
-                     {categories.map((cat: any) => (
-                       <button 
-                         key={cat.id}
-                         onClick={() => updateSearchParam("category", cat.slug)}
-                         className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                           activeCategory === cat.slug ? "bg-primary text-white shadow-lg" : "bg-secondary text-muted-foreground"
-                         }`}
-                       >
-                         {cat.name}
-                       </button>
-                     ))}
+                     {categories.map((cat: any) => {
+                       const isAnySubActive = cat.subCategories?.some((s: any) => s.slug === activeSubCategory);
+                       const isExpanded = expandedCategory === cat.slug || (isAnySubActive && expandedCategory === null);
+                       const isActive = activeCategory === cat.slug;
+
+                       return (
+                         <div key={cat.id} className="w-full space-y-1">
+                           <button 
+                             onClick={() => handleCategoryClick(cat.slug)}
+                             className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-between ${
+                               isActive ? "bg-primary/20 text-primary shadow-lg" : "bg-secondary text-muted-foreground"
+                             }`}
+                           >
+                             {cat.name}
+                             {cat.subCategories?.length > 0 && (
+                               <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                             )}
+                           </button>
+                           
+                           {isExpanded && cat.subCategories?.length > 0 && (
+                             <div className="ml-6 border-l-2 border-primary/20 flex flex-col gap-1 py-1">
+                               {cat.subCategories.map((sub: any) => (
+                                 <button
+                                   key={sub.id}
+                                   onClick={() => handleSubCategoryClick(cat.slug, sub.slug)}
+                                   className={`text-left px-4 py-2 rounded-lg text-xs transition-all ${
+                                     activeSubCategory === sub.slug
+                                       ? "text-primary font-black"
+                                       : "text-muted-foreground"
+                                   }`}
+                                 >
+                                   {sub.name}
+                                 </button>
+                               ))}
+                             </div>
+                           )}
+                         </div>
+                       );
+                     })}
                    </div>
                 </div>
               </div>
@@ -607,6 +729,7 @@ export default function CollectionsPage() {
         product={quickAddProduct}
         onAddToCart={addToCart}
       />
+      <LiveChat />
     </div>
   );
 }

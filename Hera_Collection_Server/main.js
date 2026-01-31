@@ -27,6 +27,11 @@ import wishlistRoutes from './src/routes/wishlistRoutes.js';
 import reportRoutes from './src/routes/reportRoutes.js';
 import discountRoutes from './src/routes/discountRoutes.js';
 import shippingRoutes from './src/routes/shippingRoutes.js';
+import subCategoryRoutes from './src/routes/subCategoryRoutes.js';
+import inquiryRoutes from './src/routes/inquiryRoutes.js';
+import contactRoutes from './src/routes/contactRoutes.js';
+import reviewRoutes from './src/routes/reviewRoutes.js';
+
 
 // Import services and utilities
 import { webSocketService } from './src/services/websocket.service.js';
@@ -105,6 +110,14 @@ io.use(async (socket, next) => {
     const token = socket.handshake.auth.token || 
                  socket.handshake.headers.authorization?.split(' ')[1];
     
+    const guestId = socket.handshake.auth.guestId;
+
+    if (!token && guestId) {
+      socket.guestId = guestId;
+      socket.userRole = 'GUEST';
+      return next();
+    }
+
     if (!token) {
       return next(new Error('Authentication token required'));
     }
@@ -169,8 +182,12 @@ io.use(async (socket, next) => {
 
 // WebSocket connection handler
 io.on('connection', (socket) => {
-  webSocketService.registerUserSocket(socket.userId, socket.id);
-  socket.join(`user:${socket.userId}`);
+  if (socket.userId) {
+    webSocketService.registerUserSocket(socket.userId, socket.id);
+    socket.join(`user:${socket.userId}`);
+  } else if (socket.guestId) {
+    socket.join(`guest:${socket.guestId}`);
+  }
   
   if (socket.userRole === 'ADMIN') {
     socket.join('admin:room');
@@ -210,6 +227,27 @@ io.on('connection', (socket) => {
       isTyping,
       timestamp: new Date().toISOString()
     });
+  });
+  
+
+  // Inquiry/Live Chat Events
+  socket.on('inquiry:join', (sessionId) => {
+    socket.join(`inquiry:${sessionId}`);
+  });
+
+  socket.on('inquiry:message', (data) => {
+    // data: { sessionId, message }
+    socket.to(`inquiry:${data.sessionId}`).emit('inquiry:message', data);
+    // Also notify admins if it's from a user/guest
+    if (!socket.userRole || socket.userRole !== 'ADMIN') {
+      io.to('admin:room').emit('inquiry:new_message', data);
+    }
+  });
+
+  socket.on('inquiry:close', (sessionId) => {
+    io.to(`inquiry:${sessionId}`).emit('inquiry:closed', { sessionId });
+    // Cleanup room
+    // io.in(`inquiry:${sessionId}`).socketsLeave(`inquiry:${sessionId}`); // Requires recent socket.io
   });
   
   socket.on('disconnect', () => {
@@ -258,6 +296,11 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/shipping-regions', shippingRoutes);
+app.use('/api/sub-categories', subCategoryRoutes);
+app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/reviews', reviewRoutes);
+
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));

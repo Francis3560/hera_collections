@@ -54,6 +54,12 @@
     --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --radius: 0.75rem;
+
+    /* Hera Collection Branding */
+    --brand-logo: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769805371/HeraCollection_Logo-removebg-preview_tcjo8h.png";
+    --brand-email: "info@heracollections.com";
+    --brand-phone: "+254 718 577 608 / +254 707 064 827";
+    --brand-location: "Nairobi, Kenya";
   }
 
   .dark {

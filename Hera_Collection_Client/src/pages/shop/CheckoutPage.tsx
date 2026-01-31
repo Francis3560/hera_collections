@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Truck, User, ArrowLeft, Loader2, CheckCircle2, Search, Check, Info, MapPin, Navigation, AlertCircle } from "lucide-react";
+import { CreditCard, Truck, User, ArrowLeft, Loader2, CheckCircle2, Search, Check, Info, MapPin, Navigation, AlertCircle, ChevronDown, Sparkles } from "lucide-react";
 import PaymentService from "@/api/payment.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { toast } from "sonner";
@@ -19,7 +19,23 @@ import customerService from "@/api/customer.service";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useRef } from "react";
 import { OrderSuccessSplash } from "@/components/shared/OrderSuccessSplash";
+import { motion, AnimatePresence } from "framer-motion";
 import ShippingService from "@/api/shipping.service";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const { items, total, cartCount, clearCart } = useCart();
@@ -43,6 +59,7 @@ export default function CheckoutPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [shippingRegions, setShippingRegions] = useState<any[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<any>(null);
+  const [openShipping, setOpenShipping] = useState(false);
 
   const calculatedTotal = items.reduce((sum: number, item: any) => {
     const price = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
@@ -78,8 +95,12 @@ export default function CheckoutPage() {
     fetchShippingRegions();
   }, []);
 
-  const shippingFee = selectedRegion ? parseFloat(selectedRegion.fee) : 0;
+  const FREE_SHIPPING_THRESHOLD = 5500;
+  const isFreeShipping = displayTotal >= FREE_SHIPPING_THRESHOLD;
+  const shippingFee = (selectedRegion && !isFreeShipping) ? parseFloat(selectedRegion.fee) : 0;
   const grandTotal = displayTotal + shippingFee;
+  const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - displayTotal;
+  const freeShippingProgress = Math.min((displayTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
 
   const searchCustomers = useCallback(
     debounce(async (query: string) => {
@@ -218,9 +239,10 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!selectedRegion) {
-      toast.error("Please select a shipping plan");
-      const element = document.getElementById("address");
+    // Only require selecting a region if free shipping hasn't been unlocked
+    if (!selectedRegion && !isFreeShipping) {
+      toast.error("Please select a shipping plan for delivery.");
+      const element = document.getElementById("shipping-destination");
       if (element) element.scrollIntoView({ behavior: 'smooth' });
       return;
     }
@@ -362,7 +384,7 @@ export default function CheckoutPage() {
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <Input 
                         placeholder="Search by name, phone or email..." 
-                        className="pl-12 py-7 rounded-2xl bg-background border-primary/20 focus:border-primary shadow-sm"
+                        className="pl-12 py-7 rounded-2xl bg-transparent border-primary/20 focus:border-primary shadow-sm"
                         value={customerSearch}
                         onChange={(e) => setCustomerSearch(e.target.value)}
                       />
@@ -490,40 +512,131 @@ export default function CheckoutPage() {
                     <Input id="governorate" value={formData.governorate} onChange={handleInputChange} required className="rounded-xl" />
                   </div>
 
-                  <div className="md:col-span-2 space-y-4 pt-4 border-t border-border/40 mt-4">
+                  <div id="shipping-destination" className="md:col-span-2 space-y-4 pt-4 border-t border-border/40 mt-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Truck className="w-5 h-5 text-primary" />
-                      <Label className="text-lg font-semibold">Shipping Plan</Label>
+                      <Label className="text-lg font-semibold">Shipping Destination</Label>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {shippingRegions.map((region) => (
-                        <div 
-                           key={region.id}
-                           onClick={() => setSelectedRegion(region)}
-                           className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex flex-col gap-1 ${selectedRegion?.id === region.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+
+                    <Popover open={openShipping} onOpenChange={setOpenShipping}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openShipping}
+                          className="w-full justify-between h-auto py-5 px-6 rounded-2xl border-2 bg-transparent transition-all shadow-sm group"
                         >
-                           <div className="flex justify-between items-center">
-                              <span className="font-bold">{region.name}</span>
-                              <span className="text-primary font-bold">{formatPrice(Number(region.fee))}</span>
-                           </div>
-                           {region.estimatedDays && (
-                             <span className="text-xs text-muted-foreground">Est. Delivery: {region.estimatedDays}</span>
-                           )}
-                           {region.description && (
-                             <span className="text-[10px] text-muted-foreground line-clamp-1 mt-1">{region.description}</span>
-                           )}
-                        </div>
-                      ))}
-                      {shippingRegions.length === 0 && (
-                        <div className="col-span-full py-6 text-center bg-muted/20 rounded-2xl border-2 border-dashed">
-                           <p className="text-muted-foreground text-sm">Loading shipping options...</p>
-                        </div>
-                      )}
-                    </div>
-                    {!selectedRegion && shippingRegions.length > 0 && (
-                      <p className="text-xs text-destructive flex items-center gap-1.5 px-1">
-                        <AlertCircle className="w-3.5 h-3.5" /> Please select a shipping destination to continue.
-                      </p>
+                          {selectedRegion ? (
+                            <div className="flex flex-col items-start gap-0.5">
+                              <span className="font-bold text-base tracking-tight">{selectedRegion.name}</span>
+                              <span className="text-xs text-muted-foreground">{selectedRegion.estimatedDays || "Standard delivery time"}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-muted-foreground italic">
+                              <Search className="w-4 h-4 opacity-50" />
+                              <span>Search your city or area...</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4">
+                            {selectedRegion && (
+                               <div className="flex flex-col items-end">
+                                 <Badge variant="secondary" className={cn(
+                                   "border-none font-bold py-1 px-3 rounded-lg text-sm",
+                                   isFreeShipping ? "line-through opacity-40 text-muted-foreground" : "text-primary bg-primary/10"
+                                 )}>
+                                   {formatPrice(Number(selectedRegion.fee))}
+                                 </Badge>
+                                 {isFreeShipping && (
+                                   <span className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-0.5">Free Unlocked</span>
+                                 )}
+                               </div>
+                            )}
+                            <ChevronDown className={cn("h-5 w-5 shrink-0 opacity-50 transition-transform duration-200", openShipping && "rotate-180")} />
+                          </div>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-2xl shadow-2xl border-border/60 overflow-hidden" align="start">
+                        <Command className="bg-transparent">
+                          <CommandInput placeholder="Search (e.g. Nairobi, Mombasa, Kisumu...)" className="h-14 text-base" />
+                          <CommandList className="max-h-80 no-scrollbar">
+                            <CommandEmpty className="py-12 text-center flex flex-col items-center gap-3">
+                              <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center">
+                                <MapPin className="h-8 w-8 text-muted-foreground/30" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-base font-semibold">No area found.</p>
+                                <p className="text-xs text-muted-foreground">Try searching with a different name.</p>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup heading="Popular Destinations" className="p-2">
+                              {shippingRegions.map((region) => (
+                                <CommandItem
+                                  key={region.id}
+                                  value={region.name}
+                                  onSelect={() => {
+                                    setSelectedRegion(region);
+                                    setOpenShipping(false);
+                                  }}
+                                  className="flex items-center justify-between p-4 my-1 rounded-xl cursor-pointer aria-selected:bg-secondary transition-colors group"
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <div className={cn(
+                                       "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
+                                       selectedRegion?.id === region.id 
+                                         ? 'text-primary scale-110 shadow-lg shadow-primary/5 bg-primary/10' 
+                                         : 'text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary bg-secondary/30'
+                                    )}>
+                                      <MapPin className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-bold text-foreground text-sm tracking-tight">{region.name}</span>
+                                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{region.estimatedDays || "2-3 Working Days"}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex flex-col items-end">
+                                      <span className="font-bold text-primary">{formatPrice(Number(region.fee))}</span>
+                                      {Number(region.fee) === 0 && <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Free Shipping</span>}
+                                    </div>
+                                    <div className={cn(
+                                       "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                                       selectedRegion?.id === region.id 
+                                         ? "border-primary text-primary bg-primary/10" 
+                                         : "border-muted group-hover:border-primary/50"
+                                    )}>
+                                       {selectedRegion?.id === region.id && <Check className="h-3 w-3" />}
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {!selectedRegion && !isFreeShipping && (
+                      <motion.p 
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-destructive flex items-center gap-1.5 px-2 font-medium"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" /> Please select a delivery area to view your final total.
+                      </motion.p>
+                    )}
+
+                    {selectedRegion && isFreeShipping && (
+                       <motion.div 
+                         initial={{ opacity: 0, scale: 0.95 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl flex items-center gap-3 text-green-600"
+                       >
+                         <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                           <Sparkles className="h-4 w-4" />
+                         </div>
+                         <p className="text-xs font-bold uppercase tracking-wider">Congratulations! Your order qualifies for Free Shipping.</p>
+                       </motion.div>
                     )}
                   </div>
                 </div>
@@ -593,7 +706,7 @@ export default function CheckoutPage() {
                     Processing Payment...
                   </>
                 ) : (
-                  `Pay ${formatPrice(displayTotal)} Now`
+                  `Pay ${formatPrice(grandTotal)} Now`
                 )}
               </Button>
             </form>
@@ -632,32 +745,77 @@ export default function CheckoutPage() {
               
               <Separator className="mb-6" />
               
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(displayTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Shipping ({selectedRegion?.name || 'Standard'})</span>
-                  <span className={shippingFee > 0 ? "text-foreground" : "text-green-600"}>
-                    {shippingFee > 0 ? formatPrice(shippingFee) : 'Free'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xl font-bold pt-4 text-primary">
-                  <span>Total</span>
-                  <span>{formatPrice(grandTotal)}</span>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-4 bg-primary/5 rounded-2xl flex items-start gap-3">
-                <Truck className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold">Estimated Delivery</p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedRegion?.estimatedDays || "2 working days"}
-                  </p>
-                </div>
-              </div>
+               <div className="space-y-3">
+                 <div className="flex justify-between text-sm text-muted-foreground">
+                   <span>Subtotal</span>
+                   <span>{formatPrice(displayTotal)}</span>
+                 </div>
+                 <div className="flex justify-between text-sm text-muted-foreground">
+                   <span>Shipping ({selectedRegion?.name || 'Standard'})</span>
+                   <div className="text-right">
+                     {isFreeShipping ? (
+                       <div className="flex flex-col items-end">
+                         <span className="text-xs line-through opacity-50">{formatPrice(parseFloat(selectedRegion?.fee || "0"))}</span>
+                         <span className="text-green-600 font-bold">Free</span>
+                       </div>
+                     ) : (
+                       <span className="text-foreground">
+                         {selectedRegion ? formatPrice(parseFloat(selectedRegion.fee)) : 'Calculated next'}
+                       </span>
+                     )}
+                   </div>
+                 </div>
+                 <div className="flex justify-between text-xl font-bold pt-4 text-primary">
+                   <span>Total</span>
+                   <span>{formatPrice(grandTotal)}</span>
+                 </div>
+               </div>
+
+               {/* Free Shipping Progress */}
+               <div className="mt-8 p-6 bg-secondary/5 rounded-3xl border border-secondary/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                       <Truck className="h-4 w-4 text-primary" />
+                       Free Shipping
+                    </span>
+                    {isFreeShipping ? (
+                      <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full font-bold uppercase">Unlocked</span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground font-bold">KES {formatPrice(FREE_SHIPPING_THRESHOLD)}</span>
+                    )}
+                  </div>
+                  
+                  <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden mb-3">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${freeShippingProgress}%` }}
+                      className={cn(
+                        "h-full transition-all duration-1000",
+                        isFreeShipping ? "bg-green-500" : "bg-primary"
+                      )}
+                    />
+                  </div>
+
+                  {!isFreeShipping ? (
+                    <p className="text-[10px] text-muted-foreground">
+                      Add <span className="text-foreground font-bold">{formatPrice(amountToFreeShipping)}</span> more to unlock <span className="text-primary font-bold underline">FREE SHIPPING</span>
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-green-600 font-bold">
+                      Your order qualifies for free delivery nationwide! 🇰🇪
+                    </p>
+                  )}
+               </div>
+               
+               <div className="mt-6 p-4 bg-primary/5 rounded-2xl flex items-start gap-3">
+                 <Truck className="w-5 h-5 text-primary mt-0.5" />
+                 <div>
+                   <p className="text-sm font-semibold">Estimated Delivery</p>
+                   <p className="text-xs text-muted-foreground">
+                     {selectedRegion?.estimatedDays || "2 working days"}
+                   </p>
+                 </div>
+               </div>
             </div>
           </aside>
           

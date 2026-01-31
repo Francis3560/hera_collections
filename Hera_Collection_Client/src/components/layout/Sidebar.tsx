@@ -71,6 +71,7 @@ const navigation: NavigationItem[] = [
       { name: "Products List", href: "/admin/products", icon: Package },
       { name: "Add New Product", href: "/admin/addproducts", icon: PlusCircle },
       { name: "Categories", href: "/admin/categories", icon: Tags },
+      { name: "Sub-Categories", href: "/admin/subcategories", icon: Layers },
       { name: "Discounts", href: "/admin/discounts", icon: Percent },
     ],
   },
@@ -135,13 +136,6 @@ const navigation: NavigationItem[] = [
     badge: "message",
     section: "Messaging",
   },
-  {
-    name: "Sent",
-    href: "/admin/messaging/sent",
-    icon: Send,
-    badge: null,
-    section: "Messaging",
-  },
 
   {
     name: "System",
@@ -184,7 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     "System",
   ]);
   const location = useLocation();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, notifications } = useNotifications();
 
   const toggleExpanded = (itemName: string) => {
     setExpandedItems((prev) =>
@@ -201,7 +195,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
 
   // Function to get the actual badge count for each item
   const getBadgeCount = (badge: any): number | null => {
-    if (badge === "message") return 5; // Placeholder for message count
+    if (badge === "message") {
+      // Calculate real-time unread messages from notifications of type 'MESSAGE'
+      return notifications.filter(n => (n.type === 'MESSAGE' || n.type === 'INQUIRY_MESSAGE') && !n.isRead).length;
+    }
     if (badge === "notification") return unreadCount;
     if (typeof badge === "number") return badge;
     return null;

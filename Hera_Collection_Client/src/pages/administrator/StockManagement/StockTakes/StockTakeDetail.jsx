@@ -256,16 +256,16 @@ const StockTakeDetail = () => {
         <div className="space-y-2">
           <button 
             onClick={() => navigate('/admin/inventory/stocktakes')}
-            className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+            className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-muted-foreground hover:text-primary transition-colors uppercase"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Session Vault
           </button>
           <div className="flex items-center gap-4">
-            <h1 className="text-4xl lg:text-5xl font-black italic uppercase tracking-tighter">
+            <h1 className="text-3xl lg:text-4xl font-bold">
               {stockTake?.title}
             </h1>
             <Badge className={cn(
-              "rounded-xl px-4 h-8 font-black border-none",
+              "rounded-xl px-4 h-8 font-bold border-none",
               stockTake?.status === 'COMPLETED' ? 'bg-green-500 text-white' : 
               stockTake?.status === 'IN_PROGRESS' ? 'bg-blue-500 text-white' : 
               'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
@@ -281,20 +281,20 @@ const StockTakeDetail = () => {
 
         <div className="flex items-center gap-3">
           {stockTake?.status === 'PENDING' && (
-            <Button onClick={handleStart} className="h-14 px-8 rounded-2xl btn-primary font-black text-lg shadow-elegant">
+            <Button onClick={handleStart} className="h-14 px-8 rounded-2xl btn-primary font-bold text-lg shadow-elegant">
               <Play className="w-5 h-5 mr-2" /> Start Live Count
             </Button>
           )}
           
           {stockTake?.status === 'IN_PROGRESS' && (
             <div className="flex items-center gap-3 bg-white/5 p-2 rounded-[1.5rem] border border-white/5">
-               <Button variant="ghost" onClick={handleSaveItems} disabled={saving} className="h-12 px-6 rounded-xl font-black gap-2">
+               <Button variant="ghost" onClick={handleSaveItems} disabled={saving} className="h-12 px-6 rounded-xl font-bold gap-2">
                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                  Force Sync
                </Button>
                <Button 
                  onClick={() => setIsFinishing(true)} 
-                 className="h-12 px-8 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black shadow-lg shadow-green-500/20"
+                 className="h-12 px-8 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold shadow-lg shadow-green-500/20"
                >
                  <CheckCircle className="w-4 h-4 mr-2" /> Finalize Audit
                </Button>
@@ -302,7 +302,7 @@ const StockTakeDetail = () => {
           )}
 
           {stockTake?.status === 'COMPLETED' && (
-             <Button onClick={handleExportPDF} className="h-14 px-8 rounded-2xl bg-primary text-white font-black shadow-elegant">
+             <Button onClick={handleExportPDF} className="h-14 px-8 rounded-2xl bg-primary text-white font-bold shadow-elegant">
                <Download className="w-5 h-5 mr-2" /> Download Report
              </Button>
           )}
@@ -349,8 +349,8 @@ const StockTakeDetail = () => {
              <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                    <div className="space-y-1">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{stat.label}</p>
-                      <h3 className={cn("text-3xl font-black italic tracking-tighter", stat.color)}>{stat.value}</h3>
+                      <p className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{stat.label}</p>
+                      <h3 className={cn("text-2xl font-bold", stat.color)}>{stat.value}</h3>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">{stat.desc}</p>
                    </div>
                    <div className="p-3 rounded-xl bg-background/50 border border-white/5 shadow-inner group-hover:scale-110 transition-transform">
@@ -368,13 +368,13 @@ const StockTakeDetail = () => {
            <CardHeader className="p-8 border-b border-white/5 bg-white/[0.02]">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                  <div>
-                    <CardTitle className="text-2xl font-black italic uppercase">Counting Terminal</CardTitle>
+                    <CardTitle className="text-xl font-bold uppercase">Counting Terminal</CardTitle>
                     <CardDescription className="font-medium">Enter actual physical quantities to recalculate system health.</CardDescription>
                  </div>
                  <div className="flex items-center gap-2">
                     <div className="h-10 px-4 rounded-xl bg-background/50 border border-white/10 flex items-center gap-3">
                        <Sigma className="w-4 h-4 text-primary" />
-                       <span className="text-xs font-black uppercase tracking-widest">System: {metrics.totalSystemValue.toLocaleString()}</span>
+                       <span className="text-[10px] font-bold tracking-widest uppercase">System: {metrics.totalSystemValue.toLocaleString()}</span>
                     </div>
                  </div>
               </div>
@@ -387,7 +387,7 @@ const StockTakeDetail = () => {
                       <Package className="w-10 h-10 text-white/10" />
                    </div>
                    <div className="space-y-2">
-                      <h3 className="text-xl font-black uppercase">No items in session</h3>
+                       <h3 className="text-xl font-bold">No items in session</h3>
                       <p className="text-sm text-muted-foreground max-w-xs mx-auto">Use the catalog sidebar to add items for verification.</p>
                    </div>
                 </div>
@@ -396,11 +396,11 @@ const StockTakeDetail = () => {
                    <Table>
                       <TableHeader className="bg-white/[0.05]">
                          <TableRow className="border-white/5 hover:bg-transparent">
-                            <TableHead className="py-6 px-8 text-[10px] font-black uppercase tracking-widest">Product Details</TableHead>
-                            <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-center">On Book</TableHead>
-                            <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-center">On Hand</TableHead>
-                            <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest text-center">Variance</TableHead>
-                            <TableHead className="py-6 text-[10px] font-black uppercase tracking-widest">Context/Notes</TableHead>
+                            <TableHead className="py-6 px-8 text-[10px] font-bold tracking-widest uppercase">Product Details</TableHead>
+                            <TableHead className="py-6 text-[10px] font-bold tracking-widest uppercase text-center">On Book</TableHead>
+                            <TableHead className="py-6 text-[10px] font-bold tracking-widest uppercase text-center">On Hand</TableHead>
+                            <TableHead className="py-6 text-[10px] font-bold tracking-widest uppercase text-center">Variance</TableHead>
+                            <TableHead className="py-6 text-[10px] font-bold tracking-widest uppercase">Context/Notes</TableHead>
                          </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -423,15 +423,15 @@ const StockTakeDetail = () => {
                                        <Package className="w-6 h-6" />
                                     </div>
                                     <div className="min-w-0">
-                                       <h4 className="font-black text-sm uppercase truncate group-hover:text-primary transition-colors italic leading-none mb-1">{item.productTitle}</h4>
+                                       <h4 className="font-bold text-sm truncate group-hover:text-primary transition-colors leading-none mb-1">{item.productTitle}</h4>
                                        <div className="flex items-center gap-2">
-                                          <Badge variant="outline" className="text-[8px] font-black uppercase px-1 h-4 bg-background/50">{item.sku}</Badge>
-                                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{item.options}</span>
+                                          <Badge variant="outline" className="text-[8px] font-bold px-1 h-4 bg-background/50">{item.sku}</Badge>
+                                          <span className="text-[9px] font-bold text-muted-foreground tracking-wider uppercase">{item.options}</span>
                                        </div>
                                     </div>
                                  </div>
                               </TableCell>
-                              <TableCell className="py-6 text-center text-sm font-black text-muted-foreground">
+                              <TableCell className="py-6 text-center text-sm font-bold text-muted-foreground">
                                  {item.expectedStock}
                               </TableCell>
                               <TableCell className="py-6">
@@ -442,7 +442,7 @@ const StockTakeDetail = () => {
                                       onChange={(e) => handleUpdateItemCount(item.variantId, e.target.value)}
                                       disabled={!isEditable}
                                       className={cn(
-                                        "w-20 h-10 text-center font-black rounded-lg border-white/10 bg-background/50 focus:bg-background transition-all",
+                                        "w-20 h-10 text-center font-bold rounded-lg border-white/10 bg-background/50 focus:bg-background transition-all",
                                         hasDiscrepancy && "border-red-500/50 text-red-500"
                                       )}
                                     />
@@ -450,7 +450,7 @@ const StockTakeDetail = () => {
                               </TableCell>
                               <TableCell className="py-6 text-center">
                                  <Badge className={cn(
-                                   "rounded-xl px-3 font-black italic",
+                                   "rounded-xl px-3 font-bold",
                                    variance === 0 ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                                    variance < 0 ? "bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]" :
                                    "bg-blue-500/10 text-blue-500 border-blue-500/20"
@@ -458,7 +458,7 @@ const StockTakeDetail = () => {
                                    {variance > 0 ? '+' : ''}{variance}
                                  </Badge>
                                  {hasDiscrepancy && (
-                                   <p className="text-[8px] font-black mt-1 uppercase opacity-40">
+                                   <p className="text-[8px] font-bold mt-1 uppercase opacity-40">
                                       {variance < 0 ? 'Deficit' : 'Surplus'} KES {(Math.abs(variance) * item.price).toLocaleString()}
                                    </p>
                                  )}
@@ -466,14 +466,14 @@ const StockTakeDetail = () => {
                               <TableCell className="py-6 px-8">
                                  <div className="flex items-center gap-2">
                                     <Input 
-                                      placeholder="Note reason..."
-                                      value={item.notes}
-                                      onChange={(e) => {
-                                         const val = e.target.value;
-                                         setCountedItems(prev => prev.map(i => i.variantId === item.variantId ? { ...i, notes: val } : i));
-                                      }}
-                                      disabled={!isEditable}
-                                      className="h-10 text-xs bg-transparent border-white/5 focus:border-primary/30 rounded-lg min-w-[150px]"
+                                       placeholder="Note reason..."
+                                       value={item.notes}
+                                       onChange={(e) => {
+                                          const val = e.target.value;
+                                          setCountedItems(prev => prev.map(i => i.variantId === item.variantId ? { ...i, notes: val } : i));
+                                       }}
+                                       disabled={!isEditable}
+                                       className="h-10 text-xs bg-transparent border-white/5 focus:border-primary/30 rounded-lg min-w-[150px]"
                                     />
                                     <DropdownMenu>
                                        <DropdownMenuTrigger asChild>
@@ -505,16 +505,16 @@ const StockTakeDetail = () => {
              <div className="p-6 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase text-muted-foreground">Snapshot Coverage</span>
+                      <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">Snapshot Coverage</span>
                       <div className="flex items-center gap-3">
                          <Progress value={metrics.accuracyRate} className="w-32 h-1.5" />
-                         <span className="text-xs font-black">{metrics.accuracyRate.toFixed(0)}% Match</span>
+                         <span className="text-xs font-bold">{metrics.accuracyRate.toFixed(0)}% Match</span>
                       </div>
                    </div>
                 </div>
                 <div className="flex gap-3">
-                   <Button variant="ghost" className="rounded-xl font-black px-6" onClick={() => navigate('/admin/inventory/stocktakes')}>Abort Session</Button>
-                   <Button onClick={handleSaveItems} disabled={saving} className="btn-primary rounded-xl font-black px-8 h-12 shadow-elegant">
+                   <Button variant="ghost" className="rounded-xl font-bold px-6" onClick={() => navigate('/admin/inventory/stocktakes')}>Abort Session</Button>
+                   <Button onClick={handleSaveItems} disabled={saving} className="btn-primary rounded-xl font-bold px-8 h-12 shadow-elegant">
                       {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Sync Progress
                    </Button>
@@ -527,7 +527,7 @@ const StockTakeDetail = () => {
         <div className="space-y-6">
            <Card className="glass-card border-none shadow-strong bg-white/5 backdrop-blur-3xl rounded-[2rem] overflow-hidden">
               <CardHeader className="p-6 border-b border-white/5">
-                 <CardTitle className="text-lg font-black italic uppercase">Vault Catalog</CardTitle>
+                 <CardTitle className="text-base font-bold uppercase">Vault Catalog</CardTitle>
                  <CardDescription>Insert SKUs into current Session</CardDescription>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
@@ -550,14 +550,14 @@ const StockTakeDetail = () => {
                        >
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                           <div className="relative z-10 flex-1 min-w-0">
-                             <h5 className="font-black text-xs uppercase truncate group-hover:text-primary transition-colors italic leading-none mb-1">{v.productTitle}</h5>
+                             <h5 className="font-bold text-xs truncate group-hover:text-primary transition-colors leading-none mb-1">{v.productTitle}</h5>
                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-[7px] font-black h-3 px-1">{v.sku}</Badge>
+                                <Badge variant="outline" className="text-[7px] font-bold h-3 px-1">{v.sku}</Badge>
                                 <span className="text-[8px] font-bold text-muted-foreground uppercase">{Object.values(v.optionMappings || {}).join('/') || 'Default'}</span>
                              </div>
                           </div>
                           <div className="relative z-10 text-right shrink-0 ml-2">
-                             <p className="text-[10px] font-black leading-none">{v.stock}</p>
+                             <p className="text-[10px] font-bold leading-none">{v.stock}</p>
                              <p className="text-[7px] font-bold text-muted-foreground uppercase">In Stock</p>
                           </div>
                           <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all pr-1">
@@ -568,7 +568,7 @@ const StockTakeDetail = () => {
                     {allVariants.length === 0 && (
                       <div className="py-20 text-center opacity-40">
                         <Search className="w-10 h-10 mx-auto mb-2" />
-                        <p className="text-[10px] font-black uppercase">No results found</p>
+                        <p className="text-[10px] font-bold uppercase text-center">No results found</p>
                       </div>
                     )}
                  </div>
@@ -581,12 +581,12 @@ const StockTakeDetail = () => {
                  <div className="h-10 w-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
                     <BarChart2 className="w-5 h-5" />
                  </div>
-                 <h4 className="text-xl font-black italic">Reconciliation AI</h4>
+                 <h4 className="text-lg font-bold">Reconciliation AI</h4>
                  <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                    Based on current counting patterns, we've identified <span className="text-primary font-black uppercase text-[10px]">potential shrinkage</span> across '{stockTake?.title}'. Match rate is trending at {metrics.accuracyRate.toFixed(1)}%.
+                    Based on current counting patterns, we've identified <span className="text-primary font-bold uppercase text-[10px]">potential shrinkage</span> across '{stockTake?.title}'. Match rate is trending at {metrics.accuracyRate.toFixed(1)}%.
                  </p>
                  <div className="pt-2">
-                    <Button variant="link" className="p-0 h-auto text-[10px] font-black text-primary gap-2 hover:gap-3 transition-all">
+                    <Button variant="link" className="p-0 h-auto text-[10px] font-bold text-primary gap-2 hover:gap-3 transition-all uppercase">
                        VIEW DETAILED ANALYTICS <ArrowLeft className="w-3 h-3 rotate-180" />
                     </Button>
                  </div>
@@ -604,21 +604,21 @@ const StockTakeDetail = () => {
                      <AlertTriangle className="h-8 w-8" />
                   </div>
                   <div>
-                    <DialogTitle className="text-4xl font-black italic tracking-tight gradient-text">Commit Reconciliation</DialogTitle>
+                    <DialogTitle className="text-2xl font-bold">Commit Reconciliation</DialogTitle>
                     <DialogDescription className="text-base font-medium mt-2 leading-relaxed">
                        Finalizing this audit will permanently update the system stock to match your physical counts. 
-                       <span className="block mt-2 font-black text-foreground">Net Value Impact: <span className={cn(metrics.netDiscrepancy < 0 ? 'text-red-500' : 'text-green-500')}>KES {metrics.netDiscrepancy.toLocaleString()}</span></span>
+                       <span className="block mt-2 font-bold text-foreground">Net Value Impact: <span className={cn(metrics.netDiscrepancy < 0 ? 'text-red-500' : 'text-green-500')}>KES {metrics.netDiscrepancy.toLocaleString()}</span></span>
                     </DialogDescription>
                   </div>
                </DialogHeader>
 
                <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-white/5 border border-white/5 space-y-3">
-                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
                         <span>Items Adjusted</span>
                         <span>{countedItems.filter(i => i.countedStock !== i.expectedStock).length} Units</span>
                      </div>
-                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                     <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
                         <span>Matched Perfectly</span>
                         <span className="text-green-500">{metrics.matchedItems} Units</span>
                      </div>
@@ -631,11 +631,11 @@ const StockTakeDetail = () => {
                </div>
 
                <div className="grid grid-cols-2 gap-4 pt-6">
-                  <Button variant="ghost" onClick={() => setIsFinishing(false)} className="h-16 rounded-2xl font-black uppercase tracking-widest text-xs border border-white/5">Discard</Button>
+                  <Button variant="ghost" onClick={() => setIsFinishing(false)} className="h-16 rounded-2xl font-bold uppercase tracking-widest text-xs border border-white/5">Discard</Button>
                   <Button 
                     onClick={() => handleComplete(true)} 
                     disabled={saving}
-                    className="h-16 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest text-xs shadow-elegant"
+                    className="h-16 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold uppercase tracking-widest text-xs shadow-elegant"
                   >
                      {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
                      Authorize Sync

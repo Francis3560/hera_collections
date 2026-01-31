@@ -18,6 +18,7 @@ export const queryProductsValidator = (data) => {
     sortBy: Joi.string().valid('createdAt', 'price', 'title', 'purchases').optional(),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     hasDiscount: Joi.boolean().optional(),
+    subCategoryId: Joi.number().integer().positive().optional(),
   }).prefs({ allowUnknown: false });
 
   return schema.validate(data, basePrefs);
@@ -42,6 +43,7 @@ export const createProductValidator = (data) => {
     title: Joi.string().max(160).required(),
     description: Joi.string().max(5000).allow('', null),
     categoryId: Joi.number().integer().positive().optional().allow(null),
+    subCategoryId: Joi.number().integer().positive().optional().allow(null),
     isPublished: Joi.boolean().default(true),
     brand: Joi.string().max(120).optional().allow('', null),
     manufacturer: Joi.string().max(120).optional().allow('', null),
@@ -73,6 +75,7 @@ export const updateProductValidator = (data) => {
     title: Joi.string().max(160),
     description: Joi.string().max(5000).allow('', null),
     categoryId: Joi.number().integer().positive().optional().allow(null),
+    subCategoryId: Joi.number().integer().positive().optional().allow(null),
     isPublished: Joi.boolean(),
     imagesAction: Joi.string().valid('append', 'replace').default('append'),
     removeImageUrls: Joi.array().items(Joi.string().uri()).optional(),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Star, 
@@ -173,9 +173,23 @@ export default function ProductDetailsPage() {
           <ChevronRight className="h-4 w-4 mx-2" />
           {product.category && (
             <>
-                <span className="cursor-pointer hover:text-primary" onClick={() => navigate(`/collections/${product.category.slug || product.category.id}`)}>
+                <Link 
+                  to={`/collections?category=${product.category.slug}`}
+                  className="cursor-pointer hover:text-primary transition-colors"
+                >
                     {product.category.name}
-                </span>
+                </Link>
+                <ChevronRight className="h-4 w-4 mx-2" />
+            </>
+          )}
+          {product.subCategory && (
+            <>
+                <Link 
+                  to={`/collections?subcategory=${product.subCategory.slug}`}
+                  className="cursor-pointer hover:text-primary transition-colors"
+                >
+                    {product.subCategory.name}
+                </Link>
                 <ChevronRight className="h-4 w-4 mx-2" />
             </>
           )}
@@ -355,7 +369,7 @@ export default function ProductDetailsPage() {
                     </div>
                     <div className="text-sm">
                         <div className="font-semibold">Free Delivery</div>
-                        <div className="text-muted-foreground text-xs">Orders over KES 5,000</div>
+                        <div className="text-muted-foreground text-xs">Orders over KES 5,500</div>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">

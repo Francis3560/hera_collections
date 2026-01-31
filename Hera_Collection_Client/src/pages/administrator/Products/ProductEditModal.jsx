@@ -19,6 +19,7 @@ import {
 import { API_BASE_URL } from '@/utils/axiosClient';
 import productService from '@/api/product.service';
 import CategoryService from '@/api/categories.service';
+import SubCategoryService from '@/api/subcategory.service';
 import { useToast } from '@/hooks/use-toast';
 
 import {
@@ -65,6 +66,7 @@ const productSchema = z.object({
   sku: z.string().optional(),
   quantity: z.coerce.number().optional(), // Stock handled by variants
   categoryId: z.string().optional(),
+  subCategoryId: z.string().optional(),
   brand: z.string().optional(),
 });
 
@@ -72,7 +74,10 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [filteredSubCategories, setFilteredSubCategories] = useState([]);
   const [isFetchingCategories, setIsFetchingCategories] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   
   // Image handling
   const [existingPhotos, setExistingPhotos] = useState([]);
@@ -90,9 +95,20 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
       title: '',
       description: '',
       categoryId: '',
+      subCategoryId: '',
       brand: '',
     },
   });
+
+  // Filter sub-categories when category changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      const filtered = subCategories.filter(sub => sub.categoryId === parseInt(selectedCategoryId));
+      setFilteredSubCategories(filtered);
+    } else {
+      setFilteredSubCategories([]);
+    }
+  }, [selectedCategoryId, subCategories]);
 
   useEffect(() => {
     if (product && isOpen) {
@@ -100,8 +116,10 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
         title: product.title || '',
         description: product.description || '',
         categoryId: product.categoryId?.toString() || '',
+        subCategoryId: product.subCategoryId?.toString() || '',
         brand: product.brand || '',
       });
+      setSelectedCategoryId(product.categoryId?.toString() || null);
       setExistingPhotos(product.photos || []);
       setRemovedPhotoUrls([]);
       setNewImages([]);
@@ -231,8 +249,12 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
   const fetchCategories = async () => {
     setIsFetchingCategories(true);
     try {
-      const data = await CategoryService.getAllCategories();
-      setCategories(data);
+      const [categoriesData, subCategoriesData] = await Promise.all([
+        CategoryService.getAllCategories(),
+        SubCategoryService.getAllSubCategories()
+      ]);
+      setCategories(categoriesData);
+      setSubCategories(subCategoriesData);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
     } finally {
@@ -248,6 +270,7 @@ const payload = {
         title: data.title,
         description: data.description,
         categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
+        subCategoryId: data.subCategoryId ? parseInt(data.subCategoryId) : undefined,
         brand: data.brand,
         removeImageUrls: removedPhotoUrls,
         // Explicitly stringify options/variants to ensure they are treated as JSON strings by the service logic (which double stringifies?) 
@@ -347,8 +370,12 @@ const payload = {
                                 name="categoryId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Classification</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Category</FormLabel>
+                                        <Select onValueChange={(value) => {
+                                          field.onChange(value);
+                                          setSelectedCategoryId(value);
+                                          form.setValue('subCategoryId', '');
+                                        }} value={field.value}>
                                             <FormControl><SelectTrigger className="bg-background/50 border-white/10 h-10 rounded-xl"><SelectValue placeholder="Category" /></SelectTrigger></FormControl>
                                             <SelectContent className="glass-card">
                                                 {categories.map((cat) => <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>)}
@@ -359,15 +386,30 @@ const payload = {
                             />
                             <FormField
                                 control={form.control}
-                                name="brand"
+                                name="subCategoryId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Brand</FormLabel>
-                                        <FormControl><Input placeholder="Brand" {...field} className="bg-background/50 border-white/10 h-10 rounded-xl" /></FormControl>
+                                        <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Sub-Category</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCategoryId}>
+                                            <FormControl><SelectTrigger className="bg-background/50 border-white/10 h-10 rounded-xl"><SelectValue placeholder={selectedCategoryId ? "Select" : "Select category first"} /></SelectTrigger></FormControl>
+                                            <SelectContent className="glass-card">
+                                                {filteredSubCategories.map((sub) => <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </FormItem>
                                 )}
                             />
                         </div>
+                        <FormField
+                            control={form.control}
+                            name="brand"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Brand</FormLabel>
+                                    <FormControl><Input placeholder="Brand" {...field} className="bg-background/50 border-white/10 h-10 rounded-xl" /></FormControl>
+                                </FormItem>
+                            )}
+                        />
                       </CardContent>
                     </Card>
 

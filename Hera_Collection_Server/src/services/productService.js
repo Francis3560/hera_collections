@@ -13,32 +13,63 @@ export const searchProducts = async ({
   sortBy = 'createdAt',
   sortOrder = 'desc',
   hasDiscount = undefined,
+  subCategoryId = undefined,
 }) => {
   const where = {
     isPublished,
-    categoryId: categoryId ? parseInt(categoryId) : undefined,
-    // Note: Filtering by price now requires looking at variants
-    variants: (minPrice || maxPrice || hasDiscount) ? {
+  };
+
+  // Combine category and sub-category filters
+  const categoryFilters = [];
+
+  if (categoryId) {
+    categoryFilters.push({
+      OR: [
+        { categoryId: parseInt(categoryId) },
+        { subCategory: { categoryId: parseInt(categoryId) } }
+      ]
+    });
+  }
+
+  if (subCategoryId) {
+    categoryFilters.push({ subCategoryId: parseInt(subCategoryId) });
+  }
+
+  if (categoryFilters.length > 0) {
+    where.AND = categoryFilters;
+  }
+
+  if (q) {
+    const searchFilter = {
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+        { brand: { contains: q, mode: 'insensitive' } },
+      ]
+    };
+    
+    if (where.AND) {
+      where.AND.push(searchFilter);
+    } else {
+      where.OR = searchFilter.OR;
+    }
+  }
+
+  // Restore variants filter
+  if (minPrice || maxPrice || hasDiscount) {
+    where.variants = {
       some: {
         price: {
           gte: minPrice || undefined,
           lte: maxPrice || undefined,
         },
         isActive: true,
-        // Filter for discounts: for now just check if costPrice exists
-        // In the future, add a dedicated 'onSale' or 'discountPercentage' field
         ...(hasDiscount ? {
           costPrice: { not: null }
         } : {})
       }
-    } : undefined,
-    OR: q
-      ? [
-          { title: { contains: q, mode: 'insensitive' } },
-          { description: { contains: q, mode: 'insensitive' } },
-        ]
-      : undefined,
-  };
+    };
+  }
 
 
   // Build orderBy clause based on sortBy parameter
@@ -69,6 +100,7 @@ export const searchProducts = async ({
       include: {
         photos: includePhotos,
         category: true,
+        subCategory: true,
         seller: {
           select: { id: true, name: true, email: true }
         },
@@ -261,6 +293,7 @@ export const createProduct = async (data, sellerUserId, processedImages = []) =>
         description: data.description || null,
         isPublished: data.isPublished ?? true,
         categoryId: data.categoryId ? parseInt(data.categoryId) : null,
+        subCategoryId: data.subCategoryId ? parseInt(data.subCategoryId) : null,
         sellerId: parseInt(sellerUserId),
         brand: data.brand || null,
         manufacturer: data.manufacturer || null,
@@ -374,6 +407,7 @@ export const updateProduct = async (id, data, processedImages = []) => {
         title: data.title,
         description: data.description,
         categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
+        subCategoryId: data.subCategoryId !== undefined ? (data.subCategoryId ? parseInt(data.subCategoryId) : null) : undefined,
         brand: data.brand,
         manufacturer: data.manufacturer,
         isPublished: data.isPublished,

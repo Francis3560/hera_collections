@@ -5,8 +5,8 @@ const CategoryService = {
    * Fetch all categories
    * @returns {Promise<Array>} List of categories
    */
-  getAllCategories: async () => {
-    const response = await axiosClient.get('/categories');
+  getAllCategories: async (params = {}) => {
+    const response = await axiosClient.get('/categories', { params });
 
     // Robustly handle different response structures
     if (Array.isArray(response.data)) {

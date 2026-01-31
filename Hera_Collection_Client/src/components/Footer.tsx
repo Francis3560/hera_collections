@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import Logo from '@/components/Images/HeraCollection Logo.jpg';
 import { motion } from "framer-motion";
 
-export default function Footer() {
+export default function FreeFooter() {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
 
@@ -183,11 +183,11 @@ export default function Footer() {
               <ul className="space-y-3">
                 {[
                   { name: "Home", href: "/" },
+                  { name: "About Us", href: "/about" },
                   { name: "New Arrivals", href: "/collections?sort=newest" },
                   { name: "Best Sellers", href: "/collections?sort=popular" },
                   { name: "Sale", href: "/collections?discounted=true" },
                   { name: "Custom Orders", href: "/custom" },
-                  { name: "Gift Cards", href: "/gift-cards" },
                 ].map((link) => (
                   <li key={link.name}>
                     <Link
@@ -265,7 +265,7 @@ export default function Footer() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-12 border-t border-border dark:border-border/40">
             {[
               { icon: Shield, title: "Secure Payment", desc: "256-bit SSL encryption" },
-              { icon: Truck, title: "Free Shipping", desc: "On orders over KES 7500" },
+              { icon: Truck, title: "Free Shipping", desc: "On orders over KES 5500" },
               { icon: Award, title: "Premium Quality", desc: "" },
               { icon: Globe, title: "Delivery within Nairobi", desc: "" },
             ].map((badge, index) => (
@@ -350,14 +350,6 @@ export default function Footer() {
         </div>
       </footer>
 
-      {/* Live Chat Widget */}
-      <button
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary dark:bg-primary text-primary-foreground dark:text-primary-foreground rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300 z-50 group"
-        aria-label="Live chat support"
-      >
-        <MessageCircle className="h-6 w-6" />
-        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-      </button>
     </>
   );
 }

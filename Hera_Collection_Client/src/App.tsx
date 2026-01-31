@@ -27,6 +27,7 @@ import UsersManagement from "./pages/administrator/UserManagement/UsersPage";
 import DashboardPage from "./pages/administrator/Dashboard";
 import CreateProduct from "./pages/administrator/Products/CreateProduct";
 import CategoryModule from "./pages/administrator/CategoryModule/CategoryModule";
+import SubCategoryModule from "./pages/administrator/CategoryModule/SubCategoryModule";
 import ProductsDisplay from "./pages/administrator/Products/ProductsDisplay";
 import ExpenseCategoryModule from "./pages/administrator/ExpenseCategoryModule/ExpenseCategoryModule";
 import Expenses from "./pages/administrator/Expenses/Expenses";
@@ -54,6 +55,11 @@ import CollectionsPage from "./pages/shop/CollectionsPage";
 import CollectionPage from "./pages/shop/CollectionPage";
 import ThankYouPage from "./pages/shop/ThankYouPage";
 import ShippingFeesPage from "./pages/administrator/Shipping/ShippingFeesPage";
+import About from "./pages/About";
+import InquiryDashboard from "./pages/admin/InquiryDashboard";
+import Contact from "./pages/Contact";
+import { ProfileWishlist, ProfileAddresses, ProfilePayments, ProfileNotifications } from "./pages/authentication/ProfileSubPages";
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +90,9 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<SignIn />} /> 
                   <Route path="/register" element={<Registration />} /> 
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+
 
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password/:token" element={<ResetPassword />} />
@@ -115,6 +124,10 @@ const App = () => (
                   }>
                     <Route index element={<ProfileOverview />} />
                     <Route path="orders" element={<UserOrders />} />
+                    <Route path="wishlist" element={<ProfileWishlist />} />
+                    <Route path="addresses" element={<ProfileAddresses />} />
+                    <Route path="payments" element={<ProfilePayments />} />
+                    <Route path="notifications" element={<ProfileNotifications />} />
                     <Route path="security" element={
                       <ProtectedRoute requireVerified>
                         <SecurityPage />
@@ -135,6 +148,7 @@ const App = () => (
                     <Route path="products" element={<ProductsDisplay />} />
                     <Route path="addproducts" element={<CreateProduct />} />
                     <Route path="categories" element={<CategoryModule />} />
+                    <Route path="subcategories" element={<SubCategoryModule />} />
                     <Route path="expenses" element={<Expenses />} />
                     <Route path="discounts" element={<DiscountList />} />
                     <Route path="discounts/new" element={<DiscountForm />} />
@@ -160,6 +174,7 @@ const App = () => (
                     <Route path="sales/manual" element={<PosTerminal />} />
                     <Route path="transactions" element={<TransactionHistory />} />
                     <Route path="notifications" element={<NotificationsPage />} />
+                    <Route path="messaging/inbox" element={<InquiryDashboard />} />
                   </Route>
                   
                   {/* Redirect old /dashboard route to /admin/dashboard for backward compatibility */}

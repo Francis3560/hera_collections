@@ -8,6 +8,7 @@ import { Loader2, Upload, X, ShieldCheck, Tag, Info, DollarSign, Package, Plus }
 import { useToast } from '@/components/ui/use-toast';
 import productService from '@/api/product.service';
 import CategoryService from '@/api/categories.service';
+import SubCategoryService from '@/api/subcategory.service';
 import { useAuth } from '@/context/AuthContext';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ const productSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
   categoryId: z.string().optional(),
+  subCategoryId: z.string().optional(),
   brand: z.string().optional(),
 });
 
@@ -56,14 +58,21 @@ const CreateProduct = () => {
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [filteredSubCategories, setFilteredSubCategories] = useState([]);
   const [isFetchingCategories, setIsFetchingCategories] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       setIsFetchingCategories(true);
       try {
-        const data = await CategoryService.getAllCategories();
-        setCategories(data);
+        const [categoriesData, subCategoriesData] = await Promise.all([
+          CategoryService.getAllCategories(),
+          SubCategoryService.getAllSubCategories()
+        ]);
+        setCategories(categoriesData);
+        setSubCategories(subCategoriesData);
       } catch (error) {
         console.error("Failed to fetch categories:", error);
       } finally {
@@ -71,8 +80,18 @@ const CreateProduct = () => {
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, []);
+
+  // Filter sub-categories when category changes
+  useEffect(() => {
+    if (selectedCategoryId) {
+      const filtered = subCategories.filter(sub => sub.categoryId === parseInt(selectedCategoryId));
+      setFilteredSubCategories(filtered);
+    } else {
+      setFilteredSubCategories([]);
+    }
+  }, [selectedCategoryId, subCategories]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -100,6 +119,7 @@ const CreateProduct = () => {
       title: '',
       description: '',
       categoryId: undefined,
+      subCategoryId: undefined,
       brand: '',
     },
   });
@@ -215,6 +235,7 @@ const CreateProduct = () => {
         title: data.title,
         description: data.description,
         categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
+        subCategoryId: data.subCategoryId ? parseInt(data.subCategoryId) : undefined,
         brand: data.brand,
         options: options.map(opt => ({
           name: opt.name,
@@ -439,8 +460,12 @@ const CreateProduct = () => {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Category</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select" /></SelectTrigger></FormControl>
+                                                <Select onValueChange={(value) => {
+                                                  field.onChange(value);
+                                                  setSelectedCategoryId(value);
+                                                  form.setValue('subCategoryId', undefined);
+                                                }} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger className="bg-background/50"><SelectValue placeholder="Select Category" /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         {categories.map((cat) => <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>)}
                                                     </SelectContent>
@@ -448,6 +473,23 @@ const CreateProduct = () => {
                                             </FormItem>
                                         )}
                                     />
+                                    <FormField
+                                        control={form.control}
+                                        name="subCategoryId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Sub-Category (Optional)</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedCategoryId}>
+                                                    <FormControl><SelectTrigger className="bg-background/50"><SelectValue placeholder={selectedCategoryId ? "Select Sub-Category" : "Select category first"} /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        {filteredSubCategories.map((sub) => <SelectItem key={sub.id} value={sub.id.toString()}>{sub.name}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="mt-4">
                                     <FormField
                                         control={form.control}
                                         name="brand"

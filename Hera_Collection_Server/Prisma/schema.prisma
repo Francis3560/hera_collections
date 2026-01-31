@@ -67,6 +67,7 @@ enum NotificationType {
   SYSTEM_ALERT
   PROMOTION
   MESSAGE
+  INQUIRY_MESSAGE
 }
 
 model User {
@@ -128,6 +129,7 @@ model User {
   activityLogs           ActivityLog[] // Added: User's activity logs
   cart                   Cart? // Added: User's shopping cart
   notifications          Notification[] // Added: User's notifications
+  inquirySessions        InquirySession[] // Added: User's inquiries
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
   deletedAt              DateTime? // Soft delete
@@ -188,6 +190,8 @@ model Product {
   // Relations
   category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   categoryId     Int?
+  subCategory    SubCategory?     @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
+  subCategoryId  Int?
   seller         User             @relation(fields: [sellerId], references: [id], onDelete: Restrict)
   sellerId       Int
   photos         Photo[]
@@ -228,6 +232,7 @@ model Product {
   @@index([createdAt])
   @@index([slug])
   @@index([rating])
+  @@index([subCategoryId])
   discounts Discount[] @relation("ProductDiscounts")
 }
 
@@ -256,6 +261,7 @@ model Category {
   parentId         Int?
   parent           Category?  @relation("CategoryToCategory", fields: [parentId], references: [id], onDelete: SetNull)
   children         Category[] @relation("CategoryToCategory")
+  subCategories    SubCategory[]
   products         Product[]
   couponCategories Coupon[]   @relation("CouponCategories") // Coupons applicable to this category
   order            Int        @default(0)
@@ -266,6 +272,24 @@ model Category {
   @@index([parentId])
   @@index([slug])
   @@index([order])
+  @@index([isActive])
+}
+
+model SubCategory {
+  id               Int        @id @default(autoincrement())
+  name             String     @db.VarChar(120)
+  slug             String     @unique @db.VarChar(160)
+  description      String?    @db.Text
+  coverPhoto       String?    @db.VarChar(512)
+  categoryId       Int
+  category         Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products         Product[]
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
   @@index([isActive])
 }
 
@@ -359,7 +383,8 @@ model Review {
   isVerified Boolean  @default(false) // Verified purchase
   helpful    Int      @default(0)
   notHelpful Int      @default(0)
-  isApproved Boolean  @default(true)
+  isApproved Boolean  @default(false)
+  isPublished Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -872,4 +897,44 @@ model ShippingRegion {
   updatedAt     DateTime @updatedAt
 
   @@index([isActive])
+}
+
+enum InquirySessionStatus {
+  OPEN
+  CLOSED
+}
+
+model InquirySession {
+  id           String               @id @default(uuid())
+  userId       Int?
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestId      String?              @db.VarChar(128)
+  guestName    String?              @db.VarChar(120)
+  guestEmail   String?              @db.VarChar(191)
+  status       InquirySessionStatus @default(OPEN)
+  messages     InquiryMessage[]
+  
+  closedAt     DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([guestId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model InquiryMessage {
+  id           Int            @id @default(autoincrement())
+  sessionId    String
+  session      InquirySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  senderId     Int?           
+  isFromAdmin  Boolean        @default(false)
+  content      String         @db.Text
+  isRead       Boolean        @default(false)
+  
+  createdAt    DateTime       @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
 }

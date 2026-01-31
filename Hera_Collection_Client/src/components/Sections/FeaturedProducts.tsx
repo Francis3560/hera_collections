@@ -241,21 +241,29 @@ export default function FeaturedProducts() {
                 {/* Product Info */}
                 <div className="p-5 sm:p-6 flex-1 flex flex-col">
                   {/* Category */}
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground dark:text-muted-foreground font-medium uppercase tracking-wider">
-                      {product.category?.name || "Uncategorized"}
-                    </span>
-                    
-                    {/* Rating */}
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                      <span className="text-xs font-semibold text-foreground dark:text-foreground">
-                        {product.rating || "5.0"}
-                      </span>
-                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">
-                        ({product.reviewCount || 0})
-                      </span>
+                  <div className="flex flex-col mb-2">
+                    <div className="flex items-center justify-between">
+                      <Link 
+                        to={`/collections?subcategory=${product.subCategory?.slug}`}
+                        className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline"
+                      >
+                        {product.subCategory?.name || "Premium Style"}
+                      </Link>
+                      
+                      {/* Rating */}
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                        <span className="text-xs font-semibold text-foreground dark:text-foreground">
+                          {product.rating || "5.0"}
+                        </span>
+                      </div>
                     </div>
+                    <Link 
+                      to={`/collections?category=${product.category?.slug}`}
+                      className="text-[9px] text-muted-foreground uppercase tracking-tighter hover:text-primary transition-colors"
+                    >
+                      {product.category?.name || "Collection"}
+                    </Link>
                   </div>
                   
                   {/* Product Name */}

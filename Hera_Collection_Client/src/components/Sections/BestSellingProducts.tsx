@@ -388,9 +388,22 @@ export default function ProductShowcase() {
                           
                           {/* Product Info */}
                           <div className="text-center">
-                            {/* Category */}
-                            <div className="text-xs text-gray-500 dark:text-muted-foreground uppercase tracking-wider mb-1">
-                              {product.category?.name || "Collection"}
+                            {/* Category Hierarchy */}
+                            <div className="flex flex-col items-center mb-1">
+                              <Link 
+                                to={`/collections?subcategory=${product.subCategory?.slug}`}
+                                className="text-[10px] text-primary font-bold uppercase tracking-widest hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {product.subCategory?.name || "Premium Style"}
+                              </Link>
+                              <Link 
+                                to={`/collections?category=${product.category?.slug}`}
+                                className="text-[8px] text-gray-500 dark:text-muted-foreground uppercase tracking-tighter hover:text-primary transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {product.category?.name || "Collection"}
+                              </Link>
                             </div>
                             
                             {/* Product Name */}

@@ -5,7 +5,7 @@ class SocketService {
   private socket: Socket | null = null;
   private isConnected: boolean = false;
 
-  connect(token?: string) {
+  connect(token?: string, guestId?: string) {
     if (this.socket && this.isConnected) return this.socket;
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
@@ -18,7 +18,7 @@ class SocketService {
     this.socket = io(API_BASE_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
-      auth: token ? { token } : undefined
+      auth: { token, guestId }
     });
 
     this.socket.on('connect', () => {

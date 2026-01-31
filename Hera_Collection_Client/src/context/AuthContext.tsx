@@ -260,11 +260,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserProfile(profile);
       
       // Update user with latest data
-      if (user) {
-        const updatedUser = { ...user, ...profile };
-        setUser(updatedUser);
-        localStorage.setItem("hera_user", JSON.stringify(updatedUser));
-      }
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        const updated = { ...prevUser, ...profile };
+        localStorage.setItem("hera_user", JSON.stringify(updated));
+        return updated;
+      });
       
       return { success: true, profile };
     } catch (err: any) {
@@ -283,7 +284,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user, clearError]);
+  }, [clearError]);
 
   const updateProfile = useCallback(async (profileData: Partial<User>) => {
     setLoading(true);
@@ -296,11 +297,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserProfile(updatedProfile);
       
       // Update user state
-      if (user) {
-        const updatedUser = { ...user, ...updatedProfile };
-        setUser(updatedUser);
-        localStorage.setItem("hera_user", JSON.stringify(updatedUser));
-      }
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        const updated = { ...prevUser, ...updatedProfile };
+        localStorage.setItem("hera_user", JSON.stringify(updated));
+        return updated;
+      });
       
       return { success: true, profile: updatedProfile };
     } catch (err: any) {
@@ -319,7 +321,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user, clearError]);
+  }, [clearError]);
 
   const deleteAccount = useCallback(async (password: string, confirm: boolean) => {
     setLoading(true);
@@ -788,16 +790,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     
     try {
-      const { success, profile } = await getProfile();
-      if (success && profile) {
-        const updatedUser = { ...user, ...profile };
-        setUser(updatedUser);
-        localStorage.setItem("hera_user", JSON.stringify(updatedUser));
+      const [profileRes, statsRes] = await Promise.all([
+        getProfile(),
+        getStats()
+      ]);
+      
+      if (profileRes.success && profileRes.profile) {
+        setUser(prevUser => {
+          if (!prevUser) return null;
+          const updated = { ...prevUser, ...profileRes.profile };
+          localStorage.setItem("hera_user", JSON.stringify(updated));
+          return updated;
+        });
       }
     } catch (error) {
       console.error('Failed to refresh profile:', error);
     }
-  }, [user, getProfile]);
+  }, [getProfile, getStats]);
 
   const validatePassword = useCallback((password: string) => {
     return userService.validatePassword(password);

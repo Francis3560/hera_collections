@@ -9,6 +9,14 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
+const BRAND_INFO = {
+  name: 'HERA COLLECTION',
+  logo: 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769805371/HeraCollection_Logo-removebg-preview_tcjo8h.png',
+  email: 'info@heracollections.com',
+  phone: '+254 718 577 608 / +254 707 064 827',
+  location: 'Nairobi, Kenya'
+};
+
 export const DashboardReports: React.FC = () => {
   const [generating, setGenerating] = useState<string | null>(null);
 
@@ -73,25 +81,32 @@ export const DashboardReports: React.FC = () => {
     const doc = new jsPDF();
     const primaryColor = [124, 58, 237]; // Hera Brand Purple
 
-    // Add Logo or Header
-    doc.setFontSize(22);
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text("HERA COLLECTION", 14, 22);
-    
-    doc.setFontSize(14);
-    doc.setTextColor(100);
-    doc.text(title.toUpperCase(), 14, 30);
-    
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${format(new Date(), 'PPP p')}`, 14, 36);
+    // Header Background Header
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, 210, 45, 'F');
 
-    // Draw a decorative line
-    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setLineWidth(0.5);
-    doc.line(14, 40, 196, 40);
+    // Add Brand Name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(28);
+    doc.setTextColor(255, 255, 255);
+    doc.text(BRAND_INFO.name, 14, 25);
+    
+    // Add Report Title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text(title.toUpperCase(), 14, 35);
+    
+    // Header Contact Info (Top Right)
+    doc.setFontSize(8);
+    doc.text(BRAND_INFO.email, 196, 15, { align: 'right' });
+    doc.text(BRAND_INFO.phone, 196, 20, { align: 'right' });
+    doc.text(BRAND_INFO.location, 196, 25, { align: 'right' });
+
+    doc.setFontSize(10);
+    doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 14, 55);
 
     autoTable(doc, {
-      startY: 45,
+      startY: 60,
       head: [columns.map(c => c.header)],
       body: data.map(row => columns.map(c => row[c.key])),
       headStyles: { 
@@ -101,21 +116,31 @@ export const DashboardReports: React.FC = () => {
         fontStyle: 'bold'
       },
       alternateRowStyles: { fillColor: [245, 243, 255] },
-      margin: { top: 45 },
-      styles: { fontSize: 9, cellPadding: 3 }
+      styles: { fontSize: 9, cellPadding: 4, font: 'helvetica' },
+      margin: { left: 14, right: 14 }
     });
 
     // Add footer
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
+      
+      // Footer line
+      doc.setDrawColor(230);
+      doc.line(14, doc.internal.pageSize.getHeight() - 20, 196, doc.internal.pageSize.getHeight() - 20);
+      
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(
-        `Page ${i} of ${pageCount} - Hera Collection Executive Report`,
-        doc.internal.pageSize.getWidth() / 2,
-        doc.internal.pageSize.getHeight() - 10,
-        { align: 'center' }
+        `© ${new Date().getFullYear()} Hera Collection Executive Report - Confidential`,
+        14,
+        doc.internal.pageSize.getHeight() - 12
+      );
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        196,
+        doc.internal.pageSize.getHeight() - 12,
+        { align: 'right' }
       );
     }
 
@@ -216,30 +241,53 @@ export const DashboardReports: React.FC = () => {
           const doc = new jsPDF();
           const pColor = [124, 58, 237];
           
-          doc.setFontSize(22);
-          doc.setTextColor(pColor[0], pColor[1], pColor[2]);
-          doc.text("HERA COLLECTION", 14, 22);
-          doc.setFontSize(16);
-          doc.text("PROFIT & LOSS STATEMENT", 14, 32);
+          // Header Background
+          doc.setFillColor(pColor[0], pColor[1], pColor[2]);
+          doc.rect(0, 0, 210, 45, 'F');
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(28);
+          doc.setTextColor(255, 255, 255);
+          doc.text(BRAND_INFO.name, 14, 25);
+          
+          doc.setFontSize(14);
+          doc.setFont("helvetica", "normal");
+          doc.text("PROFIT & LOSS STATEMENT", 14, 35);
+
+          doc.setFontSize(8);
+          doc.text(BRAND_INFO.email, 196, 15, { align: 'right' });
+          doc.text(BRAND_INFO.phone, 196, 20, { align: 'right' });
+          doc.text(BRAND_INFO.location, 196, 25, { align: 'right' });
           
           doc.setFontSize(10);
           doc.setTextColor(100);
-          doc.text(`Period: Lifetime/Global`, 14, 40);
+          doc.text(`Period: Lifetime/Global Statement`, 14, 55);
+          doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 14, 60);
 
           autoTable(doc, {
-            startY: 50,
-            head: [['Description', 'Amount (KES)']],
+            startY: 70,
+            head: [['Financial Description', 'Amount (KES)']],
             body: [
               ['Total Revenue', Number(pl.summary.totalRevenue).toLocaleString()],
               ['Total Expenses', `(${Number(pl.summary.totalExpenses).toLocaleString()})`],
-              ['Gross Profit', Number(pl.summary.grossProfit).toLocaleString()],
+              ['Gross Profit', { content: Number(pl.summary.grossProfit).toLocaleString(), styles: { fontStyle: 'bold' } }],
               ['Operating Margin', `${pl.summary.operatingMargin.toFixed(2)}%`],
-              ['Net Profit', Number(pl.summary.netProfit).toLocaleString()],
+              ['Net Profit', { content: Number(pl.summary.netProfit).toLocaleString(), styles: { fontStyle: 'bold', textColor: [21, 128, 61] } }],
             ],
             theme: 'striped',
             headStyles: { fillColor: pColor as [number, number, number] },
-            columnStyles: { 1: { halign: 'right' } }
+            columnStyles: { 1: { halign: 'right' } },
+            styles: { cellPadding: 6 }
           });
+
+          // Add footer
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `© ${new Date().getFullYear()} Hera Collection Financial Division - Confidential`,
+            14,
+            doc.internal.pageSize.getHeight() - 12
+          );
 
           doc.save('profit_and_loss.pdf');
           break;
