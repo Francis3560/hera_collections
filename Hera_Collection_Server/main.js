@@ -72,8 +72,8 @@ app.use(cors({
 // Express middleware
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(cookieParser());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Custom Morgan format to match your logs exactly
 morgan.token('custom-time', (req, res) => {

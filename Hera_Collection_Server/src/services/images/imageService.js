@@ -219,8 +219,8 @@ class ImageService {
       throw new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      throw new Error('File size too large. Maximum size is 10MB.');
+    if (file.size > 20 * 1024 * 1024) { // 20MB
+      throw new Error('File size too large. Maximum size is 20MB.');
     }
 
     return true;
