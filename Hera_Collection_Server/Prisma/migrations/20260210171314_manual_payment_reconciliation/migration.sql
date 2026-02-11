@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE `order` ADD COLUMN `mpesaReference` VARCHAR(50) NULL;
+ALTER TABLE `Order` ADD COLUMN `mpesaReference` VARCHAR(50) NULL;
