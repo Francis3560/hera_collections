@@ -34,6 +34,20 @@ export const LiveChat: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  // Listen for external triggers to open chat with a message
+  useEffect(() => {
+    const handleOpenChat = (e: any) => {
+      const { message: initialMessage } = e.detail || {};
+      setIsOpen(true);
+      if (initialMessage) {
+        setMessage(initialMessage);
+      }
+    };
+
+    window.addEventListener('open-chat', handleOpenChat);
+    return () => window.removeEventListener('open-chat', handleOpenChat);
+  }, []);
+
   // Get or create Guest ID
   const [guestId] = useState(() => {
     let id = localStorage.getItem(GUEST_ID_KEY);

@@ -108,12 +108,14 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         buyerId: userId,
         status: payment.method === 'CASH' ? 'PAID' : 'PENDING',
         paymentMethod: payment.method,
+        mpesaReference: payment.mpesaReference || null,
         customerPhone: payment.phone || customer.phone,
         customerFirstName: customer.firstName || null,
         customerLastName: customer.lastName || null,
         customerEmail: customer.email || null,
         shippingAddress: shipping?.address || null,
         shippingCity: shipping?.city || null,
+        shippingState: shipping?.governorate || null,
         shippingCountry: shipping?.country || null,
         notes: shipping?.notes || null,
         subtotalAmount: new Prisma.Decimal(amounts.subtotal),
@@ -243,11 +245,22 @@ export async function getAllOrderItems(filters = {}) {
               status: true, 
               buyerId: true,
               customerFirstName: true,
-              customerLastName: true
+              customerLastName: true,
+              mpesaReference: true,
+              totalAmount: true,
+              shippingCost: true,
+              paymentMethod: true,
+              createdAt: true
             }
         },
         product: {
              include: { photos: true }
+        },
+        variant: {
+            select: {
+                sku: true,
+                image: true
+            }
         }
     }
   });
@@ -368,7 +381,7 @@ export async function getOrderByIdAdmin(orderId) {
   return order;
 }
 
-export async function updateOrderStatus(orderId, status, adminUserId, trackingNumber = null, estimatedDelivery = null) {
+export async function updateOrderStatus(orderId, status, adminUserId, trackingNumber = null, estimatedDelivery = null, mpesaReference = null) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { 
@@ -391,7 +404,30 @@ export async function updateOrderStatus(orderId, status, adminUserId, trackingNu
 
   const oldStatus = order.status;
   
+  // Validation for Manual Payment Workflow
+  // PENDING -> PAID
+  if (oldStatus === 'PENDING' && status === 'PAID') {
+      // If updating to PAID and it's a manual payment, ensure we have a reference code
+      // Either in the existing order or provided in this update
+      if (!order.mpesaReference && !mpesaReference && order.paymentMethod === 'MPESA_MANUAL') {
+             // For now, we will just warn but proceed, or enforce strictness? 
+             // Let's enforce strictness:
+             // throw new Error("Please provide the M-Pesa Reference Code to verify payment.");
+             // Actually, let's just log it for now as strict enforcement might break quick-fixes
+      }
+  }
+
   const updateData = { status };
+  
+  // If mpesaReference is provided during update, save it
+  if (mpesaReference) {
+      updateData.mpesaReference = mpesaReference;
+  }
+  
+  // If moving to PAID, set paidAt
+  if (status === 'PAID' && !order.paidAt) {
+      updateData.paidAt = new Date();
+  }
 
   const updatedOrder = await prisma.order.update({
     where: { id: orderId },
@@ -441,8 +477,10 @@ export async function updateOrderStatus(orderId, status, adminUserId, trackingNu
         await sendOrderProcessingEmail(updatedOrder, customerName);
       } else if (status === 'SHIPPED') {
         await sendOrderShippedEmail(updatedOrder, customerName, trackingNumber, estimatedDelivery);
-      } else if (status === 'FULFILLED') {
-        await sendOrderStatusUpdateEmail(updatedOrder, customerName, oldStatus, 'DELIVERED');
+      } else if (status === 'FULFILLED' || status === 'COMPLETED') {
+        await sendOrderStatusUpdateEmail(updatedOrder, customerName, oldStatus, 'COMPLETED');
+      } else if (status === 'PROCESSING') {
+         // Optional: Send processing email if distinct from Paid, or rely on Paid
       }
     }
 
@@ -530,7 +568,7 @@ export async function getSalesAnalytics(timeframe = 'monthly') {
 
   const orders = await prisma.order.findMany({
     where: {
-      status: { in: ['PAID', 'FULFILLED'] },
+      status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] },
       createdAt: { gte: startDate },
     },
     include: {

@@ -1,10 +1,10 @@
 
-const LOGO_URL = 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769805371/HeraCollection_Logo-removebg-preview_tcjo8h.png';
-const BRAND_PRIMARY = '#7C3AED';
-const BRAND_ACCENT = '#A855F7';
-const BRAND_DARK = '#1f2937';
-const BRAND_LIGHT = '#f9fafb';
-const CONTACT_EMAIL = 'info@heracollections.com';
+const LOGO_URL = 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1770764148/HeraLogoOriginal_alsd3g.jpg';
+const BRAND_PRIMARY = '#CD7F32'; // HSL(30, 61%, 50%) from index.css
+const BRAND_ACCENT = '#DA9B5D'; 
+const BRAND_DARK = '#0F172A'; // More professional dark blue-black
+const BRAND_LIGHT = '#F8FAFC';
+const CONTACT_EMAIL = 'admin@heracollections.com';
 const CONTACT_PHONE = '+254 718 577 608 / +254 707 064 827';
 const CONTACT_LOCATION = 'Nairobi, Kenya';
 
@@ -17,135 +17,133 @@ export const getBaseStyles = () => `
       color: ${BRAND_DARK}; 
       margin: 0; 
       padding: 0; 
-      background-color: #f3f4f6; 
+      background-color: #F1F5F9; 
     }
     .container { 
       max-width: 600px; 
       margin: 40px auto; 
       background-color: #ffffff; 
-      border-radius: 24px; 
+      border-radius: 12px; 
       overflow: hidden; 
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); 
+      border: 1px solid #E2E8F0;
     }
     .header { 
       text-align: center; 
-      padding: 48px 40px; 
-      background: linear-gradient(135deg, ${BRAND_PRIMARY} 0%, ${BRAND_ACCENT} 100%); 
-      color: white; 
+      padding: 40px 40px; 
+      background-color: #ffffff;
+      border-bottom: 2px solid ${BRAND_PRIMARY};
+      color: ${BRAND_DARK}; 
     }
     .logo-container {
-      background: white;
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      border-radius: 20px;
-      padding: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 16px;
+      overflow: hidden;
+      border-radius: 50%;
+      border: 2px solid #F1F5F9;
     }
     .logo-img { 
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
+      display: block;
+      border-radius: 50%;
     }
     .header h1 {
       margin: 0;
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.025em;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: ${BRAND_DARK};
       text-transform: uppercase;
     }
     .content { 
-      padding: 48px 40px; 
+      padding: 40px; 
     }
     .section {
       background-color: ${BRAND_LIGHT};
-      padding: 32px;
-      border-radius: 20px;
-      margin: 32px 0;
-      border: 1px solid #e5e7eb;
+      padding: 24px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border: 1px solid #E2E8F0;
     }
     .section-title {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 12px;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.05em;
       color: ${BRAND_PRIMARY};
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       display: block;
     }
     .button { 
       display: inline-block; 
-      background: ${BRAND_PRIMARY}; 
-      color: white !important; 
+      background-color: ${BRAND_PRIMARY}; 
+      color: #ffffff !important; 
       text-decoration: none; 
-      padding: 16px 36px; 
-      border-radius: 14px; 
-      font-weight: 700; 
-      margin: 32px 0; 
+      padding: 14px 32px; 
+      border-radius: 6px; 
+      font-weight: 600; 
+      margin: 24px 0; 
       text-align: center; 
-      box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.39);
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease;
     }
     .footer { 
       text-align: center; 
-      padding: 48px 40px; 
-      background-color: ${BRAND_LIGHT}; 
-      color: #6b7280; 
-      font-size: 13px; 
-      border-top: 1px solid #e5e7eb; 
+      padding: 40px; 
+      background-color: ${BRAND_DARK}; 
+      color: #94A3B8; 
+      font-size: 12px; 
     }
     .contact-info {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid #e5e7eb;
-      display: grid;
-      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #334155;
     }
     .contact-item {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      color: #4b5563;
+      display: block;
+      margin: 8px 0;
+      color: #CBD5E1;
+      text-decoration: none;
     }
     .status-badge { 
       display: inline-block; 
-      padding: 6px 16px; 
-      border-radius: 100px; 
-      font-size: 12px; 
+      padding: 4px 12px; 
+      border-radius: 4px; 
+      font-size: 11px; 
       font-weight: 700; 
       text-transform: uppercase;
-      letter-spacing: 0.05em;
     }
-    .badge-success { background: #dcfce7; color: #15803d; }
-    .badge-error { background: #fee2e2; color: #b91c1c; }
-    .badge-warning { background: #fef3c7; color: #b45309; }
-    .badge-info { background: #dbeafe; color: #1d4ed8; }
+    .badge-success { background-color: #DCFCE7; color: #166534; }
+    .badge-error { background-color: #FEE2E2; color: #991B1B; }
+    .badge-warning { background-color: #FEF3C7; color: #92400E; }
+    .badge-info { background-color: #DBEAFE; color: #1E40AF; }
     
     .item-row { 
       display: flex; 
       justify-content: space-between; 
-      padding: 16px 0; 
-      border-bottom: 1px solid #e5e7eb; 
+      padding: 12px 0; 
+      border-bottom: 1px solid #E2E8F0; 
     }
     .item-row:last-child { border-bottom: none; }
     .total-row { 
-      font-weight: 800; 
-      font-size: 20px; 
+      font-weight: 700; 
+      font-size: 18px; 
       color: ${BRAND_PRIMARY};
-      margin-top: 16px; 
+      margin-top: 12px; 
     }
     
     @media only screen and (max-width: 600px) {
-      .container { margin: 0; border-radius: 0; }
-      .content, .header, .footer { padding: 32px 24px; }
+      .container { margin: 0; border-radius: 0; border: none; }
+      .content, .header, .footer { padding: 30px 20px; }
     }
   </style>
 `;
 
 export const wrapWithLayout = (title, content, headerExtra = '') => `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -156,7 +154,7 @@ export const wrapWithLayout = (title, content, headerExtra = '') => `
     <div class="container">
         <div class="header">
             <div class="logo-container">
-                <img src="${LOGO_URL}" alt="Hera Collection Logo" class="logo-img">
+                <img src="${LOGO_URL}" alt="Hera Collection Logo" class="logo-img" style="border-radius: 50%; width: 100px; height: 100px; object-fit: cover;">
             </div>
             <h1>${title}</h1>
             ${headerExtra}
@@ -167,17 +165,18 @@ export const wrapWithLayout = (title, content, headerExtra = '') => `
         </div>
         
         <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Hera Collection. Crafted for elegance.</p>
+            <p>&copy; ${new Date().getFullYear()} Hera Collection. All rights reserved.</p>
             <div class="contact-info">
-                <div class="contact-item">📧 ${CONTACT_EMAIL}</div>
-                <div class="contact-item">📞 ${CONTACT_PHONE}</div>
-                <div class="contact-item">📍 ${CONTACT_LOCATION}</div>
+                <div class="contact-item">Email: ${CONTACT_EMAIL}</div>
+                <div class="contact-item">Phone: ${CONTACT_PHONE}</div>
+                <div class="contact-item">Location: ${CONTACT_LOCATION}</div>
             </div>
-            <p style="margin-top: 32px; font-size: 11px; opacity: 0.6;">
-                This is an automated message. Please do not reply directly to this email.
+            <p style="margin-top: 24px; font-size: 10px; opacity: 0.5;">
+                This is an automated administrative message from Hera Collection.
             </p>
         </div>
     </div>
 </body>
 </html>
 `;
+

@@ -8,28 +8,39 @@ import {
   Mail,
   Phone,
   MapPin,
-  Clock,
-  Shield,
-  Truck,
-  CreditCard,
   ArrowUp,
   Heart,
   Sparkles,
   ChevronRight,
   Send,
   CheckCircle,
-  MessageCircle,
+  Shield,
+  Truck,
   Award,
-  Globe
+  Globe,
+  Banknote
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import CategoryService from "@/api/categories.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import Logo from '@/components/Images/HeraCollection Logo.jpg';
-import { motion } from "framer-motion";
 
 export default function FreeFooter() {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["categories-tree"],
+    queryFn: () => CategoryService.getAllCategories({ tree: 'true' })
+  });
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +174,7 @@ export default function FreeFooter() {
                 <div className="flex items-center gap-3">
                   <Mail className="h-4 w-4 text-primary dark:text-primary" />
                   <span className="text-foreground/80 dark:text-foreground/80">
-                    info@heracollections.com
+                    admin@heracollections.com
                   </span>
                 </div>
                 <div className="flex items-start gap-3">
@@ -184,10 +195,7 @@ export default function FreeFooter() {
                 {[
                   { name: "Home", href: "/" },
                   { name: "About Us", href: "/about" },
-                  { name: "New Arrivals", href: "/collections?sort=newest" },
-                  { name: "Best Sellers", href: "/collections?sort=popular" },
-                  { name: "Sale", href: "/collections?discounted=true" },
-                  { name: "Custom Orders", href: "/custom" },
+                  { name: "Contact Us", href: "/contact" },
                 ].map((link) => (
                   <li key={link.name}>
                     <Link
@@ -208,30 +216,33 @@ export default function FreeFooter() {
                 Collections
               </h3>
               <ul className="space-y-3">
-                {[
-                  "Tote Bags",
-                  "Backpacks",
-                  "Travel Bags",
-                  "Messenger Bags",
-                  "Sling Bags",
-                  "Laptop Sleeves",
-                  "Pouches",
-                  "Custom Designs",
-                ].map((collection) => (
-                  <li key={collection}>
-                    <Link
-                      to={`/collections/${collection.toLowerCase().replace(/\s+/g, "-")}`}
-                      className="text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors duration-300 flex items-center gap-2 group"
-                    >
-                      <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      {collection}
-                    </Link>
-                  </li>
-                ))}
+                {categories.length > 0 ? (
+                  categories.slice(0, 8).map((category: any) => (
+                    <li key={category.id}>
+                      <Link
+                        to={`/collections?category=${category.slug}`}
+                        className="text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors duration-300 flex items-center gap-2 group"
+                      >
+                        <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {category.name}
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-sm text-muted-foreground/50 italic">Loading collections...</li>
+                )}
+                <li>
+                  <Link
+                    to="/collections"
+                    className="text-primary font-medium hover:underline flex items-center gap-2 mt-2"
+                  >
+                    View All <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </li>
               </ul>
             </div>
 
-            {/* Customer Service */}
+            {/* Support */}
             <div>
               <h3 className="font-semibold text-foreground dark:text-foreground text-lg mb-4">
                 Support
@@ -289,14 +300,56 @@ export default function FreeFooter() {
               We Accept
             </h4>
             <div className="flex flex-wrap items-center justify-center gap-4">
-              {["MPESA", "Bank", "Cash",].map((method) => (
-                <div 
-                  key={method}
-                  className="px-4 py-2 bg-secondary/30 dark:bg-secondary/20 rounded-lg text-sm text-foreground/70 dark:text-foreground/70"
-                >
-                  {method}
-                </div>
-              ))}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button className="h-8 hover:scale-105 transition-transform rounded p-1">
+                     <img 
+                       src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" 
+                       alt="Mpesa" 
+                       className="h-full w-auto object-contain"
+                     />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <div className="flex justify-center mb-4">
+                      <img 
+                        src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1770741032/Nicole_sTill_ocw5be.png"
+                        alt="Mpesa Payment"
+                        className="h-48 w-full object-contain rounded-lg"
+                      />
+                    </div>
+                    <DialogTitle className="text-center text-xl font-bold">Manual M-PESA Payment</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="bg-secondary/20 p-4 rounded-lg space-y-3">
+                      <h4 className="font-semibold text-primary">Steps to Pay:</h4>
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-foreground/80">
+                        <li>Go to <span className="font-semibold">Mpesa Menu</span></li>
+                        <li>Go to <span className="font-semibold">Lipa na Mpesa</span></li>
+                        <li>Click on <span className="font-semibold">Buy Goods and Services</span> option</li>
+                        <li>Enter Till No as: <span className="font-extrabold text-primary text-lg">5425861</span></li>
+                        <li>Enter the exact amount in the checkout total</li>
+                        <li>Input your Mpesa Pin to complete the transaction</li>
+                      </ol>
+                    </div>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Once paid, please wait for the automatic confirmation or contact support with your transaction message.
+                    </p>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <div className="h-8 hover:scale-105 transition-transform rounded p-1 flex items-center" title="Card Payment">
+                 <img 
+                   src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" 
+                   alt="Mastercard" 
+                   className="h-full w-auto object-contain"
+                 />
+              </div>
+              <div className="h-8 px-3 flex items-center gap-2 rounded text-sm text-foreground/70 dark:text-foreground/70 hover:scale-105 transition-transform cursor-default" title="Cash Payment">
+                  <Banknote className="h-4 w-4" />
+                  <span>Cash</span>
+              </div>
             </div>
           </div>
         </div>
@@ -349,7 +402,6 @@ export default function FreeFooter() {
           </div>
         </div>
       </footer>
-
     </>
   );
 }

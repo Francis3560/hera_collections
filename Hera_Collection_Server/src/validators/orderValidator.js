@@ -7,6 +7,7 @@ export const createOrderSchema = Joi.object({
         productId: Joi.number().integer().required(),
         quantity: Joi.number().integer().min(1).required(),
         price: Joi.number().precision(2).required(),
+        variantId: Joi.number().integer().optional().allow(null),
         variantName: Joi.string().optional().allow('', null),
         variantValue: Joi.string().optional().allow('', null),
       })
@@ -22,31 +23,31 @@ export const createOrderSchema = Joi.object({
   }).required(),
 
   payment: Joi.object({
-    method: Joi.string().valid('MPESA', 'CARD', 'CASH', 'OTHER').required(),
-    phone: Joi.when('method', {
-      is: 'MPESA',
-      then: Joi.string().max(32).required(),
-      otherwise: Joi.string().optional().allow(null, ''),
-    }),
+    method: Joi.string().valid('MPESA', 'CARD', 'CASH', 'OTHER', 'MPESA_MANUAL').required(),
+    phone: Joi.string().optional().allow(null, ''),
+    mpesaReference: Joi.string().optional().allow('', null),
   }).required(),
 
   shipping: Joi.object({
     address: Joi.string().optional().allow('', null),
     city: Joi.string().max(120).optional().allow('', null),
+    governorate: Joi.string().optional().allow('', null),
     country: Joi.string().max(120).optional().allow('', null),
     notes: Joi.string().optional().allow('', null),
   }).optional(),
 
   amounts: Joi.object({
     subtotal: Joi.number().precision(2).required(),
+    shipping: Joi.number().precision(2).optional().default(0),
     total: Joi.number().precision(2).required(),
   }).required(),
 });
 
 export const updateOrderStatusSchema = Joi.object({
-  status: Joi.string().valid('PENDING', 'PAID', 'FULFILLED', 'CANCELLED').required(),
+  status: Joi.string().valid('PENDING', 'PAID', 'PROCESSING', 'FULFILLED', 'COMPLETED', 'SHIPPED', 'CANCELLED').required(),
   trackingNumber: Joi.string().optional().allow('', null),
   estimatedDelivery: Joi.date().optional().allow(null),
+  mpesaReference: Joi.string().optional().allow('', null),
 });
 
 export const updateOrderDetailsSchema = Joi.object({
@@ -62,7 +63,7 @@ export const updateOrderDetailsSchema = Joi.object({
 }).min(1);
 
 export const orderQuerySchema = Joi.object({
-  status: Joi.string().valid('PENDING', 'PAID', 'FULFILLED', 'CANCELLED').optional(),
+  status: Joi.string().valid('PENDING', 'PAID', 'PROCESSING', 'FULFILLED', 'COMPLETED', 'SHIPPED', 'CANCELLED').optional(),
   paymentMethod: Joi.string().valid('MPESA', 'CARD', 'CASH', 'OTHER').optional(),
   startDate: Joi.date().optional(),
   endDate: Joi.date().optional(),

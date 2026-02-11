@@ -26,6 +26,7 @@ import { getColorValue } from "@/utils/colorPalettes";
 import { useWishlist } from "@/context/WishlistProvider";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import { cn } from "@/lib/utils";
 
 export default function ProductDetailsPage() {
   const { slug } = useParams();
@@ -60,14 +61,33 @@ export default function ProductDetailsPage() {
   }, [product]);
 
   const handleQuantityChange = (delta: number) => {
-    setQuantity(prev => Math.max(1, prev + delta));
+    setQuantity(prev => {
+      const next = prev + delta;
+      const maxStock = selectedVariant?.stock ?? 0;
+      return Math.min(Math.max(1, next), Math.max(1, maxStock));
+    });
   };
+
+  // Adjust quantity if it exceeds variant stock when variant changes
+  useEffect(() => {
+    if (selectedVariant && selectedVariant.stock > 0 && quantity > selectedVariant.stock) {
+      setQuantity(selectedVariant.stock);
+    } else if (selectedVariant && selectedVariant.stock <= 0) {
+      setQuantity(1);
+    }
+  }, [selectedVariant, selectedVariant?.stock]);
 
   const handleAddToCart = async () => {
     if (!selectedVariant) {
       toast.error("Please select a variant");
       return;
     }
+    
+    if (selectedVariant.stock <= 0) {
+      toast.error("This variant is currently out of stock");
+      return;
+    }
+
     try {
       await addToCart(product.id, selectedVariant.id, quantity, product, selectedVariant);
       toast.success("Added to cart");
@@ -258,10 +278,14 @@ export default function ProductDetailsPage() {
                     className={`h-4 w-4 ${s <= (product.rating || 5) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} 
                   />
                 ))}
-                <span className="text-sm text-muted-foreground ml-2">({product.reviewCount || 0} reviews)</span>
+                <span className="text-sm text-muted-foreground ml-2">({product.reviewCount || 5} reviews)</span>
               </div>
               <Separator orientation="vertical" className="h-4" />
-              <span className="text-sm text-green-600 font-medium">In Stock</span>
+              {selectedVariant?.stock > 0 ? (
+                <span className="text-sm text-green-600 font-medium">In Stock ({selectedVariant.stock} available)</span>
+              ) : (
+                <span className="text-sm text-red-600 font-medium">Out of Stock</span>
+              )}
             </div>
 
             <div className="flex items-end gap-3 mb-8">
@@ -276,49 +300,132 @@ export default function ProductDetailsPage() {
             </div>
 
             <div className="space-y-6 mb-8">
-               {/* Simplified Variant Selection - Just listing variants for now since structure varies */}
-               {product.variants && product.variants.length > 0 && (
-                 <div>
-                    <label className="text-sm font-medium mb-3 block">Select Option</label>
-                    <div className="flex flex-wrap gap-3">
-                        {product.variants.map((variant: any) => (
-                            <button
-                                key={variant.id}
-                                onClick={() => setSelectedVariant(variant)}
-                                className={`px-4 py-2 border rounded-lg text-sm transition-all ${
-                                    selectedVariant?.id === variant.id 
-                                    ? 'border-primary bg-primary/5 text-primary font-medium ring-1 ring-primary' 
-                                    : 'border-border hover:border-primary/50'
-                                }`}
-                            >
-                                {/* Display combination of option values if available, else SKU/Title */}
-                                <div className="flex items-center gap-2">
-                                  {variant.optionValues?.map((ov: any, idx: number) => {
-                                      const isColor = ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
-                                                      ov.optionValue?.option?.name?.toLowerCase().includes('colour');
-                                      return (
-                                        <div key={idx} className="flex items-center gap-1">
-                                            {isColor && (
-                                              <div 
-                                                className="w-5 h-5 rounded-full border border-gray-300 hover:border-primary transition-colors" 
-                                                style={{ backgroundColor: getColorValue(ov.optionValue.value) }}
-                                              />
-                                            )}
-                                            <span>{ov.optionValue.value}</span>
-                                            {idx < variant.optionValues.length - 1 && <span className="text-muted-foreground">/</span>}
-                                        </div>
-                                      );
-                                  })}
-                                  {(!variant.optionValues || variant.optionValues.length === 0) && (
-                                     <span>{variant.sku || variant.id}</span>
-                                  )}
-                                </div>
-                                {variant.price !== selectedVariant?.price && ` - ${formatPrice(parseFloat(variant.price))}`}
-                            </button>
-                        ))}
-                    </div>
-                 </div>
-               )}
+                {/* Enhanced Variant Selection */}
+                {product.variants && product.variants.length > 0 && (
+                  <div className="space-y-6">
+                    {/* Colors Selection */}
+                    {Array.from(new Set(product.variants.flatMap((v: any) => 
+                      v.optionValues?.filter((ov: any) => 
+                        ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                        ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                      ).map((ov: any) => ov.optionValue.value)
+                    ))).length > 0 && (
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                            Color: <span className="text-foreground">{
+                              selectedVariant?.optionValues?.find((ov: any) => 
+                                ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                                ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                              )?.optionValue.value || "Select"
+                            }</span>
+                          </label>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from(new Set(product.variants.flatMap((v: any) => 
+                            v.optionValues?.filter((ov: any) => 
+                              ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                              ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                            ).map((ov: any) => ov.optionValue.value)
+                          ))).map((color: any) => {
+                            const isSelected = selectedVariant?.optionValues?.some((ov: any) => ov.optionValue.value === color);
+                            return (
+                              <button
+                                key={color}
+                                onClick={() => {
+                                  // Find the first variant that has this color
+                                  const firstVariantWithColor = product.variants.find((v: any) => 
+                                    v.optionValues?.some((ov: any) => ov.optionValue.value === color)
+                                  );
+                                  if (firstVariantWithColor) setSelectedVariant(firstVariantWithColor);
+                                }}
+                                className={cn(
+                                  "w-10 h-10 rounded-full border-2 transition-all p-0.5",
+                                  isSelected ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-gray-400"
+                                )}
+                                title={color}
+                              >
+                                <div 
+                                  className="w-full h-full rounded-full border border-black/5" 
+                                  style={{ backgroundColor: getColorValue(color) }}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sizes selection */}
+                    {Array.from(new Set(product.variants.flatMap((v: any) => 
+                      v.optionValues?.filter((ov: any) => 
+                        !ov.optionValue?.option?.name?.toLowerCase().includes('color') && 
+                        !ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                      ).map((ov: any) => ov.optionValue.value)
+                    ))).length > 0 && (
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                            Size: <span className="text-foreground">{
+                              selectedVariant?.optionValues?.find((ov: any) => 
+                                !ov.optionValue?.option?.name?.toLowerCase().includes('color') && 
+                                !ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                              )?.optionValue.value || "Select"
+                            }</span>
+                          </label>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {/* Get all unique sizes available for the currently selected color if possible */}
+                          {Array.from(new Set(product.variants.flatMap((v: any) => 
+                            v.optionValues?.filter((ov: any) => 
+                              !ov.optionValue?.option?.name?.toLowerCase().includes('color') && 
+                              !ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                            ).map((ov: any) => ov.optionValue.value)
+                          ))).map((size: any) => {
+                            // Find if this size is available for the current color
+                            const currentColor = selectedVariant?.optionValues?.find((ov: any) => 
+                              ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+                              ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+                            )?.optionValue.value;
+                            
+                            const variantForThisSizeAndColor = product.variants.find((v: any) => 
+                              v.optionValues?.some((ov: any) => ov.optionValue.value === size) &&
+                              (!currentColor || v.optionValues?.some((ov: any) => ov.optionValue.value === currentColor))
+                            );
+
+                            const isSelected = selectedVariant?.optionValues?.some((ov: any) => ov.optionValue.value === size);
+                            const isAvailable = !!variantForThisSizeAndColor;
+
+                            return (
+                              <button
+                                key={size}
+                                disabled={!isAvailable}
+                                onClick={() => {
+                                  if (variantForThisSizeAndColor) setSelectedVariant(variantForThisSizeAndColor);
+                                }}
+                                className={cn(
+                                  "min-w-[3rem] px-4 py-2 border rounded-xl text-sm font-semibold transition-all relative group",
+                                  isSelected 
+                                    ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" 
+                                    : isAvailable 
+                                      ? "bg-muted/30 border-transparent hover:bg-muted/50 text-foreground" 
+                                      : "bg-muted/10 border-transparent text-muted-foreground cursor-not-allowed opacity-50"
+                                )}
+                              >
+                                {size}
+                                {variantForThisSizeAndColor && variantForThisSizeAndColor.price !== product.variants[0].price && (
+                                  <span className="block text-[10px] opacity-70">
+                                    {formatPrice(parseFloat(variantForThisSizeAndColor.price))}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                {/* Quantity Selector */}
                <div>
@@ -326,15 +433,16 @@ export default function ProductDetailsPage() {
                   <div className="flex items-center w-32 border rounded-lg bg-card">
                       <button 
                         onClick={() => handleQuantityChange(-1)} 
-                        className="w-10 h-10 flex items-center justify-center hover:bg-accent rounded-l-lg transition-colors"
-                        disabled={quantity <= 1}
+                        className="w-10 h-10 flex items-center justify-center hover:bg-accent rounded-l-lg transition-colors disabled:opacity-30"
+                        disabled={quantity <= 1 || (selectedVariant && selectedVariant.stock <= 0)}
                       >
                           <Minus className="h-4 w-4" />
                       </button>
                       <div className="flex-1 text-center font-medium">{quantity}</div>
                       <button 
                          onClick={() => handleQuantityChange(1)} 
-                         className="w-10 h-10 flex items-center justify-center hover:bg-accent rounded-r-lg transition-colors"
+                         className="w-10 h-10 flex items-center justify-center hover:bg-accent rounded-r-lg transition-colors disabled:opacity-30"
+                         disabled={quantity >= (selectedVariant?.stock ?? 0) || (selectedVariant && selectedVariant.stock <= 0)}
                       >
                           <Plus className="h-4 w-4" />
                       </button>
@@ -347,9 +455,10 @@ export default function ProductDetailsPage() {
                  size="lg" 
                  className="flex-1 gap-2 text-lg h-14 rounded-full"
                  onClick={handleAddToCart}
+                 disabled={!selectedVariant || selectedVariant.stock <= 0}
                >
                  <ShoppingBag className="h-5 w-5" />
-                 Add to Cart
+                 {selectedVariant?.stock <= 0 ? "Out of Stock" : "Add to Cart"}
                </Button>
                <Button 
                  size="lg" 

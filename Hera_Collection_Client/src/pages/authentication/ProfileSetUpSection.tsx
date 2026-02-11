@@ -28,6 +28,7 @@ import {
   XCircle,
   LogOut,
 } from "lucide-react";
+import { useNotifications } from "@/context/NotificationContext";
 
 const ProfilePage = () => {
   const { user, userProfile, userStats, isAuthenticated, logout, refreshUserProfile } = useAuth();
@@ -48,6 +49,8 @@ const ProfilePage = () => {
     navigate("/login");
   };
 
+  const { unreadCount } = useNotifications();
+
   const navItems = [
     { to: "/profile", end: true, icon: UserCircle, label: "Profile Overview" },
     { to: "/profile/orders", icon: Package, label: "My Orders", badge: userStats?.orders },
@@ -56,7 +59,7 @@ const ProfilePage = () => {
     { separator: true },
     { to: "/profile/security", icon: Shield, label: "Security & Settings" },
     { to: "/profile/payments", icon: CreditCard, label: "Payment Methods" },
-    { to: "/profile/notifications", icon: Bell, label: "Notifications" },
+    { to: "/profile/notifications", icon: Bell, label: "Notifications", badge: unreadCount },
   ];
 
   if (loading) {

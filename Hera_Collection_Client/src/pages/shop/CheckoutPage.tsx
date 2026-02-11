@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CreditCard, Truck, User, ArrowLeft, Loader2, CheckCircle2, Search, Check, Info, MapPin, Navigation, AlertCircle, ChevronDown, Sparkles } from "lucide-react";
 import PaymentService from "@/api/payment.service";
+import orderService from "@/api/order.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { toast } from "sonner";
 import 'react-phone-number-input/style.css';
@@ -76,8 +77,16 @@ export default function CheckoutPage() {
     address: "",
     city: "",
     governorate: "Nairobi", // Default
-    notes: ""
+    notes: "",
+    mpesaReference: ""
   });
+
+  // Scroll to top on success
+  useEffect(() => {
+    if (paymentStatus === "SUCCESS") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [paymentStatus]);
 
   useEffect(() => {
     const fetchShippingRegions = async () => {
@@ -234,8 +243,13 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.phone) {
-      toast.error("Please enter a valid phone number");
+    // if (!formData.phone) {
+    //   toast.error("Please enter a valid phone number");
+    //   return;
+    // }
+
+    if (paymentMethod === "MPESA" && !formData.mpesaReference) {
+      toast.error("Please enter the M-Pesa Reference Code");
       return;
     }
 
@@ -252,8 +266,10 @@ export default function CheckoutPage() {
 
     try {
       // Format phone: remove + if present
-      const formattedPhone = formData.phone.replace('+', '');
+      const formattedPhone = formData.phone ? formData.phone.replace('+', '') : '';
 
+      // --- EXISTING STK PUSH LOGIC (COMMENTED OUT) ---
+      /*
       // 1. Initiate M-Pesa STK Push
       const paymentData = {
         items: items.map(item => ({
@@ -297,6 +313,59 @@ export default function CheckoutPage() {
       } else {
         throw new Error(response.message || "Failed to initiate payment");
       }
+      */
+      
+      // --- MANUAL MPESA PAYMENT LOGIC ---
+      // For now, we simulate a successful order placement with the reference code
+      // You would likely replace this with a call to your backend to create the order with "PENDING" payment status
+      // and valid reference code.
+
+      // Construct a generic order object to simulate success
+       const orderData = {
+        items: items.map(item => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
+        })),
+        customer: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formattedPhone
+        },
+        shipping: {
+          address: formData.address,
+          city: formData.city,
+          governorate: formData.governorate,
+          notes: formData.notes
+        },
+        payment: {
+            method: "MPESA",
+            mpesaReference: formData.mpesaReference,
+            phone: formattedPhone
+        },
+        amounts: {
+            subtotal: displayTotal,
+            shipping: shippingFee,
+            total: grandTotal
+        }
+      };
+      
+      // In a real scenario, you'd call an API endpoint like `OrderService.createOrder(orderData)`
+      const response = await orderService.createOrder(orderData);
+      
+      if (response && response.success) {
+          // Success
+          setSuccessOrder(response.order);
+          setPaymentStatus("SUCCESS");
+          setLoading(false);
+          toast.success("Order placed successfully! Pending payment verification.");
+          clearCart();
+      } else {
+          throw new Error(response.message || "Failed to create order");
+      }
+
     } catch (error: any) {
       console.error("Checkout failed:", error);
       toast.error(error.message || "Something went wrong. Please try again.");
@@ -652,7 +721,7 @@ export default function CheckoutPage() {
                 </div>
                 
                 <div className="space-y-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <div 
                         onClick={() => setPaymentMethod("MPESA")}
                         className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${paymentMethod === "MPESA" ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
@@ -663,19 +732,15 @@ export default function CheckoutPage() {
 
                      <div className="p-6 rounded-2xl border-2 border-dashed border-muted bg-muted/20 opacity-60 flex flex-col items-center gap-3 relative">
                         <div className="absolute top-2 right-2 px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Soon</div>
-                        <CreditCard className="h-8 w-8 text-muted-foreground" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-8 object-contain" alt="Mastercard" />
                         <span className="font-bold text-muted-foreground text-sm text-center">Credit Card</span>
-                     </div>
-
-                     <div className="p-6 rounded-2xl border-2 border-dashed border-muted bg-muted/20 opacity-60 flex flex-col items-center gap-3 relative">
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Soon</div>
-                        <Info className="h-8 w-8 text-muted-foreground" />
-                        <span className="font-bold text-muted-foreground text-sm text-center">Bank Transfer</span>
                      </div>
                   </div>
 
                   {paymentMethod === "MPESA" && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 bg-secondary/10 p-4 rounded-xl border border-secondary/20">
+                        {/* 
+                        // --- STK PUSH UI (COMMENTED OUT) ---
                         <Label htmlFor="phone">M-Pesa Phone Number</Label>
                         <PhoneInput
                           placeholder="Enter phone number" 
@@ -685,6 +750,34 @@ export default function CheckoutPage() {
                           inputComponent={Input}
                         />
                         <p className="text-xs text-muted-foreground">Ensure this is your active M-Pesa line for the STK Push.</p>
+                        */}
+
+                        <div className="flex flex-col gap-3">
+                            <h3 className="font-semibold text-primary flex items-center gap-2">
+                                <Sparkles className="h-4 w-4" /> Manual Payment Instructions
+                            </h3>
+                            <div className="text-sm space-y-2 bg-background p-4 rounded-lg border border-border/50">
+                                <p>1. Go to your M-Pesa Menu.</p>
+                                <p>2. Select <strong>Lipa na M-Pesa</strong>.</p>
+                                <p>3. Select <strong>Buy Goods and Services</strong>.</p>
+                                <p>4. Enter Till Number: <strong className="text-primary text-lg">5425861</strong></p>
+                                <p>5. Enter Amount: <strong>{formatPrice(grandTotal)}</strong></p>
+                                <p>6. Enter your PIN and confirm.</p>
+                            </div>
+                            
+                            <div className="space-y-2 pt-2">
+                                <Label htmlFor="mpesaReference" className="text-base">M-Pesa Reference Code</Label>
+                                <Input 
+                                    id="mpesaReference" 
+                                    placeholder="e.g. QKH45..." 
+                                    value={formData.mpesaReference} 
+                                    onChange={handleInputChange} 
+                                    className="uppercase tracking-widest font-mono border-primary/30 focus:border-primary"
+                                    required
+                                />
+                                <p className="text-xs text-muted-foreground">Paste the confirmation code from the SMS here to verify your payment.</p>
+                            </div>
+                        </div>
                     </div>
                   )}
                   
@@ -706,7 +799,7 @@ export default function CheckoutPage() {
                     Processing Payment...
                   </>
                 ) : (
-                  `Pay ${formatPrice(grandTotal)} Now`
+                  `Confirm Order`
                 )}
               </Button>
             </form>

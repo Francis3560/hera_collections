@@ -1,104 +1,102 @@
-
 import { wrapWithLayout } from './emailLayout.js';
 
-const BRAND_PRIMARY = '#7C3AED';
+const BRAND_PRIMARY = '#CD7F32';
+const BRAND_DARK = '#0F172A';
 
 export const createPaymentSuccessEmail = (paymentIntent, order, customer) => {
   const content = `
     <div style="text-align: center; margin-bottom: 32px;">
-      <div style="font-size: 64px; margin-bottom: 24px; color: #15803d;">✓</div>
-      <p>Dear ${customer.name || 'Customer'},</p>
-      <p>Your payment has been successfully processed! Your transaction is secured and confirmed.</p>
+      <p>Dear ${customer.name || 'Client'},</p>
+      <p>We are pleased to confirm that your payment has been successfully processed. Your transaction is now finalized.</p>
     </div>
     
     <div class="section">
-        <span class="section-title">Payment Details</span>
+        <span class="section-title">Logistics & Transaction Details</span>
         <div class="item-row">
-            <div style="color: #6b7280;">Amount Paid</div>
-            <div style="font-weight: 700;">KES ${paymentIntent.amount.toLocaleString()}</div>
+            <div style="color: #64748B;">Amount Confirmed</div>
+            <div style="font-weight: 700; color: ${BRAND_DARK};">KES ${paymentIntent.amount.toLocaleString()}</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Payment Method</div>
-            <div style="font-weight: 600;">M-Pesa</div>
+            <div style="color: #64748B;">Payment Method</div>
+            <div style="font-weight: 600; color: ${BRAND_DARK};">M-Pesa</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Phone Number</div>
-            <div style="font-weight: 600;">${paymentIntent.phone}</div>
+            <div style="color: #64748B;">Mobile Number</div>
+            <div style="font-weight: 600; color: ${BRAND_DARK};">${paymentIntent.phone}</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Date</div>
-            <div style="font-weight: 600;">${new Date(paymentIntent.updatedAt).toLocaleString()}</div>
+            <div style="color: #64748B;">Processing Date</div>
+            <div style="font-weight: 600; color: ${BRAND_DARK};">${new Date(paymentIntent.updatedAt).toLocaleString()}</div>
         </div>
         <div class="item-row" style="border-bottom: none;">
-            <div style="color: #6b7280;">Transaction ID</div>
-            <div style="font-family: monospace; font-size: 12px;">${paymentIntent.id}</div>
+            <div style="color: #64748B;">Transaction Reference</div>
+            <div style="font-family: monospace; font-size: 12px; color: ${BRAND_DARK};">${paymentIntent.id}</div>
         </div>
     </div>
     
     ${order ? `
-    <div class="section" style="border-left: 4px solid ${BRAND_PRIMARY}; background: #f5f3ff;">
-        <span class="section-title">Order Information</span>
+    <div class="section" style="border-left: 4px solid ${BRAND_PRIMARY};">
+        <span class="section-title">Associated Order</span>
         <div class="item-row">
-            <div style="color: #6b7280;">Order Number</div>
-            <div style="font-weight: 700;">#${order.orderNumber}</div>
+            <div style="color: #64748B;">Order Number</div>
+            <div style="font-weight: 700; color: ${BRAND_DARK};">#${order.orderNumber}</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Status</div>
+            <div style="color: #64748B;">Current Status</div>
             <div class="status-badge badge-success">${order.status}</div>
         </div>
     </div>
-    <p style="text-align: center; color: #6b7280; font-style: italic;">Your order is now being processed. You'll receive another update shortly.</p>
+    <p style="text-align: center; color: #64748B; font-size: 14px;">Your order is now moving to the fulfillment stage. You will receive further updates as we prepare your items.</p>
     ` : `
-    <p style="text-align: center; color: #6b7280; font-style: italic;">Your order confirmation will follow shortly.</p>
+    <p style="text-align: center; color: #64748B; font-size: 14px;">Your formal order confirmation will follow this receipt shortly.</p>
     `}
     
     <div style="text-align: center; margin-top: 32px;">
-        <p style="font-weight: 700; color: ${BRAND_PRIMARY};">Thank you for choosing Hera Collections.</p>
+        <p style="font-weight: 700; color: ${BRAND_PRIMARY}; text-transform: uppercase; font-size: 12px; letter-spacing: 0.1em;">Thank you for your business with Hera Collection.</p>
     </div>
   `;
 
-  return wrapWithLayout('Payment Successful', content);
+  return wrapWithLayout('Payment Confirmation', content);
 };
 
 export const createPaymentFailedEmail = (paymentIntent, customer, failureReason) => {
   const content = `
     <div style="text-align: center; margin-bottom: 32px;">
-      <div style="font-size: 64px; margin-bottom: 24px; color: #b91c1c;">✗</div>
-      <p>Dear ${customer.name || 'Customer'},</p>
-      <p>We were unable to process your payment. Don't worry, your items are still reserved in your cart.</p>
+      <p>Dear ${customer.name || 'Client'},</p>
+      <p>We encountered an issue while processing your recent payment. Your selected items remain reserved in your cart for a limited time.</p>
     </div>
     
     <div class="section">
-        <span class="section-title">Failed Transaction Details</span>
+        <span class="section-title">Transaction Failure Report</span>
         <div class="item-row">
-            <div style="color: #6b7280;">Amount</div>
-            <div style="font-weight: 700;">KES ${paymentIntent.amount.toLocaleString()}</div>
+            <div style="color: #64748B;">Proposed Amount</div>
+            <div style="font-weight: 700; color: ${BRAND_DARK};">KES ${paymentIntent.amount.toLocaleString()}</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Reason for Failure</div>
-            <div style="color: #b91c1c; font-weight: 600;">${failureReason || 'Transaction declined or timed out'}</div>
+            <div style="color: #64748B;">Decline Reason</div>
+            <div style="color: #991B1B; font-weight: 600;">${failureReason || 'Transaction declined or timed out'}</div>
         </div>
         <div class="item-row">
-            <div style="color: #6b7280;">Phone Number</div>
-            <div style="font-weight: 600;">${paymentIntent.phone}</div>
+            <div style="color: #64748B;">Mobile Number Used</div>
+            <div style="font-weight: 600; color: ${BRAND_DARK};">${paymentIntent.phone}</div>
         </div>
     </div>
     
-    <div class="section" style="background: #fffbeb; border: 1px solid #fef3c7;">
-        <span class="section-title" style="color: #b45309;">How to fix this</span>
-        <ul style="color: #92400e; padding-left: 20px; margin: 0;">
-            <li style="margin-bottom: 8px;">Ensure you have sufficient balance in your M-Pesa account</li>
-            <li style="margin-bottom: 8px;">Check that your phone is on and has network reception</li>
-            <li style="margin-bottom: 8px;">Verify your M-Pesa PIN was entered correctly</li>
+    <div class="section" style="background-color: #FEF2F2; border: 1px solid #FEE2E2;">
+        <span class="section-title" style="color: #991B1B;">Recommended Actions</span>
+        <ul style="color: #7F1D1D; padding-left: 20px; margin: 0; font-size: 14px;">
+            <li style="margin-bottom: 8px;">Ensure sufficient funds are available in your M-Pesa account.</li>
+            <li style="margin-bottom: 8px;">Verify that your mobile device is active and has network reception.</li>
+            <li style="margin-bottom: 8px;">Confirm that the M-Pesa PIN was entered correctly within the prompt timeframe.</li>
         </ul>
     </div>
     
     <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/checkout?retry=${paymentIntent.id}" class="button">Retry Payment Now</a>
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/checkout?retry=${paymentIntent.id}" class="button">Resume Secured Checkout</a>
     </div>
     
-    <p style="text-align: center; font-size: 13px; color: #6b7280; margin-top: 24px;">If you continue to face issues, please reply to this email or contact support.</p>
+    <p style="text-align: center; font-size: 12px; color: #64748B; margin-top: 24px;">Should you require assistance with your payment, please contact our administrative team.</p>
   `;
 
-  return wrapWithLayout('Payment Failed', content);
+  return wrapWithLayout('Payment Unsuccessful', content);
 };

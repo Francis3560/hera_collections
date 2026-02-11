@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import OrderService from "@/api/order.service";
+import { API_BASE_URL } from "@/utils/axiosClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,11 +182,15 @@ const UserOrders = () => {
                             {/* Items Preview */}
                             <div className="px-6 py-4 bg-slate-50/50 dark:bg-slate-900/50 border-t border-border/40 flex items-center gap-3 overflow-x-auto no-scrollbar">
                                 {order.items?.slice(0, 5).map((item: any) => (
-                                    <div key={item.id} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-border/40 bg-white">
+                                    <div key={item.id} className="relative w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden border border-border/40 bg-white shadow-sm">
                                         <img 
-                                            src={item.product?.photos?.[0]?.url || "/placeholder.png"} 
+                                            src={item.product?.photos?.[0]?.url ? `${API_BASE_URL}${item.product.photos[0].url}` : "/placeholder.png"} 
                                             alt={item.product?.title}
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = 'https://placehold.co/100x100?text=Product';
+                                            }}
                                         />
                                         {item.quantity > 1 && (
                                             <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">

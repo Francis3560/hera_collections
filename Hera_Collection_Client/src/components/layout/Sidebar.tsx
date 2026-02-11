@@ -357,8 +357,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                               {showBadge && (
                                 <Badge
                                   variant={
-                                    item.badge === "notification"
-                                      ? "destructive"
+                                    (item.badge === "notification" || item.badge === "message") 
+                                      ? "destructive" 
                                       : "secondary"
                                   }
                                   className={cn(

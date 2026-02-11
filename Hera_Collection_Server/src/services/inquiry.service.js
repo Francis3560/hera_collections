@@ -26,7 +26,7 @@ class InquiryService {
     }
 
     // Create new session
-    return await prisma.inquirySession.create({
+    const session = await prisma.inquirySession.create({
       data: {
         userId: userId ? Number(userId) : null,
         guestId,
@@ -38,6 +38,33 @@ class InquiryService {
         messages: true
       }
     });
+
+    // Notify admins that a new session has started
+    await this.notifyAdminsOfNewSession(session);
+
+    return session;
+  }
+
+  /**
+   * Notify all admins of a new inquiry session
+   */
+  async notifyAdminsOfNewSession(session) {
+    const senderName = session.guestName || "Guest User";
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN', deletedAt: null }
+    });
+
+    for (const admin of admins) {
+      await NotificationService.createNotification({
+        userId: admin.id,
+        type: 'INQUIRY_MESSAGE',
+        title: 'New Chat Session',
+        message: `${senderName} has started a new inquiry session.`,
+        link: `/admin/messaging/inbox`,
+        entityId: String(session.id),
+        entityType: 'INQUIRY'
+      });
+    }
   }
 
   /**
@@ -78,7 +105,7 @@ class InquiryService {
     for (const admin of admins) {
       await NotificationService.createNotification({
         userId: admin.id,
-        type: 'MESSAGE',
+        type: 'INQUIRY_MESSAGE',
         title: 'New Live Inquiry',
         message: `${senderName}: ${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}`,
         link: `/admin/messaging/inbox`,

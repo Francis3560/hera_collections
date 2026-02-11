@@ -388,7 +388,17 @@ export default function Header() {
                       {notifications?.length > 0 ? (
                         <div className="divide-y divide-border/50">
                           {notifications.map((notif) => (
-                            <div key={notif.id} className={cn("flex gap-3 p-4 hover:bg-secondary/50 cursor-pointer relative", !notif.isRead && "bg-primary-accent/5")} onClick={() => { if (!notif.isRead) markAsRead(notif.id); if (notif.link) navigate(notif.link); }}>
+                            <div 
+                              key={notif.id} 
+                              className={cn(
+                                "flex gap-3 p-4 hover:bg-secondary/50 cursor-pointer relative", 
+                                !notif.isRead && "bg-primary-accent/5"
+                              )} 
+                              onClick={() => { 
+                                if (!notif.isRead) markAsRead(notif.id); 
+                                navigate("/profile/notifications");
+                              }}
+                            >
                               <div className={cn("h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0", getNotificationColor(notif.type.toLowerCase()))}>
                                 {React.createElement(getNotificationIcon(notif.type.toLowerCase()), { className: "h-4 w-4" })}
                               </div>

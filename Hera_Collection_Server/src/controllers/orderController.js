@@ -18,7 +18,12 @@ export async function createOrder(req, res) {
 }
 export async function listOrders(req, res) {
   try {
-    const orders = await orderService.getUserOrders(req.auth.userId, req.query);
+    const userId = Number(req.auth.userId);
+    if (isNaN(userId)) {
+      return res.status(401).json({ success: false, message: 'Invalid user ID in token' });
+    }
+
+    const orders = await orderService.getUserOrders(userId, req.query);
     return res.json({
       success: true,
       data: orders,
@@ -28,7 +33,8 @@ export async function listOrders(req, res) {
     console.error('listOrders error:', err);
     return res.status(500).json({ 
       success: false,
-      message: 'Failed to fetch orders' 
+      message: 'Failed to fetch orders',
+      error: err.message
     });
   }
 }
@@ -60,12 +66,33 @@ export async function listAllOrders(req, res) {
 
 export async function getOrder(req, res) {
   try {
-    const orderId = parseInt(req.params.id, 10);
-
+    const idParam = req.params.id;
+    const orderId = parseInt(idParam, 10);
+    const userId = Number(req.auth.userId);
     const isAdmin = req.auth?.role === 'ADMIN';
-    const order = isAdmin
-      ? await orderService.getOrderByIdAdmin(orderId)
-      : await orderService.getOrderById(req.auth.userId, orderId);
+
+    let order = null;
+
+    if (!isNaN(orderId)) {
+      // Try fetching by ID first
+      order = isAdmin
+        ? await orderService.getOrderByIdAdmin(orderId)
+        : await orderService.getOrderById(userId, orderId);
+    }
+
+    // If not found by ID or ID was not numeric, try by orderNumber
+    if (!order) {
+      const orders = await orderService.getAllOrders({ search: idParam });
+      const foundOrder = orders.find(o => o.orderNumber === idParam);
+      
+      if (foundOrder) {
+          // Ownership check for non-admins
+          if (!isAdmin && foundOrder.buyerId !== userId) {
+             return res.status(403).json({ success: false, message: 'Access denied' });
+          }
+          order = foundOrder;
+      }
+    }
 
     if (!order) {
       return res.status(404).json({ 
@@ -82,13 +109,14 @@ export async function getOrder(req, res) {
     console.error('getOrder error:', err);
     return res.status(500).json({ 
       success: false,
-      message: 'Failed to fetch order' 
+      message: 'Failed to fetch order',
+      error: err.message
     });
   }
 }
 export async function updateOrderStatus(req, res) {
   try {
-    const { status, trackingNumber, estimatedDelivery } = req.body;
+    const { status, trackingNumber, estimatedDelivery, mpesaReference } = req.body;
     const orderId = parseInt(req.params.id, 10);
     const adminUserId = req.auth.userId;
 
@@ -97,7 +125,8 @@ export async function updateOrderStatus(req, res) {
       status, 
       adminUserId,
       trackingNumber,
-      estimatedDelivery
+      estimatedDelivery,
+      mpesaReference
     );
     
     return res.status(200).json({

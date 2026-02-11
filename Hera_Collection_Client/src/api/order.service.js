@@ -7,6 +7,11 @@ class OrderService {
     return response.data;
   }
 
+  async createOrder(data) {
+    const response = await axiosClient.post('/orders', data);
+    return response.data;
+  }
+
   // For admins: get all orders
   async getAllOrders(params = {}) {
      const response = await axiosClient.get('/orders/admin/all', { params });
@@ -18,8 +23,11 @@ class OrderService {
     return response.data;
   }
 
-  async updateOrderStatus(id, status) {
-    const response = await axiosClient.put(`/orders/admin/${id}/status`, { status });
+  async updateOrderStatus(id, status, mpesaReference = null) {
+    const payload = { status };
+    if (mpesaReference) payload.mpesaReference = mpesaReference;
+    
+    const response = await axiosClient.put(`/orders/admin/${id}/status`, payload);
     return response.data;
   }
 

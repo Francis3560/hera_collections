@@ -63,15 +63,16 @@ const OrderItemsList = () => {
                             <TableHead>Product</TableHead>
                             <TableHead>Variant</TableHead>
                             <TableHead>Quantity</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Total</TableHead>
+                            <TableHead>Unit Price</TableHead>
+                            <TableHead>Item Total</TableHead>
+                            <TableHead>Order Total</TableHead>
                             <TableHead>Date</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center">
+                                <TableCell colSpan={8} className="h-24 text-center">
                                     <div className="flex justify-center items-center gap-2">
                                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                                         <span>Loading items...</span>
@@ -80,7 +81,7 @@ const OrderItemsList = () => {
                             </TableRow>
                         ) : items.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                     No order items found.
                                 </TableCell>
                             </TableRow>
@@ -91,22 +92,39 @@ const OrderItemsList = () => {
                                         <Link to={`/admin/orders/${item.orderId}`} className="text-primary hover:underline font-medium">
                                             #{item.order?.orderNumber}
                                         </Link>
+                                        {item.order?.mpesaReference && (
+                                            <div className="text-xs text-muted-foreground font-mono mt-1 bg-secondary/30 px-1 rounded w-fit">
+                                                Ref: {item.order.mpesaReference}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {item.product?.title || 'Unknown Product'}
+                                        <div className="flex flex-col">
+                                            <span>{item.product?.title || 'Unknown Product'}</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        {item.variantName ? (
-                                            <Badge variant="outline" className="text-xs">
-                                                {item.variantName}: {item.variantValue}
-                                            </Badge>
-                                        ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                        )}
+                                        <div className="flex flex-col gap-1">
+                                            {item.variantName ? (
+                                                <Badge variant="outline" className="text-xs w-fit">
+                                                    {item.variantName}: {item.variantValue}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground text-xs">-</span>
+                                            )}
+                                            {item.variant?.sku && (
+                                                <span className="text-[10px] text-muted-foreground font-mono">
+                                                    SKU: {item.variant.sku}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell className="font-mono">{item.quantity}</TableCell>
                                     <TableCell>KES {Number(item.price).toLocaleString()}</TableCell>
-                                    <TableCell className="font-bold">KES {Number(item.total).toLocaleString()}</TableCell>
+                                    <TableCell className="font-medium text-muted-foreground">KES {Number(item.total).toLocaleString()}</TableCell>
+                                    <TableCell className="font-bold text-foreground">
+                                        KES {Number(item.order?.totalAmount || 0).toLocaleString()}
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
                                         {item.createdAt ? format(new Date(item.createdAt), 'MMM dd, yyyy') : '-'}
                                     </TableCell>

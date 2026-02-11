@@ -63,10 +63,12 @@ const OrderDetails = () => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'PAID': return 'default'; // Purple
-            case 'FULFILLED': return 'secondary';
-            case 'PENDING': return 'outline'; // Yellow/Warn usually handled by specialized class or just outline
+            case 'PROCESSING': return 'secondary';
+            case 'FULFILLED': return 'default'; 
+            case 'SHIPPED': return 'secondary';
+            case 'COMPLETED': return 'default'; 
+            case 'PENDING': return 'outline'; 
             case 'CANCELLED': return 'destructive';
-            case 'SHIPPED': return 'default';
             default: return 'outline';
         }
     };
@@ -116,11 +118,17 @@ const OrderDetails = () => {
                         <DropdownMenuItem onClick={() => handleStatusUpdate('PAID')}>
                             <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Mark Paid
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusUpdate('PROCESSING')}>
+                            <Package className="mr-2 h-4 w-4 text-blue-500" /> Mark Processing
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleStatusUpdate('FULFILLED')}>
-                            <Package className="mr-2 h-4 w-4 text-blue-500" /> Mark Fulfilled (Processing)
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> Mark Fulfilled
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleStatusUpdate('SHIPPED')}>
-                            <Truck className="mr-2 h-4 w-4 text-purple-500" /> Mark Shipped
+                            <Truck className="mr-2 h-4 w-4 text-orange-500" /> Mark Shipped
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusUpdate('COMPLETED')}>
+                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Mark Completed
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleStatusUpdate('CANCELLED')}>
                             <XCircle className="mr-2 h-4 w-4 text-red-500" /> Mark Cancelled
@@ -238,18 +246,26 @@ const OrderDetails = () => {
                                     <div className="text-xs text-muted-foreground">{order.createdAt ? format(new Date(order.createdAt), 'MMM dd, HH:mm') : '-'}</div>
                                 </div>
                                 <div className="relative">
-                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['PAID', 'FULFILLED', 'SHIPPED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
+                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['PAID', 'PROCESSING', 'FULFILLED', 'COMPLETED', 'SHIPPED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
                                     <div className="text-sm font-semibold">Payment Confirmed</div>
                                     <div className="text-xs text-muted-foreground">{order.paidAt ? format(new Date(order.paidAt), 'MMM dd, HH:mm') : 'Pending'}</div>
                                 </div>
                                 <div className="relative">
-                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['FULFILLED', 'SHIPPED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
-                                    <div className="text-sm font-semibold">Processing / Fulfilled</div>
+                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['PROCESSING', 'FULFILLED', 'SHIPPED', 'COMPLETED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
+                                    <div className="text-sm font-semibold">Processing</div>
+                                </div>
+                                <div className="relative">
+                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['FULFILLED', 'SHIPPED', 'COMPLETED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
+                                    <div className="text-sm font-semibold">Fulfilled / Packed</div>
                                 </div>
                                  <div className="relative">
-                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['SHIPPED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
+                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${['SHIPPED', 'COMPLETED'].includes(order.status) ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
                                     <div className="text-sm font-semibold">Shipped</div>
-                                    <div className="text-xs text-muted-foreground">{order.shippedAt ? format(new Date(order.shippedAt), 'MMM dd, HH:mm') : 'Pending'}</div>
+                                </div>
+                                 <div className="relative">
+                                    <div className={`absolute -left-[31px] h-4 w-4 rounded-full border-2 ${order.status === 'COMPLETED' ? 'bg-primary border-primary' : 'bg-background border-muted'}`} />
+                                    <div className="text-sm font-semibold">Completed</div>
+                                    <div className="text-xs text-muted-foreground">{order.status === 'COMPLETED' ? (order.updatedAt ? format(new Date(order.updatedAt), 'MMM dd, HH:mm') : 'Done') : 'Pending'}</div>
                                 </div>
                              </div>
                         </CardContent>
@@ -338,6 +354,14 @@ const OrderDetails = () => {
                                     {order.status === 'PAID' || order.paidAt ? 'Paid' : 'Unpaid'}
                                 </Badge>
                             </div>
+                            {order.mpesaReference && (
+                                <div className="mt-2 pt-2 border-t text-sm">
+                                    <span className="text-muted-foreground block text-xs mb-1">M-Pesa Reference:</span>
+                                    <div className="font-mono bg-secondary/20 p-1.5 rounded text-center font-semibold text-primary select-all border border-primary/20">
+                                        {order.mpesaReference}
+                                    </div>
+                                </div>
+                            )}
                              {order.paymentIntentId && (
                                 <div className="text-xs text-muted-foreground break-all mt-1">
                                     ID: {order.paymentIntentId}

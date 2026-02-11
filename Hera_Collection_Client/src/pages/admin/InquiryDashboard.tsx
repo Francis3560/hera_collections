@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 
 export default function InquiryDashboard() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -39,6 +40,19 @@ export default function InquiryDashboard() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { notifications, markAsRead } = useNotifications();
+
+  // Mark associated notifications as read when session is selected
+  useEffect(() => {
+    if (selectedSessionId) {
+       const relatedNotifications = notifications.filter(
+         n => !n.isRead && n.entityType === 'INQUIRY' && n.entityId === selectedSessionId
+       );
+       if (relatedNotifications.length > 0) {
+         markAsRead(relatedNotifications.map(n => n.id));
+       }
+    }
+  }, [selectedSessionId, notifications, markAsRead]);
 
   // Fetch all active inquiries
   const { data: activeSessions, isLoading: isLoadingSessions } = useQuery({
