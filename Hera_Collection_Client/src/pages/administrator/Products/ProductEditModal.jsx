@@ -359,7 +359,8 @@ const payload = {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Description</FormLabel>
-                              <FormControl><Textarea placeholder="Product narrative..." className="bg-background/50 border-white/10 rounded-xl min-h-[100px] resize-none" {...field} /></FormControl>
+                              <FormControl><Textarea placeholder="Use 'Key Features:' and bullet points (•, -, or *) for better display." className="bg-background/50 border-white/10 rounded-xl min-h-[150px] resize-none" {...field} /></FormControl>
+                              <p className="text-[10px] text-muted-foreground mt-1">Tip: Use • or - for bullets. Headers ending in : will be styled.</p>
                               <FormMessage />
                             </FormItem>
                           )}

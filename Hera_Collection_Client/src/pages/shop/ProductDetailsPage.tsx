@@ -519,7 +519,32 @@ export default function ProductDetailsPage() {
               </TabsList>
               <TabsContent value="description" className="pt-6">
                  <div className="prose dark:prose-invert max-w-none text-muted-foreground">
-                    <p>{product.description}</p>
+                    {product.description?.split('\n').map((line: string, i: number) => {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) return <br key={i} />;
+                        
+                        // Check if it's a list item
+                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+                            return (
+                                <li key={i} className="flex items-start gap-2 mb-2 ml-4">
+                                    <span className="text-primary mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                    <span>{trimmedLine.substring(1).trim()}</span>
+                                </li>
+                            );
+                        }
+
+                        // Check if it's a title (like "Key Features")
+                        if (trimmedLine.toLowerCase() === "key features" || (trimmedLine.length < 50 && trimmedLine.endsWith(':'))) {
+                            return <h3 key={i} className="text-lg font-bold text-foreground mt-6 mb-3">{trimmedLine}</h3>;
+                        }
+
+                        // Check if it starts with a number (like "1. Product Title")
+                        if (/^\d+\./.test(trimmedLine)) {
+                            return <h2 key={i} className="text-xl font-bold text-foreground mb-4">{trimmedLine}</h2>;
+                        }
+
+                        return <p key={i} className="mb-4 leading-relaxed">{trimmedLine}</p>;
+                    })}
                  </div>
               </TabsContent>
               <TabsContent value="reviews" className="pt-6">

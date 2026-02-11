@@ -326,11 +326,14 @@ const CreateProduct = () => {
                                             <FormLabel>Description</FormLabel>
                                             <FormControl>
                                                 <Textarea 
-                                                    placeholder="Describe the product features, material, and care instructions..." 
-                                                    className="resize-none min-h-[120px] bg-background/50 focus:bg-background transition-all" 
+                                                    placeholder="Use 'Key Features' as a header and bullet points (•, -, or *) for the features list for better display." 
+                                                    className="resize-none min-h-[160px] bg-background/50 focus:bg-background transition-all" 
                                                     {...field} 
                                                 />
                                             </FormControl>
+                                            <FormDescription>
+                                                Pro tip: Start lines with • or - to create bullet points. Labels ending with : will be bolded.
+                                            </FormDescription>
                                             <FormMessage />
                                         </FormItem>
                                     )}
