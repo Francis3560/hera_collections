@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, NavLink, Link, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -35,12 +35,19 @@ const ProfileSetUpSection = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
+  const initializationRef = useRef(false);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
-    } else {
+      return;
+    } 
+    
+    if (!initializationRef.current) {
       refreshUserProfile({ silent: true });
+      initializationRef.current = true;
     }
+    
     setLoading(false);
   }, [isAuthenticated, navigate, refreshUserProfile]);
 

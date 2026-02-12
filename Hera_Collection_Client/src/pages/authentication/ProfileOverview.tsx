@@ -19,8 +19,13 @@ const ProfileOverview = () => {
   const navigate = useNavigate();
   const { userProfile, userStats, userActivity, getActivity } = useAuth();
 
+  const activityFetchedRef = React.useRef(false);
+
   React.useEffect(() => {
-    getActivity(1, 5);
+    if (!activityFetchedRef.current) {
+      getActivity(1, 5);
+      activityFetchedRef.current = true;
+    }
   }, [getActivity]);
 
   const formatActivityDate = (dateString: string) => {
