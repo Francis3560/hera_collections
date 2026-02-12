@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
   Star, 
@@ -179,14 +179,21 @@ export default function FeaturedProducts() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 min-h-[400px]"
         >
-          {products.map((product: any) => (
-            <motion.div
-              key={product.id}
-              variants={itemVariants}
-              className="group relative"
-            >
+          <AnimatePresence mode="popLayout">
+            {products.length > 0 ? (
+              products.map((product: any) => (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  variants={itemVariants}
+                  transition={{ duration: 0.4 }}
+                  className="group relative"
+                >
               <div className="bg-card dark:bg-card/95 rounded-2xl sm:rounded-3xl overflow-hidden border border-border/20 dark:border-border/30 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] hover:border-primary/20 dark:hover:border-primary/30 h-full flex flex-col">
                 {/* Product Image Container */}
                 <div className="relative overflow-hidden">
@@ -307,8 +314,32 @@ export default function FeaturedProducts() {
 
                 </div>
               </div>
-            </motion.div>
-          ))}
+                </motion.div>
+              ))
+            ) : (
+              <motion.div 
+                key="no-products"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="col-span-full flex flex-col items-center justify-center py-20 text-center bg-secondary/5 rounded-3xl border-2 border-dashed border-border/40"
+              >
+                <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mb-6 shadow-xl border border-border/20">
+                  <Sparkles className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <h3 className="text-2xl font-semibold text-foreground mb-2">No Products Found</h3>
+                <p className="text-muted-foreground max-w-sm px-6">
+                   It seems we don't have any items in the <span className="text-primary font-medium">{activeFilter}</span> sub-category at the moment.
+                </p>
+                <button 
+                   onClick={() => setActiveFilter("All Products")}
+                   className="mt-8 px-8 py-3 bg-primary text-primary-foreground rounded-full font-medium hover:scale-105 transition-all shadow-lg active:scale-95"
+                >
+                   Clear Filters
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* More Link */}
