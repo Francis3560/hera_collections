@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useWishlist } from "@/context/WishlistProvider";
 import { useCart } from "@/context/CartProvider";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,11 @@ export default function WishlistPage() {
   const { items, removeFromWishlist, loading } = useWishlist();
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   const getProductImage = (item: any) => {
     if (item.product?.photos?.[0]) {
@@ -23,8 +28,8 @@ export default function WishlistPage() {
     return "/placeholder-product.png";
   };
 
-  const formatPrice = (price: number | string | null) => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price || 0;
+  const formatPrice = (price: any) => {
+    const numPrice = typeof price === 'object' && price !== null ? parseFloat(price.toString()) : parseFloat(price || 0);
     return new Intl.NumberFormat('en-KE', {
       style: 'currency',
       currency: 'KES',
@@ -137,16 +142,11 @@ export default function WishlistPage() {
                 
                 <div className="p-5 flex-1 flex flex-col">
                   <h3 className="text-lg font-semibold mb-1 line-clamp-1">{item.product?.title}</h3>
-                  <div className="text-muted-foreground text-sm mb-4 flex-1">
-                     <p className="line-clamp-2">{item.product?.description}</p>
-                     {item.variant && (
-                        <p className="mt-2 text-xs">Variant: {item.variant.sku}</p>
-                     )}
-                  </div>
+             
                   
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
                     <span className="text-xl font-bold text-primary">
-                        {formatPrice(item.variant?.price || item.product?.price)}
+                        {formatPrice(item.variant?.price || item.product?.variants?.[0]?.price)}
                     </span>
                     <Button 
                         size="sm" 

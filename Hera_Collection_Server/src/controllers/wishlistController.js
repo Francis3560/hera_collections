@@ -11,7 +11,9 @@ export const getWishlistController = async (req, res) => {
       include: {
         product: {
           include: {
-            photos: true
+            photos: true,
+            variants: { where: { isActive: true } },
+            category: true
           }
         },
         variant: true
@@ -61,6 +63,16 @@ export const addToWishlistController = async (req, res) => {
         userId,
         productId,
         variantId: variantId || null
+      },
+      include: {
+        product: {
+          include: {
+            photos: true,
+            variants: { where: { isActive: true } },
+            category: true
+          }
+        },
+        variant: true
       }
     });
 
