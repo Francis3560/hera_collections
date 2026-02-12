@@ -34,7 +34,7 @@ export default function FeaturedProducts() {
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ["featured-products", activeFilter],
     queryFn: () => {
-      const params: any = { isPublished: true, pageSize: 8 };
+      const params: any = { isPublished: true, pageSize: 4 };
       
       if (activeFilter !== "All Products") {
         params.subcategory = activeFilter;
@@ -310,6 +310,17 @@ export default function FeaturedProducts() {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* More Link */}
+        <div className="flex justify-end mt-6">
+          <Link 
+            to="/collections" 
+            className="group flex items-center gap-2 text-primary font-medium hover:underline transition-all"
+          >
+            More 
+            <TrendingUp className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
 
         {/* CTA Section */}
         <motion.div 
