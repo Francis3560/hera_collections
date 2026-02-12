@@ -35,6 +35,7 @@ export const CartProvider = ({ children }) => {
     error: null,
   });
   const { user } = useAuth();
+  const userId = user?.id;
 
   // Load guest cart from local storage on mount if no user
   useEffect(() => {
@@ -97,7 +98,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const fetchCart = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
         // If user logs out, we might want to reload guest cart or clear it. 
         // For now, we rely on the initial useEffect for loading guest cart.
         // Or we can re-read it here.
@@ -117,7 +118,7 @@ export const CartProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     fetchCart();

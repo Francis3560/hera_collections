@@ -31,9 +31,10 @@ export const WishlistProvider = ({ children }) => {
     error: null,
   });
   const { user } = useAuth();
+  const userId = user?.id;
 
   const fetchWishlist = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const response = await WishlistService.getWishlist();
@@ -41,7 +42,7 @@ export const WishlistProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.message });
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     fetchWishlist();
