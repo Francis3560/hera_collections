@@ -201,7 +201,7 @@ export async function getUserOrders(userId, filters = {}) {
   const where = { buyerId: userId };
 
   if (search) {
-    where.orderNumber = { contains: search, mode: 'insensitive' };
+    where.orderNumber = { contains: search };
   }
   if (status) {
     where.status = status;

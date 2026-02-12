@@ -14,6 +14,7 @@ import {
 import { useTheme } from "@/components/ThemeProvider";
 import { useQuery } from "@tanstack/react-query";
 import ProductService from "@/api/product.service";
+import SubCategoryService from "@/api/subcategory.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { useWishlist } from "@/context/WishlistProvider";
 import { toast } from "sonner";
@@ -22,20 +23,27 @@ import { toast } from "sonner";
 export default function FeaturedProducts() {
   const { theme } = useTheme();
   const { addToWishlist, isInWishlist, removeFromWishlist, items: wishlistItems } = useWishlist();
+  
+  const { data: subCategories } = useQuery({
+    queryKey: ["sub-categories"],
+    queryFn: () => SubCategoryService.getAllSubCategories(),
+  });
+
   const [activeFilter, setActiveFilter] = useState("All Products");
 
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ["featured-products", activeFilter],
     queryFn: () => {
       const params: any = { isPublished: true, pageSize: 8 };
-      if (activeFilter === "Bestsellers") {
-        params.sortBy = "purchases";
-      } else if (activeFilter === "New Arrivals") {
+      
+      if (activeFilter !== "All Products") {
+        params.subcategory = activeFilter;
+      } else {
+        // Default sort for All Products
         params.sortBy = "createdAt";
         params.sortOrder = "desc";
-      } else if (activeFilter === "On Sale") {
-        params.hasDiscount = true;
       }
+      
       return ProductService.getAllProducts(params);
     }
   });
@@ -129,13 +137,11 @@ export default function FeaturedProducts() {
             </span>
           </div>
           
+          
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light text-foreground dark:text-foreground mb-4 tracking-tight">
             <span className="font-medium">Featured</span> Products
           </h2>
-          
-          <p className="text-base sm:text-lg text-muted-foreground dark:text-muted-foreground max-w-2xl mx-auto px-4">
-            Discover our handpicked collection of premium bags, crafted with exceptional quality and timeless design
-          </p>
+
         </motion.div>
 
         {/* Filter Tabs */}
@@ -146,19 +152,25 @@ export default function FeaturedProducts() {
           viewport={{ once: true, margin: "-50px" }}
           className="flex flex-nowrap sm:flex-wrap justify-start sm:justify-center gap-2 sm:gap-3 mb-8 sm:mb-10 lg:mb-12 px-4 sm:px-2 overflow-x-auto sm:overflow-x-visible pb-4 sm:pb-0 scrollbar-hide"
         >
-          {['All Products', 'Bestsellers', 'New Arrivals', 'On Sale', 'Luxury'].map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setActiveFilter(filter)}
-              className={`flex-shrink-0 px-5 sm:px-6 py-2.5 rounded-full text-sm sm:text-base font-medium transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap ${
-                activeFilter === filter 
-                  ? 'bg-primary dark:bg-primary text-primary-foreground dark:text-primary-foreground shadow-lg' 
-                  : 'bg-secondary/50 dark:bg-secondary/30 text-foreground/80 dark:text-foreground/80 hover:bg-primary/10 dark:hover:bg-primary/20'
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
+          {['All Products', ...(subCategories || []).map((c: any) => ({ name: c.name, slug: c.slug }))].map((filter: any) => {
+            const isObject = typeof filter === 'object';
+            const label = isObject ? filter.name : filter;
+            const value = isObject ? filter.slug : filter;
+            
+            return (
+              <button
+                key={value}
+                onClick={() => setActiveFilter(value)}
+                className={`flex-shrink-0 px-5 sm:px-6 py-2.5 rounded-full text-sm sm:text-base font-medium transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap ${
+                  activeFilter === value 
+                    ? 'bg-primary dark:bg-primary text-primary-foreground dark:text-primary-foreground shadow-lg' 
+                    : 'bg-secondary/50 dark:bg-secondary/30 text-foreground/80 dark:text-foreground/80 hover:bg-primary/10 dark:hover:bg-primary/20'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </motion.div>
 
         {/* Products Grid */}
@@ -254,7 +266,7 @@ export default function FeaturedProducts() {
                       <div className="flex items-center gap-1">
                         <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
                         <span className="text-xs font-semibold text-foreground dark:text-foreground">
-                          {product.rating || "5.0"}
+                          {product.rating && product.rating > 0 ? product.rating : "5.0"}
                         </span>
                       </div>
                     </div>
@@ -272,6 +284,22 @@ export default function FeaturedProducts() {
                       {product.title}
                     </Link>
                   </h3>
+                  
+                  {/* Price */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg font-bold text-primary dark:text-primary">
+                      {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(
+                        product.discounts?.[0] 
+                          ? (product.variants?.[0]?.price || 0) * (1 - product.discounts[0].discountPercentage / 100)
+                          : (product.variants?.[0]?.price || 0)
+                      )}
+                    </span>
+                    {product.discounts?.[0] && (
+                       <span className="text-sm text-muted-foreground line-through">
+                         {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(product.variants?.[0]?.price || 0)}
+                       </span>
+                    )}
+                  </div>
                   
                   {/* Description */}
 

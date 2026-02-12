@@ -14,10 +14,10 @@ export default function Index() {
     <div>
       <Header />
       <HeroSection/>
-      <ShopBySubCategory/>
-      <FeaturedProducts/>
-      <ImageWithText/>
       <BestSellingProducts/>
+      <FeaturedProducts/>
+      {/* <ShopBySubCategory/> */}
+      {/* <ImageWithText/> */}
       <Testimonials/>
       <Footer/>
       <LiveChat />

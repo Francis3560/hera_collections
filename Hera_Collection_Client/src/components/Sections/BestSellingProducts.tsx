@@ -397,13 +397,7 @@ export default function ProductShowcase() {
                               >
                                 {product.subCategory?.name || "Premium Style"}
                               </Link>
-                              <Link 
-                                to={`/collections?category=${product.category?.slug}`}
-                                className="text-[8px] text-gray-500 dark:text-muted-foreground uppercase tracking-tighter hover:text-primary transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {product.category?.name || "Collection"}
-                              </Link>
+                  
                             </div>
                             
                             {/* Product Name */}
@@ -412,6 +406,22 @@ export default function ProductShowcase() {
                                 {product.title}
                               </Link>
                             </h3>
+                            
+                            {/* Price */}
+                             <div className="flex items-center justify-center gap-2 mb-2">
+                                <span className="text-lg font-bold text-primary dark:text-primary">
+                                  {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(
+                                    product.discounts?.[0] 
+                                      ? (product.variants?.[0]?.price || 0) * (1 - product.discounts[0].discountPercentage / 100)
+                                      : (product.variants?.[0]?.price || 0)
+                                  )}
+                                </span>
+                                {product.discounts?.[0] && (
+                                   <span className="text-sm text-muted-foreground line-through">
+                                     {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(product.variants?.[0]?.price || 0)}
+                                   </span>
+                                )}
+                              </div>
                             
 
                             
@@ -427,8 +437,8 @@ export default function ProductShowcase() {
                                   }`}
                                 />
                               ))}
-                              <span className="text-xs text-gray-500 dark:text-muted-foreground ml-1">
-                                ({product.reviewCount || 0})
+                               <span className="text-xs font-medium text-muted-foreground ml-1">
+                                {product.rating || "5.0"}
                               </span>
                             </div>
                             

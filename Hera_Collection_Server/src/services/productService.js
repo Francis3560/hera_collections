@@ -14,6 +14,7 @@ export const searchProducts = async ({
   sortOrder = 'desc',
   hasDiscount = undefined,
   subCategoryId = undefined,
+  subcategory = undefined,
 }) => {
   const where = {
     isPublished,
@@ -33,6 +34,10 @@ export const searchProducts = async ({
 
   if (subCategoryId) {
     categoryFilters.push({ subCategoryId: parseInt(subCategoryId) });
+  }
+
+  if (subcategory) {
+    categoryFilters.push({ subCategory: { slug: subcategory } });
   }
 
   if (categoryFilters.length > 0) {

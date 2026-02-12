@@ -19,6 +19,7 @@ export const queryProductsValidator = (data) => {
     sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
     hasDiscount: Joi.boolean().optional(),
     subCategoryId: Joi.number().integer().positive().optional(),
+    subcategory: Joi.string().optional(),
   }).prefs({ allowUnknown: false });
 
   return schema.validate(data, basePrefs);

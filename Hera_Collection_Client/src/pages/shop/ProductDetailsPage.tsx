@@ -282,7 +282,7 @@ export default function ProductDetailsPage() {
               </div>
               <Separator orientation="vertical" className="h-4" />
               {selectedVariant?.stock > 0 ? (
-                <span className="text-sm text-green-600 font-medium">In Stock ({selectedVariant.stock} available)</span>
+                <span className="text-sm text-green-600 font-medium">In Stock</span>
               ) : (
                 <span className="text-sm text-red-600 font-medium">Out of Stock</span>
               )}
@@ -413,7 +413,7 @@ export default function ProductDetailsPage() {
                                 )}
                               >
                                 {size}
-                                {variantForThisSizeAndColor && variantForThisSizeAndColor.price !== product.variants[0].price && (
+                                {variantForThisSizeAndColor && (
                                   <span className="block text-[10px] opacity-70">
                                     {formatPrice(parseFloat(variantForThisSizeAndColor.price))}
                                   </span>
@@ -479,24 +479,6 @@ export default function ProductDetailsPage() {
                     <div className="text-sm">
                         <div className="font-semibold">Free Delivery</div>
                         <div className="text-muted-foreground text-xs">Orders over KES 5,500</div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <RotateCcw className="h-5 w-5" />
-                    </div>
-                    <div className="text-sm">
-                        <div className="font-semibold">Easy Returns</div>
-                        <div className="text-muted-foreground text-xs">7-day return policy</div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <ShieldCheck className="h-5 w-5" />
-                    </div>
-                    <div className="text-sm">
-                        <div className="font-semibold">2 Year Warranty</div>
-                        <div className="text-muted-foreground text-xs">Full coverage</div>
                     </div>
                 </div>
             </div>

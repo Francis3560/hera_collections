@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import orderService from '@/api/order.service';
 import { format } from 'date-fns';
+import { toast } from "sonner";
 
 interface OrderSuccessSplashProps {
   orderNumber?: string;
@@ -36,6 +37,7 @@ export const OrderSuccessSplash: React.FC<OrderSuccessSplashProps> = ({
         if (foundOrder) {
             setOrder(foundOrder);
             setStatus(foundOrder.status);
+            toast.success("Order status updated");
         }
     } catch (error) {
         console.error("Failed to fetch order status", error);

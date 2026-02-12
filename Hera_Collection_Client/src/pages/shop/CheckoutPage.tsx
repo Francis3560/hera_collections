@@ -599,7 +599,7 @@ export default function CheckoutPage() {
                           {selectedRegion ? (
                             <div className="flex flex-col items-start gap-0.5">
                               <span className="font-bold text-base tracking-tight">{selectedRegion.name}</span>
-                              <span className="text-xs text-muted-foreground">{selectedRegion.estimatedDays || "Standard delivery time"}</span>
+                              <span className="text-xs text-black dark:text-white font-medium">{selectedRegion.estimatedDays || "Standard delivery time"}</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-muted-foreground italic">
@@ -660,7 +660,7 @@ export default function CheckoutPage() {
                                     </div>
                                     <div className="flex flex-col">
                                       <span className="font-bold text-foreground text-sm tracking-tight">{region.name}</span>
-                                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{region.estimatedDays || "2-3 Working Days"}</span>
+                                      <span className="text-[10px] text-black dark:text-white font-bold uppercase tracking-wider">{region.estimatedDays || "2-3 Working Days"}</span>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-4">
