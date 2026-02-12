@@ -158,7 +158,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socketService.disconnect();
       };
     }
-  }, [isAuthenticated, user, fetchNotifications, queryClient]);
+  }, [isAuthenticated, user?.role, user?.id, fetchNotifications, queryClient]);
 
   return (
     <NotificationContext.Provider value={{
