@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useNotifications } from "@/context/NotificationContext";
 
-const ProfilePage = () => {
+const ProfileSetUpSection = () => {
   const { user, userProfile, userStats, isAuthenticated, logout, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ const ProfilePage = () => {
     if (!isAuthenticated) {
       navigate("/login");
     } else {
-      refreshUserProfile();
+      refreshUserProfile({ silent: true });
     }
     setLoading(false);
   }, [isAuthenticated, navigate, refreshUserProfile]);
@@ -193,4 +193,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default ProfileSetUpSection;

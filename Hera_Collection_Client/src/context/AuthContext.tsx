@@ -115,7 +115,7 @@ interface AuthContextType {
   clearPendingVerification: () => void;
   
   // Profile Management Methods
-  getProfile: () => Promise<{ success: boolean; profile?: UserProfile; error?: string }>;
+  getProfile: (options?: { silent?: boolean }) => Promise<{ success: boolean; profile?: UserProfile; error?: string }>;
   updateProfile: (profileData: Partial<User>) => Promise<{ success: boolean; profile?: UserProfile; error?: string }>;
   deleteAccount: (password: string, confirm: boolean) => Promise<{ success: boolean; error?: string }>;
   
@@ -127,10 +127,10 @@ interface AuthContextType {
   
   // Activity & Stats Methods
   getActivity: (page?: number, limit?: number) => Promise<{ success: boolean; activity?: PaginatedActivity; error?: string }>;
-  getStats: () => Promise<{ success: boolean; stats?: UserStats; error?: string }>;
+  getStats: (options?: { silent?: boolean }) => Promise<{ success: boolean; stats?: UserStats; error?: string }>;
   
   // Utility Methods
-  refreshUserProfile: () => Promise<void>;
+  refreshUserProfile: (options?: { silent?: boolean }) => Promise<void>;
   clearError: () => void;
   validatePassword: (password: string) => { isValid: boolean; errors: string[] };
   validatePhone: (phone: string) => boolean;
@@ -250,8 +250,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, savePendingVerificationEmail, clearPendingVerification]);
 
   // === PROFILE MANAGEMENT ===
-  const getProfile = useCallback(async () => {
-    setLoading(true);
+  const getProfile = useCallback(async (options: { silent?: boolean } = {}) => {
+    if (!options.silent) setLoading(true);
     clearError();
     
     try {
@@ -282,7 +282,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   }, [clearError]);
 
@@ -510,8 +510,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [clearError]);
 
-  const getStats = useCallback(async () => {
-    setLoading(true);
+  const getStats = useCallback(async (options: { silent?: boolean } = {}) => {
+    if (!options.silent) setLoading(true);
     clearError();
     
     try {
@@ -533,7 +533,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(errorMsg);
       return { success: false, error: errorMsg };
     } finally {
-      setLoading(false);
+      if (!options.silent) setLoading(false);
     }
   }, [clearError]);
 
@@ -786,13 +786,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, clearPendingVerification, clearError]);
 
   // === UTILITY METHODS ===
-  const refreshUserProfile = useCallback(async () => {
+  const refreshUserProfile = useCallback(async (options: { silent?: boolean } = {}) => {
     if (!user) return;
     
     try {
       const [profileRes, statsRes] = await Promise.all([
-        getProfile(),
-        getStats()
+        getProfile(options),
+        getStats(options)
       ]);
       
       if (profileRes.success && profileRes.profile) {
