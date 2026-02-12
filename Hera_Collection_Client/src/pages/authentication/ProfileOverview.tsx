@@ -23,7 +23,7 @@ const ProfileOverview = () => {
 
   React.useEffect(() => {
     if (!activityFetchedRef.current) {
-      getActivity(1, 5);
+      getActivity(1, 5, { silent: true });
       activityFetchedRef.current = true;
     }
   }, [getActivity]);

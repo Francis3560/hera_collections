@@ -483,8 +483,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user, clearError]);
 
   // === ACTIVITY & STATS ===
-  const getActivity = useCallback(async (page: number = 1, limit: number = 20) => {
-    setLoading(true);
+  const getActivity = useCallback(async (page: number = 1, limit: number = 20, options: { silent?: boolean } = {}) => {
+    if (!options.silent) setLoading(true);
     clearError();
     
     try {
