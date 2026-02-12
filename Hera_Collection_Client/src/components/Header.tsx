@@ -283,32 +283,12 @@ export default function Header() {
 
             <div className="flex items-center space-x-3">
               <ThemeToggle />
-              <div className="relative">
-                {isSearchOpen ? (
-                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-background dark:bg-background border border-border dark:border-border/60 rounded-full shadow-lg p-1 z-50">
-                    <Input
-                      type="search"
-                      placeholder="Search luxury bags..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-54 pr-10 border-0 focus:ring-0 rounded-full bg-transparent"
-                      autoFocus
-                    />
-                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8" onClick={() => setIsSearchOpen(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full bg-secondary/50 dark:bg-secondary/30 hover:bg-primary-accent/10 dark:hover:bg-primary-accent/20 text-foreground/70 dark:text-foreground/60 hover:text-primary-accent dark:hover:text-primary-accent transition-all duration-300" onClick={() => setIsSearchOpen(true)}>
-                    <Search className="h-5 w-5" />
-                  </Button>
-                )}
-              </div>
+
 
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-12 px-3 rounded-full bg-secondary/50 dark:bg-secondary/30 hover:bg-primary-accent/10 dark:hover:bg-primary-accent/20 text-foreground/70 dark:text-foreground/60 hover:text-primary-accent dark:hover:text-primary-accent transition-all duration-300 gap-2">
+                    <Button variant="ghost" className="h-12 px-3 rounded-full bg-secondary/30 dark:bg-secondary/20 border border-border/60 dark:border-border/40 hover:bg-primary-accent/10 dark:hover:bg-primary-accent/20 text-foreground dark:text-foreground hover:text-primary-accent dark:hover:text-primary-accent transition-all duration-300 gap-2">
                       <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary-accent to-cta flex items-center justify-center text-white font-semibold text-sm">
                         {getUserInitials()}
                       </div>
@@ -362,7 +342,7 @@ export default function Header() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="ghost" className="hidden sm:flex items-center gap-2 px-6 py-2 text-foreground/90 rounded-full font-medium" asChild>
+                <Button variant="ghost" className="hidden sm:flex items-center gap-2 px-6 py-2 text-foreground dark:text-foreground border border-border/60 dark:border-border/40 rounded-full font-medium hover:bg-secondary/50 transition-all" asChild>
                   <Link to="/login"><User className="h-4 w-4" />Login</Link>
                 </Button>
               )}
@@ -370,7 +350,7 @@ export default function Header() {
               {isAuthenticated && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group">
+                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group border border-border/60 dark:border-border/40 bg-secondary/30 dark:bg-secondary/20 text-foreground dark:text-foreground hover:bg-primary-accent/10">
                       <Bell className="h-5 w-5" />
                       {unreadCount > 0 && (
                         <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent">
@@ -421,7 +401,7 @@ export default function Header() {
                 </Popover>
               )}
 
-              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group" asChild>
+              <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group border border-border/60 dark:border-border/40 bg-secondary/30 dark:bg-secondary/20 text-foreground dark:text-foreground" asChild>
                 <Link to="/wishlist">
                   <Heart className="h-5 w-5" />
                   {wishlistCount > 0 && <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent">{wishlistCount}</Badge>}
@@ -430,7 +410,7 @@ export default function Header() {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group">
+                  <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full relative group border border-border/60 dark:border-border/40 bg-secondary/30 dark:bg-secondary/20 text-foreground dark:text-foreground">
                     <ShoppingCart className="h-5 w-5" />
                     {cartCount > 0 && <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-cta to-primary-accent">{cartCount}</Badge>}
                   </Button>

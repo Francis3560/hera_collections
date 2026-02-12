@@ -11,9 +11,9 @@ const heroSlides = [
     id: 1,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_len3pf.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_B_uol1cn.png",
-    title: "ELEVATE YOUR CORPORATE PRESENCE",
+    title: "PROFESSIONAL LOOK",
     subtitle: "Executive Excellence",
-    description: "Discover our premium collection of professional bags designed for the modern business leader. Crafted with precision and sophistication.",
+    description: "Premium professional bags for modern leaders. Precision-crafted for excellence.",
     cta: "EXPLORE COLLECTION",
     bgColor: "from-gray-800/20 to-gray-600/20"
   },
@@ -21,9 +21,9 @@ const heroSlides = [
     id: 2,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465243/7_yxmssx.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465244/8_tmqduj.png",
-    title: "MASTERFUL CRAFTSMANSHIP",
-    subtitle: "Luxury Meets Functionality",
-    description: "Experience unparalleled quality with our handcrafted leather bags, built to withstand the demands of corporate life while making a statement.",
+    title: "EXECUTIVE ELEGANCE",
+    subtitle: "Luxury & Function",
+    description: "Handcrafted leather bags built for corporate life. Make a statement without saying a word.",
     cta: "EXPLORE COLLECTION",
     bgColor: "from-blue-600/20 to-purple-600/20"
   },
@@ -31,9 +31,9 @@ const heroSlides = [
     id: 3,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467638/Hera_Hero_B_jsm0uf.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467637/Hera_Hero_W_kalxmy.png",
-    title: "DESIGNED FOR PROFESSIONALS",
+    title: "LUXURIOUS BRAND",
     subtitle: "Smart Organization",
-    description: "Innovative compartments and intelligent design meet elegant aesthetics. Your perfect companion for meetings, travel, and daily commutes.",
+    description: "Intelligent design meets elegant aesthetics. Your perfect partner for travel and daily commutes.",
     cta: "EXPLORE COLLECTION",
     bgColor: "from-green-600/20 to-teal-600/20"
   },
@@ -42,8 +42,8 @@ const heroSlides = [
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375593/3_f5csiv.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375591/4_g4hcer.png",
     title: "SUSTAINABLE LUXURY",
-    subtitle: "Ethical Elegance",
-    description: "Commitment to sustainability without compromising on style. Our eco-friendly materials and ethical production redefine corporate accessories.",
+    subtitle: "Ethical Style",
+    description: "Eco-friendly materials, ethical production. Redefining premium accessories.",
     cta: "EXPLORE COLLECTION",
     bgColor: "from-amber-600/20 to-orange-600/20"
   }
@@ -122,7 +122,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative h-[100dvh] w-full overflow-hidden bg-neutral-950">
+    <section className="relative h-[85vh] w-full overflow-hidden bg-neutral-950">
       {/* Background Images Carousel */}
       <div className="relative h-full w-full">
         <AnimatePresence mode="wait" initial={false}>
