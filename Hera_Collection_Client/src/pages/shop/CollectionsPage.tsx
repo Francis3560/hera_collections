@@ -336,16 +336,7 @@ export default function CollectionsPage() {
                   <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{categories.length}</span>
                 </h3>
                 <div className="flex flex-col gap-1">
-                  <button 
-                    onClick={() => handleCategoryClick("all")}
-                    className={`text-left px-3 py-2 rounded-lg transition-all ${
-                      activeCategory === "all" 
-                        ? "bg-primary text-primary-foreground font-bold" 
-                        : "hover:bg-secondary/50 text-muted-foreground"
-                    }`}
-                  >
-                    All Items
-                  </button>
+
                   {categories.map((cat: any) => {
                     const isAnySubActive = cat.subCategories?.some((s: any) => s.slug === activeSubCategory);
                     const isExpanded = expandedCategory === cat.slug || (isAnySubActive && expandedCategory === null);
@@ -367,9 +358,25 @@ export default function CollectionsPage() {
                           )}
                         </button>
                         
-                        {isExpanded && cat.subCategories?.length > 0 && (
+                        {isExpanded && (
                           <div className="ml-4 flex flex-col gap-1 border-l border-border/50 pl-3 py-1">
-                            {cat.subCategories.map((sub: any) => (
+                            <button
+                              onClick={() => {
+                                const nextParams = new URLSearchParams(searchParams);
+                                nextParams.set("category", cat.slug);
+                                nextParams.delete("subcategory");
+                                setSearchParams(nextParams);
+                                setIsFilterOpen(false);
+                              }}
+                              className={`text-left px-3 py-1.5 rounded-md text-sm transition-all ${
+                                activeCategory === cat.slug && activeSubCategory === "all"
+                                  ? "text-primary font-bold bg-primary/5"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                              }`}
+                            >
+                              All {cat.name}
+                            </button>
+                            {cat.subCategories?.map((sub: any) => (
                               <button
                                 key={sub.id}
                                 onClick={() => handleSubCategoryClick(cat.slug, sub.slug)}
@@ -663,14 +670,7 @@ export default function CollectionsPage() {
                 <div className="space-y-4">
                    <h3 className="font-bold">Collections</h3>
                    <div className="flex flex-col gap-2">
-                     <button 
-                       onClick={() => handleCategoryClick("all")}
-                       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                         activeCategory === "all" ? "bg-primary text-white shadow-lg" : "bg-secondary text-muted-foreground"
-                       }`}
-                     >
-                       All items
-                     </button>
+
                      {categories.map((cat: any) => {
                        const isAnySubActive = cat.subCategories?.some((s: any) => s.slug === activeSubCategory);
                        const isExpanded = expandedCategory === cat.slug || (isAnySubActive && expandedCategory === null);
@@ -690,9 +690,25 @@ export default function CollectionsPage() {
                              )}
                            </button>
                            
-                           {isExpanded && cat.subCategories?.length > 0 && (
+                           {isExpanded && (
                              <div className="ml-6 border-l-2 border-primary/20 flex flex-col gap-1 py-1">
-                               {cat.subCategories.map((sub: any) => (
+                                <button 
+                                  onClick={() => {
+                                    const nextParams = new URLSearchParams(searchParams);
+                                    nextParams.set("category", cat.slug);
+                                    nextParams.delete("subcategory");
+                                    setSearchParams(nextParams);
+                                    setIsFilterOpen(false);
+                                  }}
+                                  className={`text-left px-4 py-2 rounded-lg text-xs transition-all ${
+                                    activeCategory === cat.slug && activeSubCategory === "all"
+                                      ? "text-primary font-black"
+                                      : "text-muted-foreground"
+                                  }`}
+                                >
+                                  All {cat.name}
+                                </button>
+                                {cat.subCategories?.map((sub: any) => (
                                  <button
                                    key={sub.id}
                                    onClick={() => handleSubCategoryClick(cat.slug, sub.slug)}
