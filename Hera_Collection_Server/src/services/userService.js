@@ -33,6 +33,7 @@ const buildCreatePayload = async (data) => {
     status: data.status ? data.status.toUpperCase() : 'OFFLINE', 
     passwordHash,
     provider: 'EMAIL',
+    isVerified: data.isVerified === true || data.isVerified === 'true',
   };
   if (!['ONLINE', 'OFFLINE', 'AWAY', 'BUSY'].includes(payload.status)) {
     payload.status = 'OFFLINE';

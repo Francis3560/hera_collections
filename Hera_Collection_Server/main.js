@@ -246,8 +246,18 @@ io.on('connection', (socket) => {
 
   socket.on('inquiry:close', (sessionId) => {
     io.to(`inquiry:${sessionId}`).emit('inquiry:closed', { sessionId });
-    // Cleanup room
-    // io.in(`inquiry:${sessionId}`).socketsLeave(`inquiry:${sessionId}`); // Requires recent socket.io
+  });
+
+  socket.on('inquiry:typing', (data) => {
+    const { sessionId, isTyping } = data;
+    socket.to(`inquiry:${sessionId}`).emit('inquiry:typing', {
+      sessionId,
+      userId: socket.userId,
+      guestId: socket.guestId,
+      userRole: socket.userRole,
+      isTyping,
+      timestamp: new Date().toISOString()
+    });
   });
   
   socket.on('disconnect', () => {

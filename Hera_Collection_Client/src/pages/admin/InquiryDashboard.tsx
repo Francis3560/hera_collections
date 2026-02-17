@@ -58,14 +58,37 @@ export default function InquiryDashboard() {
   const { data: activeSessions, isLoading: isLoadingSessions } = useQuery({
     queryKey: ["admin-inquiries"],
     queryFn: () => inquiryService.getActiveInquiries(),
-    refetchInterval: 30000, // Background poll as fallback
+    refetchInterval: 5000, // Faster poll for admin responsiveness
   });
+
+  const [isCustomerTyping, setIsCustomerTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleAdminTyping = () => {
+    if (!selectedSessionId) return;
+
+    // Emit typing event
+    socketService.emit("inquiry:typing", {
+      sessionId: selectedSessionId,
+      isTyping: true
+    });
+
+    // Reset typing status after a delay
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.emit("inquiry:typing", {
+         sessionId: selectedSessionId,
+         isTyping: false
+      });
+    }, 3000);
+  };
 
   // Fetch messages for selected session
   const { data: selectedSession, isLoading: isLoadingMessages } = useQuery({
     queryKey: ["inquiry-messages", selectedSessionId],
     queryFn: () => inquiryService.getMessages(selectedSessionId!),
     enabled: !!selectedSessionId,
+    refetchInterval: 5000,
   });
 
   // Reply mutation
@@ -118,24 +141,36 @@ export default function InquiryDashboard() {
         queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] });
         
         // Notification toast for admin
-        if (data.message.isFromAdmin === false) {
-           toast.info(`New message from ${data.senderName || 'Visitor'}`);
-        }
+        // Removed local toast to avoid double notifications (global toast in NotificationContext)
       };
 
       const handleNewInquiry = () => {
         queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] });
       };
 
+      const handleTyping = (data: any) => {
+        if (data.sessionId === selectedSessionId && data.userRole !== 'ADMIN') { 
+          setIsCustomerTyping(data.isTyping);
+        }
+      };
+
       socketService.on("inquiry:new_message", handleNewMessage);
       socketService.on("inquiry:joined", handleNewInquiry);
+      socketService.on("inquiry:typing", handleTyping);
 
       return () => {
         socketService.off("inquiry:new_message", handleNewMessage);
         socketService.off("inquiry:joined", handleNewInquiry);
+        socketService.off("inquiry:typing", handleTyping);
       };
+    } else {
+      // If socket not ready, check again soon or try connecting
+      const timer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] }); // Trigger a re-render
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [selectedSessionId, queryClient]);
+  }, [selectedSessionId, queryClient, socketService.connected]);
 
   // Join session room when selected
   useEffect(() => {
@@ -300,10 +335,13 @@ export default function InquiryDashboard() {
                     key={msg.id} 
                     className={cn(
                       "flex flex-col gap-2 max-w-[70%]",
-                      msg.isFromAdmin ? "items-start ml-auto" : "items-start"
+                      msg.isFromAdmin ? "items-end ml-auto" : "items-start"
                     )}
                   >
-                    <div className="flex items-center gap-2 mb-1 px-1">
+                    <div className={cn(
+                      "flex items-center gap-2 mb-1 px-1",
+                      msg.isFromAdmin && "flex-row-reverse"
+                    )}>
                       <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                         {msg.isFromAdmin ? "Hera Agent" : "Customer"}
                       </span>
@@ -314,13 +352,27 @@ export default function InquiryDashboard() {
                     <div className={cn(
                       "px-5 py-4 rounded-3xl text-sm leading-relaxed shadow-sm",
                       msg.isFromAdmin 
-                        ? "bg-primary text-primary-foreground rounded-tr-none" 
+                        ? "bg-primary text-primary-foreground rounded-tr-none text-right" 
                         : "bg-background border border-primary/10 text-foreground rounded-tl-none shadow-elegant"
                     )}>
                       {msg.content}
                     </div>
                   </div>
                 ))
+              )}
+              {isCustomerTyping && (
+                <div className="flex flex-col gap-2 max-w-[70%] items-start">
+                   <div className="flex items-center gap-2 mb-1 px-1">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Customer is typing
+                      </span>
+                   </div>
+                   <div className="px-5 py-3 rounded-3xl bg-background border border-primary/10 flex gap-1 items-center">
+                     <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                     <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                     <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+                   </div>
+                </div>
               )}
             </div>
 
@@ -330,7 +382,10 @@ export default function InquiryDashboard() {
                 <div className="flex-1 relative">
                   <Input
                     value={reply}
-                    onChange={(e) => setReply(e.target.value)}
+                    onChange={(e) => {
+                      setReply(e.target.value);
+                      handleAdminTyping();
+                    }}
                     placeholder="Type your response here..."
                     className="pr-12 py-7 rounded-3xl bg-secondary/5 border-primary/10 transition-all focus:bg-background focus:ring-primary h-auto text-base"
                     disabled={replyMutation.isPending}

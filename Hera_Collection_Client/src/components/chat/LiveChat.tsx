@@ -71,8 +71,31 @@ export const LiveChat: React.FC = () => {
       return sess;
     },
     enabled: isOpen,
-    staleTime: Infinity,
+    staleTime: 2000,
+    refetchInterval: 5000, // Background poll as fallback
   });
+
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleTyping = () => {
+    if (!session) return;
+    
+    // Emit typing event
+    socketService.emit("inquiry:typing", {
+      sessionId: session.id,
+      isTyping: true
+    });
+
+    // Reset typing status after a delay
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.emit("inquiry:typing", {
+         sessionId: session.id,
+         isTyping: false
+      });
+    }, 3000);
+  };
 
   // Send message mutation
   const sendMutation = useMutation({
@@ -131,12 +154,20 @@ export const LiveChat: React.FC = () => {
           }
         };
 
+        const handleTyping = (data: any) => {
+          if (data.sessionId === session.id && data.userRole === 'ADMIN') { 
+            setIsAdminTyping(data.isTyping);
+          }
+        };
+
         socketService.on("inquiry:message", handleNewMessage);
         socketService.on("inquiry:closed", handleClosed);
+        socketService.on("inquiry:typing", handleTyping);
 
         return () => {
           socketService.off("inquiry:message", handleNewMessage);
           socketService.off("inquiry:closed", handleClosed);
+          socketService.off("inquiry:typing", handleTyping);
         };
       }
     }
@@ -233,6 +264,16 @@ export const LiveChat: React.FC = () => {
                         </span>
                       </div>
                     ))}
+
+                    {isAdminTyping && (
+                       <div className="flex items-start max-w-[80%]">
+                          <div className="px-4 py-2 rounded-2xl text-sm bg-secondary text-secondary-foreground rounded-tl-none flex gap-1 items-center">
+                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+                          </div>
+                       </div>
+                    )}
                     {sendMutation.isPending && (
                       <div className="flex items-start max-w-[80%] ml-auto animate-pulse">
                         <div className="px-4 py-3 rounded-2xl text-sm bg-primary/20 text-primary-foreground/50 rounded-tr-none italic">
@@ -248,7 +289,10 @@ export const LiveChat: React.FC = () => {
               <form onSubmit={handleSend} className="p-4 border-t bg-secondary/10 flex gap-2 items-center">
                 <Input
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={(e) => {
+                    setMessage(e.target.value);
+                    handleTyping();
+                  }}
                   placeholder="Type your message..."
                   className="rounded-full bg-background border-primary/10 focus-visible:ring-primary h-11"
                   disabled={isLoadingSession}

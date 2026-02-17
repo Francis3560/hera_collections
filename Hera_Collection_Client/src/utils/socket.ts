@@ -5,16 +5,22 @@ class SocketService {
   private socket: Socket | null = null;
   private isConnected: boolean = false;
 
+  private currentToken: string | undefined = undefined;
+  private currentGuestId: string | undefined = undefined;
+
   connect(token?: string, guestId?: string) {
+    // If identity changed, force a new connection
+    if (this.socket && (token !== this.currentToken || guestId !== this.currentGuestId)) {
+      this.disconnect();
+    }
+
     if (this.socket && this.isConnected) return this.socket;
+
+    this.currentToken = token;
+    this.currentGuestId = guestId;
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
     
-    // Disconnect existing if any
-    if (this.socket) {
-      this.socket.disconnect();
-    }
-
     this.socket = io(API_BASE_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'],

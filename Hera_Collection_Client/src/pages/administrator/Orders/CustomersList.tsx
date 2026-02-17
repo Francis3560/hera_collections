@@ -93,7 +93,8 @@ const CustomersList = () => {
             await customerService.createCustomer({
                 ...formData,
                 full_name: formData.name, // compatibility
-                role: 'USER'
+                role: 'USER',
+                isVerified: true
             });
             toast({ title: "Success", description: "Customer created successfully" });
             setIsAddOpen(false);

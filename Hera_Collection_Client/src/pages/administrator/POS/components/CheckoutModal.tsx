@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Check, Banknote, CreditCard, Phone, User, Loader2, Search, UserPlus, Info, CheckCircle } from 'lucide-react';
+import { 
+    Check, Banknote, CreditCard, Phone, User, Loader2, 
+    Search, UserPlus, Info, CheckCircle 
+} from 'lucide-react';
 import 'react-phone-number-input/style.css';
 import '@/components/ui/phone-input.css';
 import PhoneInput from 'react-phone-number-input';
@@ -19,8 +22,8 @@ import { cn } from '@/lib/utils';
 import customerService from '@/api/customer.service';
 import paymentService from '@/api/payment.service';
 import { debounce } from 'lodash';
-import { useCallback, useRef } from 'react';
 import { OrderSuccessSplash } from '@/components/shared/OrderSuccessSplash';
+import { useAuth } from '@/context/AuthContext';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -46,12 +49,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [successOrder, setSuccessOrder] = useState<any>(null);
   const [checkoutId, setCheckoutId] = useState<string | null>(null);
   
+  const { role: currentUserRole } = useAuth();
+  
   // Customer info
   const [customer, setCustomer] = useState({
-    firstName: '',
-    lastName: '',
+    full_name: '',
     email: '',
-    phone: ''
+    phone_number: ''
   });
   const [customerSearch, setCustomerSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -75,10 +79,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setSelectedCustomer(null);
       setNoResults(false);
       setCustomer({
-        firstName: '',
-        lastName: '',
+        full_name: '',
         email: '',
-        phone: ''
+        phone_number: ''
       });
     }
   }, [isOpen]);
@@ -96,11 +99,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           setSuccessOrder(response.data.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-        } else if (response.data.status === "FAILED") {
-          clearInterval(intervalId);
-          setPaymentStatus("FAILED");
-          setLoading(false);
-        } else if (attempts >= maxAttempts) {
+        } else if (response.data.status === "FAILED" || attempts >= maxAttempts) {
           clearInterval(intervalId);
           setPaymentStatus("FAILED");
           setLoading(false);
@@ -113,14 +112,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const getOrCreateCustomer = async () => {
     let userId = selectedCustomer?.id;
-    if (!userId && customer.firstName && customer.phone) {
+    if (!userId && customer.full_name && customer.phone_number) {
       try {
         const res = await customerService.createCustomer({
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          phone: customer.phone,
-          password: 'User@' + Math.random().toString(36).slice(-8)
+          full_name: customer.full_name,
+          email: customer.email || `${customer.phone_number.replace('+', '')}@heracollection.com`,
+          phone_number: customer.phone_number,
+          password: 'User@' + Math.random().toString(36).slice(-8),
+          isVerified: currentUserRole === 'ADMIN',
+          role: 'USER'
         });
         userId = res.id || res.user?.id;
       } catch (err) {
@@ -137,7 +137,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         await onConfirm({
           payment: {
             method: paymentMethod,
-            phone: customer.phone
+            phone: customer.phone_number
           },
           customer: {
             ...customer,
@@ -197,21 +197,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleSelectCustomer = (c: any) => {
     setSelectedCustomer(c);
-    
-    let fName = c.firstName || '';
-    let lName = c.lastName || '';
-    
-    if (!fName && c.name) {
-      const parts = c.name.split(' ');
-      fName = parts[0] || '';
-      lName = parts.slice(1).join(' ') || '';
-    }
-
     setCustomer({
-      firstName: fName,
-      lastName: lName,
+      full_name: c.name || c.full_name || `${c.firstName || ''} ${c.lastName || ''}`.trim(),
       email: c.email || '',
-      phone: c.phone || ''
+      phone_number: c.phone || c.phone_number || ''
     });
     setCustomerSearch('');
     setSearchResults([]);
@@ -223,13 +212,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setLoading(true);
 
     if (paymentMethod === 'MPESA') {
-        if (!customer.phone) {
+        if (!customer.phone_number) {
             setLoading(false);
             return;
         }
 
         try {
-            const formattedPhone = customer.phone.replace('+', '');
+            const formattedPhone = customer.phone_number.replace('+', '');
             const userId = await getOrCreateCustomer();
             
             const paymentData = {
@@ -240,11 +229,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
                 })),
                 customer: {
-                  firstName: customer.firstName,
-                  lastName: customer.lastName,
-                  name: `${customer.firstName} ${customer.lastName}`,
+                  full_name: customer.full_name,
+                  name: customer.full_name,
                   email: customer.email || `${formattedPhone}@heracollection.com`,
-                  phone: formattedPhone,
+                  phone_number: formattedPhone,
                   userId 
                 },
                 payment: {
@@ -379,8 +367,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     <Label className="text-sm font-medium">Customer M-Pesa Number</Label>
                     <PhoneInput
                       placeholder="e.g. 0712345678"
-                      value={customer.phone}
-                      onChange={(value) => setCustomer({...customer, phone: value || ''})}
+                      value={customer.phone_number}
+                      onChange={(value) => setCustomer({...customer, phone_number: value || ''})}
                       defaultCountry="KE"
                       inputComponent={Input}
                       className="rounded-xl overflow-hidden"
@@ -450,11 +438,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                             >
                                <div className="flex items-center gap-3">
                                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                                     {(c.name || c.firstName)?.[0] || 'U'}
+                                     {(c.name || c.full_name || c.firstName)?.[0] || 'U'}
                                   </div>
                                   <div className="min-w-0">
-                                     <p className="font-bold text-sm truncate">{c.name || `${c.firstName} ${c.lastName}`}</p>
-                                     <p className="text-[10px] text-muted-foreground">{c.phone}</p>
+                                     <p className="font-bold text-sm truncate">{c.name || c.full_name || `${c.firstName || ''} ${c.lastName || ''}`.trim()}</p>
+                                     <p className="text-[10px] text-muted-foreground">{c.phone || c.phone_number}</p>
                                   </div>
                                </div>
                                <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100" />
@@ -470,43 +458,49 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>First Name</Label>
+                  <Label>Full Name</Label>
                   <Input 
-                    value={customer.firstName}
-                    onChange={(e) => setCustomer({...customer, firstName: e.target.value})}
+                    placeholder="John Doe"
+                    value={customer.full_name}
+                    onChange={(e) => setCustomer({...customer, full_name: e.target.value})}
                     readOnly={!!selectedCustomer}
                     className={cn("rounded-xl", selectedCustomer && "bg-muted font-medium")}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Last Name</Label>
-                  <Input 
-                    value={customer.lastName}
-                    onChange={(e) => setCustomer({...customer, lastName: e.target.value})}
-                    readOnly={!!selectedCustomer}
-                    className={cn("rounded-xl", selectedCustomer && "bg-muted font-medium")}
-                  />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                     <Label>Phone Number</Label>
+                     <PhoneInput 
+                        placeholder="Enter phone..."
+                        value={customer.phone_number}
+                        onChange={(val) => setCustomer({...customer, phone_number: val || ''})}
+                        defaultCountry="KE"
+                        inputComponent={Input}
+                        readOnly={!!selectedCustomer}
+                        className={cn("rounded-xl", selectedCustomer && "bg-muted font-medium")}
+                      />
+                  </div>
+                  <div className="space-y-2">
+                     <Label>Email Address</Label>
+                     <Input 
+                      type="email"
+                      placeholder="customer@example.com"
+                      value={customer.email}
+                      onChange={(e) => setCustomer({...customer, email: e.target.value})}
+                      readOnly={!!selectedCustomer}
+                      className={cn("rounded-xl", selectedCustomer && "bg-muted font-medium")}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-2">
-                 <Label>Phone Number</Label>
-                 <PhoneInput 
-                    placeholder="Enter phone..."
-                    value={customer.phone}
-                    onChange={(val) => setCustomer({...customer, phone: val || ''})}
-                    defaultCountry="KE"
-                    inputComponent={Input}
-                    readOnly={!!selectedCustomer}
-                    className={cn("rounded-xl", selectedCustomer && "bg-muted font-medium")}
-                  />
               </div>
 
               {selectedCustomer && (
                  <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground h-8" onClick={() => {
                     setSelectedCustomer(null);
-                    setCustomer({firstName: '', lastName: '', email: '', phone: ''});
+                    setCustomer({full_name: '', email: '', phone_number: ''});
                  }}>
                     Switch to another customer
                  </Button>

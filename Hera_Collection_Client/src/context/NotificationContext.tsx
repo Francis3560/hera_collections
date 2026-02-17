@@ -144,6 +144,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 description: notification.message
              });
           });
+
+          // Global Inquiry Notifications for Admin
+          socketService.on('inquiry:new_message', (data: any) => {
+             // Only show toast if it's from a customer/guest
+             if (data.message && !data.message.isFromAdmin) {
+               toast.info(`New Enquiry from ${data.senderName || data.guestName || 'Visitor'}`, {
+                  description: data.message.content.substring(0, 60) + (data.message.content.length > 60 ? '...' : ''),
+                  action: {
+                    label: 'Reply',
+                    onClick: () => { 
+                      window.location.href = '/admin/messaging/inbox'; 
+                    }
+                  },
+                  duration: 5000,
+               });
+               // Refresh inquiry list if relevant
+               queryClient.invalidateQueries({ queryKey: ["admin-inquiries"] });
+             }
+          });
         }
       }
 
@@ -155,6 +174,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         socketService.off('notifications:updated');
         socketService.off('notifications:marked_all_read');
         socketService.off('notification:admin');
+        socketService.off('inquiry:new_message');
         socketService.disconnect();
       };
     }

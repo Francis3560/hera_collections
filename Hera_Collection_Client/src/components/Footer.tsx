@@ -2,9 +2,6 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { 
   Instagram, 
-  Facebook, 
-  Twitter, 
-  Youtube, 
   Mail,
   Phone,
   MapPin,
@@ -18,8 +15,10 @@ import {
   Truck,
   Award,
   Globe,
-  Banknote
+  Banknote,
+  CreditCard
 } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 import { useQuery } from "@tanstack/react-query";
 import CategoryService from "@/api/categories.service";
 import { Button } from "@/components/ui/button";
@@ -135,21 +134,19 @@ export default function FreeFooter() {
               </div>
               
               <p className="text-muted-foreground dark:text-muted-foreground mb-6 max-w-md">
-                Crafting timeless luxury since 2015. We create premium bags that blend exceptional 
-                craftsmanship with sustainable practices for the modern individual.
+                Luxury with purpose. Since 2022, we’ve created premium bags that honor craftsmanship while embracing sustainable practices—made for today’s mindful individual.
               </p>
               
               {/* Social Media */}
               <div className="mb-6">
                 <h4 className="font-semibold text-foreground dark:text-foreground mb-3">
-                  Connect With Us
+                  Connect With Us on Instagram
                 </h4>
                 <div className="flex items-center gap-3">
                   {[
-                    { icon: Instagram, label: "Instagram", href: "#" },
-                    { icon: Facebook, label: "Facebook", href: "#" },
-                    { icon: Twitter, label: "Twitter", href: "#" },
-                    { icon: Youtube, label: "YouTube", href: "#" }
+                    { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/heracollections._?igsh=ejAyMmhzcmZyaGo4&utm_source=qr" },
+                    { icon: FaTiktok, label: "TikTok", href: "https://www.tiktok.com/@heracollections0?_r=1&_t=ZS-940TaAozWfY" },
+                   
                   ].map((social) => (
                     <a
                       key={social.label}
@@ -339,11 +336,11 @@ export default function FreeFooter() {
                   </div>
                 </DialogContent>
               </Dialog>
-              <div className="h-8 hover:scale-105 transition-transform rounded p-1 flex items-center" title="Card Payment">
+              <div className="h-8 hover:scale-105 transition-transform rounded p-1 flex items-center" title="All Major Credit & Debit Cards">
                  <img 
-                   src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" 
-                   alt="Mastercard" 
-                   className="h-full w-auto object-contain"
+                   src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" 
+                   alt="Visa & Mastercard" 
+                   className="h-full w-auto object-contain rounded"
                  />
               </div>
               <div className="h-8 px-3 flex items-center gap-2 rounded text-sm text-foreground/70 dark:text-foreground/70 hover:scale-105 transition-transform cursor-default" title="Cash Payment">
@@ -376,12 +373,6 @@ export default function FreeFooter() {
                   className="text-sm text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors"
                 >
                   Privacy Policy
-                </Link>
-                <Link 
-                  to="/cookies" 
-                  className="text-sm text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors"
-                >
-                  Cookie Policy
                 </Link>
               </div>
               

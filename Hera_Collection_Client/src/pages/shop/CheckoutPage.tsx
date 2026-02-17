@@ -732,7 +732,7 @@ export default function CheckoutPage() {
 
                      <div className="p-6 rounded-2xl border-2 border-dashed border-muted bg-muted/20 opacity-60 flex flex-col items-center gap-3 relative">
                         <div className="absolute top-2 right-2 px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Soon</div>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" className="h-8 object-contain" alt="Mastercard" />
+                        <img src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" className="h-8 object-contain" alt="Mastercard" />
                         <span className="font-bold text-muted-foreground text-sm text-center">Credit Card</span>
                      </div>
                   </div>

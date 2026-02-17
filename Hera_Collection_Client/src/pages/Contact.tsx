@@ -19,11 +19,9 @@ import {
   CheckCircle2,
   ArrowRight,
   Loader2,
-  Facebook,
-  Instagram,
-  Twitter,
-  Youtube
+  Instagram
 } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import emailService from "@/api/email.service";
@@ -74,17 +72,17 @@ const Contact = () => {
   };
 
   const stats = [
-    { number: "24/7", label: "Premium Support", icon: Clock },
-    { number: "100%", label: "Safe Delivery", icon: Shield },
+    { number: "Fast", label: "Nairobi Delivery", icon: MapPin },
+    { number: "100%", label: "Safe Handling", icon: Shield },
     { number: "4.9/5", label: "Client Rating", icon: Star },
-    { number: "Global", label: "Shipping Reach", icon: Globe }
+    { number: "Online", label: "Always Available", icon: Clock }
   ];
 
   const contactMethods = [
     {
       icon: Mail,
       title: "Email Us",
-      value: "info@heracollections.com",
+      value: "admin@heracollections.com",
       description: "Expect a response within 24 hours.",
       color: "from-amber-500 to-orange-500"
     },
@@ -94,13 +92,6 @@ const Contact = () => {
       value: "+254 718 577 608 / +254 707 064 827",
       description: "Mon-Sat, 8am to 6pm EAT.",
       color: "from-blue-500 to-cyan-500"
-    },
-    {
-      icon: MapPin,
-      title: "Visit Us",
-      value: "Nairobi, Kenya",
-      description: "Quality is our signature.",
-      color: "from-emerald-500 to-green-500"
     },
     {
       icon: MessageSquare,
@@ -223,14 +214,14 @@ const Contact = () => {
                 <h3 className="text-sm font-bold text-primary uppercase tracking-[0.3em] mb-6">Follow Our Journey</h3>
                 <div className="flex gap-4">
                   {[
-                    { icon: Instagram, label: "Instagram" },
-                    { icon: Facebook, label: "Facebook" },
-                    { icon: Twitter, label: "Twitter" },
-                    { icon: Youtube, label: "Youtube" }
+                    { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/heracollections._?igsh=ejAyMmhzcmZyaGo4&utm_source=qr" },
+                    { icon: FaTiktok, label: "TikTok", href: "https://www.tiktok.com/@heracollections0?_r=1&_t=ZS-940TaAozWfY" }
                   ].map((social) => (
                     <a
                       key={social.label}
-                      href="#"
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="w-12 h-12 rounded-full border border-border flex items-center justify-center hover:bg-primary hover:text-white hover:border-primary transition-all duration-300"
                     >
                       <social.icon className="w-5 h-5" />
@@ -382,16 +373,16 @@ const Contact = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                q: "Do you ship worldwide?",
-                a: "Yes, we ship our premium bags globally. Delivery times vary by location, typically ranging from 5-14 business days."
+                q: "Where do you deliver?",
+                a: "We currently offer delivery within Nairobi and its immediate environs. Most orders are delivered within 24 hours."
               },
               {
                 q: "What is your return policy?",
-                a: "We offer a 14-day return policy for unused items in original packaging. Quality is our promise."
+                a: "To maintain the highest hygiene and quality standards, we do not accept returns. However, we encourage you to inspect your item upon delivery to ensure complete satisfaction."
               },
               {
-                q: "Can I request a custom design?",
-                a: "Absolutely! We love creating unique pieces. Contact us with your ideas and our artisans will bring them to life."
+                q: "Specific payment methods?",
+                a: "We accept M-Pesa Buy Goods (Till Number: 5425861) and Cash for all local orders. Payment is made upon or before delivery."
               }
             ].map((faq, index) => (
               <motion.div
