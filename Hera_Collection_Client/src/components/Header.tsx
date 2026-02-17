@@ -238,18 +238,18 @@ export default function Header() {
                               </Link>
                               
                               <div className="flex flex-col space-y-2 ml-6 border-l border-border/50 pl-4">
-                                {cat.subCategories?.length > 0 ? (
-                                  cat.subCategories.map((sub: any) => (
-                                    <Link
-                                      key={sub.id}
-                                      to={`/collections?subcategory=${sub.slug}`}
-                                      className="text-xs text-muted-foreground hover:text-primary transition-colors py-1"
-                                      onClick={() => setIsMobileMenuOpen(false)}
-                                    >
-                                      {sub.name}
-                                    </Link>
-                                  ))
-                                ) : (
+                                  {cat.subCategories?.length > 0 ? (
+                                    cat.subCategories.map((sub: any) => (
+                                      <Link
+                                        key={sub.id}
+                                        to={`/collections?category=${cat.slug}&subcategory=${sub.slug}`}
+                                        className="text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                      >
+                                        {sub.name}
+                                      </Link>
+                                    ))
+                                  ) : (
                                   <span className="text-[10px] text-muted-foreground/50 italic font-normal">No styles yet</span>
                                 )}
                               </div>

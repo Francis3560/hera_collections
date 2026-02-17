@@ -47,9 +47,9 @@ export const searchProducts = async ({
   if (q) {
     const searchFilter = {
       OR: [
-        { title: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-        { brand: { contains: q, mode: 'insensitive' } },
+        { title: { contains: q } },
+        { description: { contains: q } },
+        { brand: { contains: q } },
       ]
     };
     

@@ -6,13 +6,15 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
-import { ShoppingBag, Eye, Heart, Filter, ChevronRight, SlidersHorizontal, Palette } from "lucide-react";
+import { ShoppingBag, Eye, Heart, Filter, ChevronRight, SlidersHorizontal, Palette, Search, X } from "lucide-react";
 import { useCart } from "@/context/CartProvider";
 import { useWishlist } from "@/context/WishlistProvider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { QuickAddModal } from "@/components/shop/QuickAddModal";
+import { useMemo } from "react";
 
 export default function CollectionPage() {
   const { slug } = useParams();
@@ -21,6 +23,7 @@ export default function CollectionPage() {
   const { addToWishlist, isInWishlist, removeFromWishlist, items: wishlistItems } = useWishlist();
   const [sortBy, setSortBy] = useState("newest");
   const [quickAddProduct, setQuickAddProduct] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: category, isLoading, error } = useQuery({
     queryKey: ["category", slug],
@@ -170,7 +173,42 @@ export default function CollectionPage() {
     );
   }
 
-  const products = category.products || [];
+  const products = category?.products || [];
+
+  const filteredProducts = useMemo(() => {
+    let result = [...products];
+
+    // Search Filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.title?.toLowerCase().includes(query) || 
+        p.brand?.toLowerCase().includes(query) || 
+        p.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort Logic
+    result.sort((a, b) => {
+      if (sortBy === "price-low") {
+        return calculateDiscountedPrice(a) - calculateDiscountedPrice(b);
+      }
+      if (sortBy === "price-high") {
+        return calculateDiscountedPrice(b) - calculateDiscountedPrice(a);
+      }
+      if (sortBy === "popular") {
+        return (b.rating || 0) - (a.rating || 0);
+      }
+      if (sortBy === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      return 0;
+    });
+
+    return result;
+  }, [products, searchQuery, sortBy]);
+
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -208,14 +246,32 @@ export default function CollectionPage() {
 
         <div className="container mx-auto px-4 py-8 sm:py-12">
           {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 py-4 border-y border-border/50">
-             <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Showing <span className="text-foreground">{products.length}</span> products
+          <div className="flex flex-col gap-6 mb-8 py-6 border-y border-border/50">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                  Showing <span className="text-foreground">{filteredProducts.length}</span> of {products.length} products
                 </span>
-             </div>
-             
-             <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search products..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-secondary/20 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-secondary rounded-full"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative group flex-1 sm:flex-none">
                   <select 
                     value={sortBy}
@@ -229,22 +285,31 @@ export default function CollectionPage() {
                   </select>
                   <SlidersHorizontal className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 </div>
-                <Button variant="outline" size="icon" className="h-10 w-10 flex-shrink-0">
-                  <Filter className="h-4 w-4" />
-                </Button>
-             </div>
+              </div>
+            </div>
+
+
           </div>
 
           {/* Product Grid */}
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="py-20 text-center">
               <ShoppingBag className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No products found</h3>
-              <p className="text-muted-foreground">This collection is currently empty. Check back soon!</p>
+              <p className="text-muted-foreground">Try adjusting your filters to find what you're looking for.</p>
+              <Button 
+                variant="outline" 
+                className="mt-6"
+                onClick={() => {
+                  setSearchQuery("");
+                }}
+              >
+                Reset Filters
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
-              {products.map((product: any) => {
+              {filteredProducts.map((product: any) => {
                 const discountedPrice = calculateDiscountedPrice(product);
                 const originalPrice = parseFloat(product.variants?.[0]?.price || "0");
                 const hasDiscount = discountedPrice < originalPrice;

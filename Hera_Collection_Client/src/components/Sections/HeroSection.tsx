@@ -9,16 +9,26 @@ import { useTheme } from "@/components/ThemeProvider";
 const heroSlides = [
   {
     id: 1,
+    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375593/3_f5csiv.png",
+    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375591/4_g4hcer.png",
+    title: "SUSTAINABLE LUXURY",
+    subtitle: "Ethical Style",
+    description: "Eco-friendly materials, ethical production. Redefining premium accessories.",
+    cta: "EXPLORE COLLECTION",
+    bgColor: "from-amber-600/20 to-orange-600/20"
+  },
+  {
+    id: 2,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_len3pf.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_B_uol1cn.png",
-    title: "PROFESSIONAL LOOK",
+    title: "LUXURIOUS BRAND",
     subtitle: "Executive Excellence",
     description: "Premium professional bags for modern leaders. Precision-crafted for excellence.",
     cta: "EXPLORE COLLECTION",
     bgColor: "from-gray-800/20 to-gray-600/20"
   },
   {
-    id: 2,
+    id: 3,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465243/7_yxmssx.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465244/8_tmqduj.png",
     title: "EXECUTIVE ELEGANCE",
@@ -28,10 +38,10 @@ const heroSlides = [
     bgColor: "from-blue-600/20 to-purple-600/20"
   },
   {
-    id: 3,
+    id: 4,
     lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467638/Hera_Hero_B_jsm0uf.png",
     darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467637/Hera_Hero_W_kalxmy.png",
-    title: "LUXURIOUS BRAND",
+    title: "PERFECT PARTNER",
     subtitle: "Smart Organization",
     description: "Intelligent design meets elegant aesthetics. Your perfect partner for travel and daily commutes.",
     cta: "EXPLORE COLLECTION",

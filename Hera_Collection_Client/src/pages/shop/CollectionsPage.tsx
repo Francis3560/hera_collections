@@ -252,11 +252,21 @@ export default function CollectionsPage() {
             className="relative z-10 text-center px-4"
           >
             <h1 className="text-4xl sm:text-6xl font-black uppercase tracking-tighter mb-4">
-              {activeSubCategory !== "all" 
-                ? activeSubCategory.replace("-", " ") 
-                : activeCategory === "all" 
-                  ? "The Collections" 
-                  : activeCategory.replace("-", " ")}
+              {(() => {
+                if (activeSubCategory !== "all") {
+                  let foundSub = null;
+                  for (const cat of categories) {
+                    const sub = cat.subCategories?.find((s: any) => s.slug === activeSubCategory);
+                    if (sub) { foundSub = sub; break; }
+                  }
+                  return foundSub?.name || activeSubCategory.replace("-", " ");
+                }
+                if (activeCategory !== "all") {
+                  const cat = categories.find((c: any) => c.slug === activeCategory);
+                  return cat?.name || activeCategory.replace("-", " ");
+                }
+                return "The Collections";
+              })()}
             </h1>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground uppercase tracking-widest">
               <Link to="/" className="hover:text-primary">Home</Link>
@@ -377,16 +387,6 @@ export default function CollectionsPage() {
                       </div>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* Price Filter (Mock) */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold uppercase tracking-widest">Price Range</h3>
-                <div className="flex items-center gap-2">
-                  <Input placeholder="Min" className="rounded-lg bg-secondary/30 border-none h-8 text-xs" />
-                  <span className="text-muted-foreground text-xs">to</span>
-                  <Input placeholder="Max" className="rounded-lg bg-secondary/30 border-none h-8 text-xs" />
                 </div>
               </div>
             </aside>

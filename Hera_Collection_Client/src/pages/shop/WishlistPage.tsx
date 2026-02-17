@@ -37,13 +37,21 @@ export default function WishlistPage() {
     }).format(numPrice);
   };
 
-  const handleAddToCart = async (item: any) => {
+  const handleAddToCart = async (e: React.MouseEvent, item: any) => {
+    e.preventDefault();
+    e.stopPropagation();
     try {
         await addToCart(item.productId, item.variantId, 1);
         toast.success("Added to cart");
     } catch (error) {
         toast.error("Failed to add to cart");
     }
+  };
+
+  const handleRemoveFromWishlist = async (e: React.MouseEvent, itemId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await removeFromWishlist(itemId);
   };
 
   if (!isAuthenticated) {
@@ -113,7 +121,11 @@ export default function WishlistPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {items.map((item: any) => (
-              <div key={item.id} className="bg-background rounded-3xl overflow-hidden shadow-sm border border-border/40 hover:shadow-xl transition-all duration-300 group flex flex-col">
+              <Link 
+                to={`/product/${item.product?.slug}`} 
+                key={item.id} 
+                className="bg-background rounded-3xl overflow-hidden shadow-sm border border-border/40 hover:shadow-xl transition-all duration-300 group flex flex-col"
+              >
                 <div className="relative aspect-square overflow-hidden bg-secondary/20 rounded-2xl m-4">
                   <img 
                     src={getProductImage(item)} 
@@ -126,7 +138,7 @@ export default function WishlistPage() {
                   />
                   <div className="absolute top-3 right-3">
                      <button 
-                        onClick={() => removeFromWishlist(item.id)}
+                        onClick={(e) => handleRemoveFromWishlist(e, item.id)}
                         className="bg-background/80 backdrop-blur-md p-2 rounded-full hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-colors"
                         title="Remove from wishlist"
                       >
@@ -141,8 +153,7 @@ export default function WishlistPage() {
                 </div>
                 
                 <div className="p-5 flex-1 flex flex-col">
-                  <h3 className="text-lg font-semibold mb-1 line-clamp-1">{item.product?.title}</h3>
-             
+                  <h3 className="text-lg font-semibold mb-1 line-clamp-1 group-hover:text-primary transition-colors">{item.product?.title}</h3>
                   
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
                     <span className="text-xl font-bold text-primary">
@@ -151,14 +162,14 @@ export default function WishlistPage() {
                     <Button 
                         size="sm" 
                         className="rounded-full gap-2 hover:px-6 transition-all"
-                        onClick={() => handleAddToCart(item)}
+                        onClick={(e) => handleAddToCart(e, item)}
                     >
                         <ShoppingCart className="w-4 h-4" />
                         Add to Cart
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
         </div>
       </main>
