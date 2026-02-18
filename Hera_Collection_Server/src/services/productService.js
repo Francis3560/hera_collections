@@ -305,9 +305,10 @@ export const createProduct = async (data, sellerUserId, processedImages = []) =>
         photos: processedImages.length
           ? {
               createMany: {
-                data: processedImages.map((img) => ({
+                data: processedImages.map((img, idx) => ({
                   url: img.original,
                   publicId: img.thumbnail,
+                  altText: data.imageMetadata?.[idx]?.association || null
                 })),
               },
             }
@@ -337,6 +338,19 @@ export const createProduct = async (data, sellerUserId, processedImages = []) =>
 
     // 3. Create Variants and initial Stock Movements
     for (const varData of data.variants) {
+      // Auto-assign image from metadata if not provided
+      let variantImage = varData.image || null;
+      if (!variantImage && data.imageMetadata) {
+        const colorValue = varData.optionMappings['Color'] || varData.optionMappings['Colour'];
+        if (colorValue) {
+          const colorKey = `Color:${colorValue}`;
+          const matchingImageIndex = data.imageMetadata.findIndex(m => m.association === colorKey);
+          if (matchingImageIndex !== -1 && processedImages[matchingImageIndex]) {
+            variantImage = processedImages[matchingImageIndex].original;
+          }
+        }
+      }
+
       const variant = await tx.productVariant.create({
         data: {
           productId: product.id,
@@ -344,7 +358,7 @@ export const createProduct = async (data, sellerUserId, processedImages = []) =>
           price: varData.price,
           costPrice: varData.costPrice || null,
           stock: varData.stock || 0,
-          image: varData.image || null,
+          image: variantImage,
           optionValues: {
             create: Object.entries(varData.optionMappings).map(([optName, valName]) => ({
               optionValueId: createdOptions[optName][valName]
@@ -397,10 +411,11 @@ export const updateProduct = async (id, data, processedImages = []) => {
 
     if (processedImages.length > 0) {
       await tx.photo.createMany({
-        data: processedImages.map((img) => ({
+        data: processedImages.map((img, idx) => ({
           productId,
           url: img.original,
           publicId: img.thumbnail,
+          altText: data.imageMetadata?.[idx]?.association || null
         })),
       });
     }
@@ -470,6 +485,19 @@ export const updateProduct = async (id, data, processedImages = []) => {
       for (const varData of data.variants) {
         if (varData.id) {
           // Update existing
+          // Auto-assign image from metadata if not provided
+          let variantImage = varData.image || null;
+          if (!variantImage && data.imageMetadata) {
+            const colorValue = varData.optionMappings['Color'] || varData.optionMappings['Colour'];
+            if (colorValue) {
+              const colorKey = `Color:${colorValue}`;
+              const matchingImageIndex = data.imageMetadata.findIndex(m => m.association === colorKey);
+              if (matchingImageIndex !== -1 && processedImages[matchingImageIndex]) {
+                variantImage = processedImages[matchingImageIndex].original;
+              }
+            }
+          }
+
           await tx.productVariant.update({
             where: { id: parseInt(varData.id) },
             data: {
@@ -478,7 +506,7 @@ export const updateProduct = async (id, data, processedImages = []) => {
               costPrice: varData.costPrice || null,
               stock: varData.stock || 0,
               isActive: varData.isActive !== undefined ? varData.isActive : true,
-              image: varData.image || null,
+              image: variantImage,
             }
           });
           // Note: Option mappings for existing variants are generally immutable 

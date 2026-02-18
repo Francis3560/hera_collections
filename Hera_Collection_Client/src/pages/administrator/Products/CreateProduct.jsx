@@ -62,6 +62,10 @@ const CreateProduct = () => {
   const [filteredSubCategories, setFilteredSubCategories] = useState([]);
   const [isFetchingCategories, setIsFetchingCategories] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  
+  // Variant-specific images state
+  const [variantImages, setVariantImages] = useState({}); // { "Color:Black": [File, File] }
+  const [variantImagePreviews, setVariantImagePreviews] = useState({}); // { "Color:Black": ["blob:...", "blob:..."] }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,11 +213,40 @@ const CreateProduct = () => {
     }
   };
 
+  const handleVariantImageChange = (key, e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const newPreviews = files.map((file) => URL.createObjectURL(file));
+      setVariantImages(prev => ({
+        ...prev,
+        [key]: [...(prev[key] || []), ...files]
+      }));
+      setVariantImagePreviews(prev => ({
+        ...prev,
+        [key]: [...(prev[key] || []), ...newPreviews]
+      }));
+    }
+  };
+
   const removeImage = (index) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => {
       URL.revokeObjectURL(prev[index]);
       return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const removeVariantImage = (key, index) => {
+    setVariantImages(prev => ({
+      ...prev,
+      [key]: prev[key].filter((_, i) => i !== index)
+    }));
+    setVariantImagePreviews(prev => {
+      URL.revokeObjectURL(prev[key][index]);
+      return {
+        ...prev,
+        [key]: prev[key].filter((_, i) => i !== index)
+      };
     });
   };
 
@@ -249,7 +282,22 @@ const CreateProduct = () => {
         })),
       };
 
-      await productService.createProduct(payload, images);
+      // Combine all images and add metadata for backend to handle associations
+      // We pass the variant mapping in the payload for the backend to use if it's updated
+      // For now, we'll send a flat array but keep the structure in the payload
+      const allFiles = [...images];
+      const imageMetadata = images.map(() => ({ type: 'general' }));
+
+      Object.entries(variantImages).forEach(([key, files]) => {
+        files.forEach(file => {
+          allFiles.push(file);
+          imageMetadata.push({ type: 'variant', association: key });
+        });
+      });
+
+      payload.imageMetadata = imageMetadata;
+
+      await productService.createProduct(payload, allFiles);
 
       toast({
         title: "Success! 🎉",
@@ -529,51 +577,94 @@ const CreateProduct = () => {
 
             {/* Right Column: Media Upload */}
             <div className="lg:col-span-1 space-y-8">
-                 <Card className="glass-card border-none shadow-elegant h-fit sticky top-8">
+                 <Card className="glass-card border-none shadow-elegant h-fit sticky top-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-xl">
                             <Package className="h-5 w-5 text-primary" />
                             Product Media
                         </CardTitle>
                         <CardDescription>
-                            Upload high-quality images.
+                            Upload general and variant-specific images.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            {imagePreviews.map((src, index) => (
-                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden group shadow-sm ring-1 ring-border">
-                                    <img src={src} alt={`Preview ${index}`} className="object-cover w-full h-full" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </button>
-                                </div>
-                            ))}
-                            
-                             <label className="border-2 border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors mb-2">
-                                     <Upload className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                                </div>
-                                <span className="text-xs text-muted-foreground font-medium text-center px-2">Click to Upload</span>
-                                <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    multiple 
-                                    className="hidden" 
-                                    onChange={handleImageChange}
-                                />
-                            </label>
+                    <CardContent className="space-y-8">
+                        {/* General Images Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <Info className="h-4 w-4" /> General Images
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                {imagePreviews.map((src, index) => (
+                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden group shadow-sm ring-1 ring-border">
+                                        <img src={src} alt={`Preview ${index}`} className="object-cover w-full h-full" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                                
+                                <label className="border-2 border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                    <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors mb-2">
+                                         <Upload className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground font-medium text-center px-2">General</span>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        multiple 
+                                        className="hidden" 
+                                        onChange={handleImageChange}
+                                    />
+                                </label>
+                            </div>
                         </div>
+
+                        {/* Variant-Specific Images Section */}
+                        {options.find(opt => opt.name && (opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'))?.values.filter(v => v.trim()).map((color) => (
+                            <div key={color} className="space-y-4 pt-4 border-t border-primary/10">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border border-border" style={{ backgroundColor: color.toLowerCase() }} />
+                                    {color} Images
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {variantImagePreviews[`Color:${color}`]?.map((src, index) => (
+                                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden group shadow-sm ring-1 ring-border">
+                                            <img src={src} alt={`${color} Preview ${index}`} className="object-cover w-full h-full" />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeVariantImage(`Color:${color}`, index)}
+                                                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    
+                                    <label className="border-2 border-dashed border-primary/20 hover:border-primary/50 hover:bg-primary/5 rounded-lg aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                        <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors mb-2">
+                                             <Upload className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                                        </div>
+                                        <span className="text-xs text-muted-foreground font-medium text-center px-2">{color}</span>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            multiple 
+                                            className="hidden" 
+                                            onChange={(e) => handleVariantImageChange(`Color:${color}`, e)}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        ))}
                         
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex gap-3 items-start text-sm text-blue-600 dark:text-blue-300">
                              <Info className="h-5 w-5 shrink-0 mt-0.5" />
                              <p>
-                                 Supported formats: JPG, PNG, WEBP. <br/>
-                                 Max file size: 5MB per image.
+                                 Pro tip: Upload specific images for each color to show them when the customer selects that color.
                              </p>
                         </div>
                     </CardContent>

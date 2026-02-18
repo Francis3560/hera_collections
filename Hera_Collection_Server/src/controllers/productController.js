@@ -115,6 +115,7 @@ export const createProductController = [
       const body = { ...req.body };
       if (typeof body.options === 'string') body.options = JSON.parse(body.options);
       if (typeof body.variants === 'string') body.variants = JSON.parse(body.variants);
+      if (typeof body.imageMetadata === 'string') body.imageMetadata = JSON.parse(body.imageMetadata);
 
       const { error, value } = createProductValidator(body);
       if (error) return res.status(400).json({ message: error.details[0].message });
@@ -168,6 +169,11 @@ export const updateProductController = [
         try {
           req.body.variants = JSON.parse(req.body.variants);
         } catch(e) {}
+      }
+      if (typeof req.body.imageMetadata === 'string') {
+        try {
+          req.body.imageMetadata = JSON.parse(req.body.imageMetadata);
+        } catch (e) {}
       }
 
       const { error, value } = updateProductValidator(req.body);

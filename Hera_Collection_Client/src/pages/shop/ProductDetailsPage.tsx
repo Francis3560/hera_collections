@@ -77,6 +77,29 @@ export default function ProductDetailsPage() {
     }
   }, [selectedVariant, selectedVariant?.stock]);
 
+  const allImages = product?.photos || [];
+  const currentColorAttribute = selectedVariant?.optionValues?.find((ov: any) => 
+    ov.optionValue?.option?.name?.toLowerCase().includes('color') || 
+    ov.optionValue?.option?.name?.toLowerCase().includes('colour')
+  )?.optionValue.value;
+
+  // Filter images based on selected color
+  const displayedImages = allImages.filter((img: any) => {
+    if (!currentColorAttribute) return true;
+    // If image is associated with THIS color
+    if (img.altText === `Color:${currentColorAttribute}`) return true;
+    // Also show general images that aren't associated with ANY color
+    if (!img.altText || !img.altText.startsWith('Color:')) return true;
+    return false;
+  });
+
+  // Reset image index if it's out of bounds of displayed images
+  useEffect(() => {
+    if (activeImageIndex >= displayedImages.length && displayedImages.length > 0) {
+      setActiveImageIndex(0);
+    }
+  }, [displayedImages.length, activeImageIndex]);
+
   const handleAddToCart = async () => {
     if (!selectedVariant) {
       toast.error("Please select a variant");
@@ -173,7 +196,7 @@ export default function ProductDetailsPage() {
     );
   }
 
-  const images = product.photos || [];
+
   const discount = product.discounts?.find((d: any) => d.isActive);
 
   // Group variants by options (Simplified for now assuming single dimension or flat list)
@@ -225,9 +248,9 @@ export default function ProductDetailsPage() {
                   {Math.round(discount.discountPercentage)}% OFF
                 </div>
               )}
-              {images.length > 0 ? (
+              {displayedImages.length > 0 ? (
                 <img 
-                  src={`${API_BASE_URL}${images[activeImageIndex]?.url}`} 
+                  src={`${API_BASE_URL}${displayedImages[activeImageIndex]?.url}`} 
                   alt={product.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
@@ -237,9 +260,9 @@ export default function ProductDetailsPage() {
             </div>
             
             {/* Thumbnails */}
-            {images.length > 1 && (
+            {displayedImages.length > 1 && (
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                {images.map((img: any, idx: number) => (
+                {displayedImages.map((img: any, idx: number) => (
                   <button
                     key={idx}
                     onClick={() => setActiveImageIndex(idx)}

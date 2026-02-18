@@ -36,7 +36,7 @@ export const createProductValidator = (data) => {
     price: Joi.number().positive().required(),
     costPrice: Joi.number().positive().optional().allow(null),
     stock: Joi.number().integer().min(0).default(0),
-    image: Joi.string().uri().optional().allow('', null),
+    image: Joi.string().optional().allow('', null),
     optionMappings: Joi.object().pattern(Joi.string(), Joi.string()).required(), // e.g., { "Color": "Black", "Size": "XL" }
   });
 
@@ -50,6 +50,10 @@ export const createProductValidator = (data) => {
     manufacturer: Joi.string().max(120).optional().allow('', null),
     options: Joi.array().items(optionSchema).min(1).required(),
     variants: Joi.array().items(variantSchema).min(1).required(),
+    imageMetadata: Joi.array().items(Joi.object({
+      type: Joi.string().valid('general', 'variant').required(),
+      association: Joi.string().optional().allow(null),
+    })).optional(),
   }).prefs({ allowUnknown: false });
 
   return schema.validate(data, basePrefs);
@@ -67,7 +71,7 @@ export const updateProductValidator = (data) => {
     price: Joi.number().positive(),
     costPrice: Joi.number().positive().optional().allow(null),
     stock: Joi.number().integer().min(0),
-    image: Joi.string().uri().optional().allow('', null),
+    image: Joi.string().optional().allow('', null),
     isActive: Joi.boolean(),
     optionMappings: Joi.object().pattern(Joi.string(), Joi.string()),
   });
@@ -79,11 +83,15 @@ export const updateProductValidator = (data) => {
     subCategoryId: Joi.number().integer().positive().optional().allow(null),
     isPublished: Joi.boolean(),
     imagesAction: Joi.string().valid('append', 'replace').default('append'),
-    removeImageUrls: Joi.array().items(Joi.string().uri()).optional(),
+    removeImageUrls: Joi.array().items(Joi.string()).optional(),
     brand: Joi.string().max(120).optional().allow('', null),
     manufacturer: Joi.string().max(120).optional().allow('', null),
     options: Joi.array().items(optionSchema).optional(),
     variants: Joi.array().items(variantSchema).optional(),
+    imageMetadata: Joi.array().items(Joi.object({
+      type: Joi.string().valid('general', 'variant').required(),
+      association: Joi.string().optional().allow(null),
+    })).optional(),
   })
     .min(1)
     .prefs({ allowUnknown: false });

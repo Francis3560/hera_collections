@@ -84,6 +84,10 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
   const [removedPhotoUrls, setRemovedPhotoUrls] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [newImagePreviews, setNewImagePreviews] = useState([]);
+  
+  // Variant-specific images state
+  const [variantNewImages, setVariantNewImages] = useState({}); // { "Color:Black": [File, File] }
+  const [variantNewImagePreviews, setVariantNewImagePreviews] = useState({});
 
   // Variant management state
   const [options, setOptions] = useState([]);
@@ -124,6 +128,8 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
       setRemovedPhotoUrls([]);
       setNewImages([]);
       setNewImagePreviews([]);
+      setVariantNewImages({});
+      setVariantNewImagePreviews({});
 
       // Map existing options
       if (product.options && product.options.length > 0) {
@@ -246,6 +252,35 @@ const ProductEditModal = ({ isOpen, onClose, product, onUpdateSuccess }) => {
     });
   };
 
+  const handleVariantImageChange = (key, e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const newPreviews = files.map((file) => URL.createObjectURL(file));
+      setVariantNewImages(prev => ({
+        ...prev,
+        [key]: [...(prev[key] || []), ...files]
+      }));
+      setVariantNewImagePreviews(prev => ({
+        ...prev,
+        [key]: [...(prev[key] || []), ...newPreviews]
+      }));
+    }
+  };
+
+  const removeVariantNewImage = (key, index) => {
+    setVariantNewImages(prev => ({
+      ...prev,
+      [key]: prev[key].filter((_, i) => i !== index)
+    }));
+    setVariantNewImagePreviews(prev => {
+      URL.revokeObjectURL(prev[key][index]);
+      return {
+        ...prev,
+        [key]: prev[key].filter((_, i) => i !== index)
+      };
+    });
+  };
+
   const fetchCategories = async () => {
     setIsFetchingCategories(true);
     try {
@@ -289,7 +324,20 @@ const payload = {
         })),
       };
 
-      await productService.updateProduct(product.id, payload, newImages);
+      // Combine all images and add metadata
+      const allFiles = [...newImages];
+      const imageMetadata = newImages.map(() => ({ type: 'general' }));
+
+      Object.entries(variantNewImages).forEach(([key, files]) => {
+        files.forEach(file => {
+          allFiles.push(file);
+          imageMetadata.push({ type: 'variant', association: key });
+        });
+      });
+
+      payload.imageMetadata = imageMetadata;
+
+      await productService.updateProduct(product.id, payload, allFiles);
       
       toast({
         title: "Product Updated 🎉",
@@ -530,28 +578,67 @@ const payload = {
                                 <ImageIcon className="h-4 w-4 text-primary" /> Visual Assets
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="pt-6 space-y-6">
-                            <div className="grid grid-cols-2 gap-3">
-                                {existingPhotos.map((photo) => (
-                                    <div key={photo.url} className="relative aspect-square rounded-xl overflow-hidden border border-white/5 group bg-muted">
-                                        <img src={`${API_BASE_URL}${photo.url}`} className="h-full w-full object-cover" alt="Product" />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeExistingPhoto(photo.url)}><X className="h-4 w-4" /></Button>
+                        <CardContent className="pt-6 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            {/* General Photos */}
+                            <div className="space-y-3">
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                    <Info className="h-3 w-3" /> General Photos
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {existingPhotos.filter(p => !p.altText || !p.altText.startsWith('Color:')).map((photo) => (
+                                        <div key={photo.url} className="relative aspect-square rounded-xl overflow-hidden border border-white/5 group bg-muted">
+                                            <img src={`${API_BASE_URL}${photo.url}`} className="h-full w-full object-cover" alt="Product" />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeExistingPhoto(photo.url)}><X className="h-4 w-4" /></Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                                {newImagePreviews.map((src, index) => (
-                                    <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-primary/30 ring-2 ring-primary/10 group bg-muted">
-                                        <img src={src} className="h-full w-full object-cover" alt="New upload" />
-                                        <button type="button" onClick={() => removeNewImage(index)} className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
-                                    </div>
-                                ))}
-                                <label className="border-2 border-dashed border-white/10 hover:border-primary/30 hover:bg-primary/5 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                    <Upload className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground mt-2">Add Photo</span>
-                                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
-                                </label>
+                                    ))}
+                                    {newImagePreviews.map((src, index) => (
+                                        <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-primary/30 ring-2 ring-primary/10 group bg-muted">
+                                            <img src={src} className="h-full w-full object-cover" alt="New upload" />
+                                            <button type="button" onClick={() => removeNewImage(index)} className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                                        </div>
+                                    ))}
+                                    <label className="border-2 border-dashed border-white/10 hover:border-primary/30 hover:bg-primary/5 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                        <Upload className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
+                                        <span className="text-[10px] font-black uppercase text-muted-foreground mt-2">General</span>
+                                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
+                                    </label>
+                                </div>
                             </div>
+
+                            {/* Color-Specific Photos */}
+                            {options.find(opt => opt.name && (opt.name.toLowerCase() === 'color' || opt.name.toLowerCase() === 'colour'))?.values.filter(v => v.trim()).map((color) => (
+                                <div key={color} className="space-y-3 pt-4 border-t border-white/5">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full border border-border" style={{ backgroundColor: color.toLowerCase() }} />
+                                        {color} Photos
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* Existing color-specific photos */}
+                                        {existingPhotos.filter(p => p.altText === `Color:${color}`).map((photo) => (
+                                            <div key={photo.url} className="relative aspect-square rounded-xl overflow-hidden border border-white/5 group bg-muted">
+                                                <img src={`${API_BASE_URL}${photo.url}`} className="h-full w-full object-cover" alt={color} />
+                                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <Button type="button" variant="destructive" size="icon" className="h-8 w-8 rounded-full" onClick={() => removeExistingPhoto(photo.url)}><X className="h-4 w-4" /></Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {/* New color-specific photos */}
+                                        {variantNewImagePreviews[`Color:${color}`]?.map((src, index) => (
+                                            <div key={`new-${color}-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-primary/30 ring-2 ring-primary/10 group bg-muted">
+                                                <img src={src} className="h-full w-full object-cover" alt="New upload" />
+                                                <button type="button" onClick={() => removeVariantNewImage(`Color:${color}`, index)} className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X className="h-3 w-3" /></button>
+                                            </div>
+                                        ))}
+                                        <label className="border-2 border-dashed border-white/10 hover:border-primary/30 hover:bg-primary/5 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                            <Upload className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
+                                            <span className="text-[10px] font-black uppercase text-muted-foreground mt-2">{color}</span>
+                                            <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleVariantImageChange(`Color:${color}`, e)} />
+                                        </label>
+                                    </div>
+                                </div>
+                            ))}
                         </CardContent>
                     </Card>
                   </div>
