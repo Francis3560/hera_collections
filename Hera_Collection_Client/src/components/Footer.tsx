@@ -134,7 +134,7 @@ export default function FreeFooter() {
               </div>
               
               <p className="text-muted-foreground dark:text-muted-foreground mb-6 max-w-md">
-                Luxury with purpose. Since 2022, we’ve created premium bags that honor craftsmanship while embracing sustainable practices—made for today’s mindful individual.
+                Luxury with purpose. Since 2015, we’ve created premium bags that honor craftsmanship while embracing sustainable practices—made for today’s mindful individual.
               </p>
               
               {/* Social Media */}

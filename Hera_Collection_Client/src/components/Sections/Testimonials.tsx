@@ -117,7 +117,7 @@ export default function Testimonials() {
         </div>
 
         {/* Carousel Container */}
-        <div className="relative max-w-7xl mx-auto group">
+        <div className="relative max-w-5xl mx-auto group">
           
           {/* Controls */}
           <div className="absolute inset-y-0 left-0 -ml-4 md:-ml-12 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
