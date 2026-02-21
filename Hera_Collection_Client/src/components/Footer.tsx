@@ -140,7 +140,7 @@ export default function FreeFooter() {
               {/* Social Media */}
               <div className="mb-6">
                 <h4 className="font-semibold text-foreground dark:text-foreground mb-3">
-                  Connect With Us on Instagram
+                  Connect With Us on Social Media
                 </h4>
                 <div className="flex items-center gap-3">
                   {[
