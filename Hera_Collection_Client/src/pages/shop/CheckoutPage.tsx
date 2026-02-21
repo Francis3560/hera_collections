@@ -577,7 +577,7 @@ export default function CheckoutPage() {
                     <Input id="city" value={formData.city} onChange={handleInputChange} required className="rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="governorate">Governorate / State</Label>
+                    <Label htmlFor="governorate">County</Label>
                     <Input id="governorate" value={formData.governorate} onChange={handleInputChange} required className="rounded-xl" />
                   </div>
 

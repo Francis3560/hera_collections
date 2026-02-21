@@ -134,13 +134,13 @@ export default function FreeFooter() {
               </div>
               
               <p className="text-muted-foreground dark:text-muted-foreground mb-6 max-w-md">
-                Luxury with purpose. Since 2022, we’ve created premium bags that honor craftsmanship while embracing sustainable practices—made for today’s mindful individual.
+                Luxury with purpose. Since 2015, we’ve created premium bags that honor craftsmanship while embracing sustainable practices—made for today’s mindful individual.
               </p>
               
               {/* Social Media */}
               <div className="mb-6">
                 <h4 className="font-semibold text-foreground dark:text-foreground mb-3">
-                  Connect With Us on Instagram
+                  Connect With Us on Social Media
                 </h4>
                 <div className="flex items-center gap-3">
                   {[
@@ -296,7 +296,7 @@ export default function FreeFooter() {
             <h4 className="text-center font-semibold text-foreground dark:text-foreground mb-4">
               We Accept
             </h4>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap align-itens-center items-center justify-center gap-4">
               <Dialog>
                 <DialogTrigger asChild>
                   <button className="h-8 hover:scale-105 transition-transform rounded p-1">
@@ -336,7 +336,7 @@ export default function FreeFooter() {
                   </div>
                 </DialogContent>
               </Dialog>
-              <div className="h-8 hover:scale-105 transition-transform rounded p-1 flex items-center" title="All Major Credit & Debit Cards">
+              <div className="h-14 hover:scale-105 transition-transform rounded p-1 flex items-center" title="All Major Credit & Debit Cards">
                  <img 
                    src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" 
                    alt="Visa & Mastercard" 
