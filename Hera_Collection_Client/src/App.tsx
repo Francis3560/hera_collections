@@ -104,9 +104,9 @@ const App = () => (
                   <Route path="/collections" element={<CollectionsPage />} />
                   <Route path="/collections/:slug" element={<CollectionPage />} />
                   <Route path="/checkout" element={
-                    <ProtectedRoute>
+                    //<ProtectedRoute>
                       <CheckoutPage />
-                    </ProtectedRoute>
+                    //</ProtectedRoute>
                   } />
                   <Route path="/thank-you" element={<ThankYouPage />} />
                   <Route path="/order-tracking/:orderNumber" element={<OrderTrackingPage />} />
