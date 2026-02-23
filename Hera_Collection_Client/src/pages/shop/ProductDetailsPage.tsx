@@ -12,7 +12,8 @@ import {
   Truck,
   ShieldCheck,
   RotateCcw,
-  Loader2
+  Loader2,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -363,15 +364,21 @@ export default function ProductDetailsPage() {
                                   if (firstVariantWithColor) setSelectedVariant(firstVariantWithColor);
                                 }}
                                 className={cn(
-                                  "w-10 h-10 rounded-full border-2 transition-all p-0.5",
-                                  isSelected ? "border-primary ring-2 ring-primary/20" : "border-transparent hover:border-gray-400"
+                                  "w-10 h-10 rounded-full border-2 transition-all p-1 flex items-center justify-center",
+                                  isSelected 
+                                    ? "border-primary ring-4 ring-primary/10 scale-110 z-10" 
+                                    : "border-border hover:border-primary/40"
                                 )}
                                 title={color}
                               >
                                 <div 
-                                  className="w-full h-full rounded-full border border-black/5" 
+                                  className="w-full h-full rounded-full border border-black/5 flex items-center justify-center" 
                                   style={{ backgroundColor: getColorValue(color) }}
-                                />
+                                >
+                                  {isSelected && (
+                                    <Check className="h-5 w-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                                  )}
+                                </div>
                               </button>
                             );
                           })}
