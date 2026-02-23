@@ -91,12 +91,21 @@ export default function CartPage() {
                   
                   <div className="flex items-center justify-center sm:justify-start gap-4">
                     <div className="flex items-center border border-border rounded-full p-1 bg-secondary/10">
-                      <button 
-                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-background rounded-full transition-colors"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
+                      {item.quantity == 1 ? (
+                          <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-red-500 hover:text-red-600 transition-colors p-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                      ) : (<button
+                              onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                              className="w-8 h-8 flex items-center justify-center hover:bg-background rounded-full transition-colors"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                      )}
+
                       <span className="w-10 text-center font-medium">{item.quantity}</span>
                       <button 
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
@@ -111,13 +120,15 @@ export default function CartPage() {
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
-                    
-                    <button 
-                      onClick={() => removeItem(item.id)}
-                      className="text-red-500 hover:text-red-600 transition-colors p-2"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+
+                    {item.quantity > 1 &&
+                        (<button
+                            onClick={() => removeItem(item.id)}
+                            className="text-red-500 hover:text-red-600 transition-colors p-2"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>)
+                    }
                   </div>
                 </div>
                 
