@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { OrbitProgress } from 'react-loading-indicators';
 import { useToast } from '@/hooks/use-toast';
@@ -24,9 +24,31 @@ import {
   Lock,
   Key,
   CheckCircle,
+  Quote,
 } from 'lucide-react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/components/ThemeProvider';
+
+const darkLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745508/Hera-logo-white_kep2fm.png";
+const lightLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png";
+
+const SLIDES = [
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784615/Ekalale_Backpack_2_1_glnfr0.jpg",
+    quote: "It's the fact that they make out time to teach and walk me through the process of being a better entrepreneur.",
+  },
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784681/Nyathii_Baby_Bag_Brown_1_blxhpj.png",
+    quote: "Hera has completely transformed how I source luxury pieces for my collection. The quality is unmatched.",
+  },
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771785863/Naitore_Handbag_2_cukq0s.jpg",
+    quote: "The attention to detail and personalized service makes every purchase a world-class experience.",
+  }
+];
+
 import userService from '@/api/UserService.js'; 
 
 // Full page loader component
@@ -125,6 +147,15 @@ const ForgotPassword = () => {
   const [responseType, setResponseType] = useState<'success' | 'error'>('success');
   const [responseTitle, setResponseTitle] = useState('');
   const [responseMessage, setResponseMessage] = useState('');
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Slideshow timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const form = useForm({
     resolver: zodResolver(forgotPasswordSchema),
@@ -133,6 +164,28 @@ const ForgotPassword = () => {
     },
     mode: 'onChange',
   });
+
+  // Theme detection
+  const { theme } = useTheme();
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      
+      const listener = (e: MediaQueryListEvent) => {
+        setActualTheme(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    } else {
+      setActualTheme(theme as 'light' | 'dark');
+    }
+  }, [theme]);
+
+  const currentThemeLogo = actualTheme === 'dark' ? darkLogo : lightLogo;
 
   const handleSubmit = async (values: any) => {
     setIsSubmitting(true);
@@ -217,8 +270,12 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-backdrop p-4">
-      {/* Response Modal */}
+    <div className="min-h-screen flex bg-background overflow-hidden font-sans">
+      <AnimatePresence>
+        {showFullLoader && <FullPageLoader message={loaderMessage} />}
+      </AnimatePresence>
+
+       {/* Response Modal */}
       <ResponseModal
         type={responseType}
         title={responseTitle}
@@ -227,174 +284,248 @@ const ForgotPassword = () => {
         onClose={() => setShowResponseModal(false)}
       />
 
-      {/* Full page loader */}
-      {showFullLoader && (
-        <FullPageLoader 
-          message={loaderMessage} 
-        />
-      )}
+      {/* Left Side: Visual / Marketing (Hidden on mobile) */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="hidden lg:flex lg:w-[42%] p-6 bg-secondary/10 overflow-hidden"
+      >
+        <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+              className="absolute inset-0"
+            >
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+              <img 
+                src={SLIDES[currentSlide].image} 
+                alt="Hera Collection Exclusive"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </motion.div>
+          </AnimatePresence>
+          
+          {/* Top Logo Overlay */}
+          <div className="absolute top-10 left-10 z-20">
+            <Link to="/" className="flex items-center group">
+              <div className="h-12 w-32 flex items-center transition-transform duration-300 group-hover:scale-105">
+                <img 
+                  src={darkLogo} 
+                  alt="Hera Collections" 
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            </Link>
+          </div>
 
-      <div className="w-full max-w-md">
-        {/* Back Link */}
-        <div className="mb-6">
-          <Link
-            to="/login"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Login
+          {/* Bottom Content Overlay */}
+          <div className="absolute bottom-12 left-10 right-10 z-20">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-4"
+              >
+                <h2 className="text-xl font-black text-white leading-tight">
+                  {SLIDES[currentSlide].quote}
+                </h2>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Pagination Dots */}
+            <div className="flex gap-2 mt-8">
+              {SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    currentSlide === i ? "w-8 bg-primary" : "w-2 bg-white/30"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Right Side: Forgot Password Form */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="w-full lg:w-[58%] h-screen flex flex-col items-center bg-background overflow-y-auto custom-scrollbar pt-12 pb-8 px-6 md:px-12 lg:px-20 relative"
+      >
+        {/* Mobile Logo */}
+        <div className="lg:hidden absolute top-8 left-8">
+           <Link to="/" className="flex items-center">
+            <div className="h-12 w-32 flex items-center">
+              <img 
+                src={currentThemeLogo} 
+                alt="Hera Collections" 
+                className="h-full w-full object-contain"
+              />
+            </div>
           </Link>
         </div>
 
-        {/* Form Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Lock className="h-8 w-8 text-primary" />
+        <div className="w-full max-w-[480px] mt-auto mb-auto">
+          {/* Progress Bar */}
+          <div className="w-full h-1 bg-secondary mb-12 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="h-full bg-primary"
+            />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent mb-2">
-            Forgot Password
-          </h1>
-          <p className="text-muted-foreground">
-            Enter your email to receive a password reset link
-          </p>
-        </div>
 
-        {/* Form Container */}
-        <div className="bg-card border border-border rounded-xl shadow-strong p-6">
-          {/* Information Alert */}
-          <Alert className="mb-6 bg-blue-500/10 border-blue-500/20">
-            <Shield className="h-4 w-4 text-blue-500" />
-            <AlertDescription className="text-blue-500">
-              We'll send you a secure link to reset your password. The link will expire in 1 hour.
-            </AlertDescription>
-          </Alert>
-
-          {error && !success && (
-            <Alert variant="destructive" className="mb-6 animate-in fade-in">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {success ? (
-            <div className="text-center py-6 space-y-4">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Check Your Email</h3>
-                <p className="text-muted-foreground mb-4">
-                  We've sent a password reset link to your email address.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Didn't receive the email? Check your spam folder or try again.
-                </p>
-              </div>
-              <div className="flex gap-3 justify-center pt-4">
-                <Button
-                  onClick={() => navigate('/login')}
-                  variant="outline"
-                >
-                  Back to Login
-                </Button>
-                <Button
-                  onClick={() => {
-                    setSuccess(false);
-                    form.reset();
-                  }}
-                >
-                  Try Another Email
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(handleSubmit)}
-                className="space-y-4"
-              >
-                {/* Email */}
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Email Address
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="john@example.com"
-                          className="h-11"
-                          disabled={isSubmitting || showFullLoader}
-                          autoComplete="email"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-base font-semibold gradient-primary hover:shadow-glow transition-smooth mt-2"
-                  disabled={isSubmitting || showFullLoader || !form.formState.isValid}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <OrbitProgress color="#FFFFFF" size="small" text="" textColor="" />
-                      <span>Sending Reset Link...</span>
-                    </div>
-                  ) : (
-                    <>
-                      Send Reset Link
-                      <Key className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          )}
-
-          <Separator className="my-6" />
-
-          {/* Additional Links */}
-          <div className="space-y-3">
+          {/* Back Button */}
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
             <Button
-              onClick={() => navigate('/login')}
-              variant="outline"
-              className="w-full"
-              disabled={isSubmitting || showFullLoader}
+              variant="secondary"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="h-10 w-10 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
             >
-              Back to Login
+              <ArrowLeft className="h-5 w-5" />
             </Button>
-            
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <Link
-                  to="/register"
-                  className="font-semibold text-primary hover:text-primary-dark hover:underline transition-colors"
+          </motion.div>
+          {/* Form Header */}
+          <div className="mb-10">
+            <motion.h1 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-black tracking-tight text-foreground mb-3"
+            >
+              Account Recovery
+            </motion.h1>
+            <motion.p 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-lg text-muted-foreground"
+            >
+              Enter the email associated with your account.
+            </motion.p>
+          </div>
+
+          {/* Form Area or Success Area */}
+          <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              {success ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-green-500/10 border border-green-500/20 rounded-3xl p-8 text-center"
                 >
-                  Sign up here
-                </Link>
-              </p>
-            </div>
+                  <div className="mx-auto w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg mb-6">
+                    <CheckCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-black text-foreground mb-4 font-sans uppercase tracking-tighter">Check Your Email</h3>
+                  <p className="text-muted-foreground font-medium mb-8">
+                    We've sent a recovery link to <span className="text-foreground font-bold">{form.getValues('email')}</span>. 
+                    Please follow the instructions in the email.
+                  </p>
+                  <div className="space-y-3">
+                    <Button
+                      onClick={() => navigate('/login')}
+                      className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold"
+                    >
+                      Back to Sign In
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setSuccess(false);
+                        form.reset();
+                      }}
+                      variant="ghost"
+                      className="w-full text-muted-foreground hover:text-foreground font-bold"
+                    >
+                      Try another email
+                    </Button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/70 font-semibold">Verification Email</FormLabel>
+                            <FormControl>
+                              <div className="relative group">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                  placeholder="name@company.com"
+                                  className="h-14 pl-12 rounded-2xl border-border bg-secondary/5 transition-all focus:ring-primary/20 focus:border-primary"
+                                  disabled={isSubmitting}
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        type="submit"
+                        className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl hover:shadow-primary/20 transition-all duration-300 bg-primary hover:bg-primary/90 text-white"
+                        disabled={isSubmitting || !form.formState.isValid}
+                      >
+                        {isSubmitting ? "Sending..." : "Send Recovery Link"}
+                      </Button>
+                    </form>
+                  </Form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!success && (
+              <div className="text-center pt-6 border-t border-border">
+                <p className="text-muted-foreground">
+                  Remembered your password?{" "}
+                  <Link to="/login" className="text-primary font-black hover:underline underline-offset-4">
+                    Sign in here
+                  </Link>
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>Hera Collection © {new Date().getFullYear()}</p>
-          <p className="mt-1">Secure password reset system</p>
+        {/* Back Link */}
+        <div className="mt-auto py-8">
+            <Link to="/login" className="text-sm font-bold text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </Link>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Loading Overlay */}
+      {isSubmitting && !showFullLoader && (
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-md flex items-center justify-center z-[100]">
+           <OrbitProgress color="hsl(var(--primary))" size="large" />
+        </div>
+      )}
     </div>
   );
 };

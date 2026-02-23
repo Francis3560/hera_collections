@@ -1,6 +1,7 @@
 import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
 import * as stockService from './stockService.js';
+import * as paymentService from './paymentService.js';
 import { 
   subDays, 
   subMonths, 
@@ -101,14 +102,35 @@ export async function createOrder(userId, data, paymentIntentId = null) {
     }
 
     console.log(`[OrderService] Creating order record...`);
+    
+    let isPaid = payment.method === 'CASH';
+    let referenceCode = payment.mpesaReference || payment.paystackReference || null;
+
+    // Server-side verification for Card payments
+    if (payment.method === 'CARD' && payment.paystackReference) {
+      try {
+        const verification = await paymentService.verifyPaystackTransaction(payment.paystackReference);
+        if (verification.success) {
+          isPaid = true;
+          console.log(`[OrderService] Paystack verification successful for ref: ${payment.paystackReference}`);
+        } else {
+          console.warn(`[OrderService] Paystack verification failed for ref: ${payment.paystackReference}`);
+          // Stay PENDING if verification fails
+        }
+      } catch (err) {
+        console.error(`[OrderService] Paystack verification error:`, err.message);
+        // Default to PENDING if error occurs during verification
+      }
+    }
 
     const newOrder = await tx.order.create({
       data: {
         orderNumber,
         buyerId: userId,
-        status: payment.method === 'CASH' ? 'PAID' : 'PENDING',
+        status: isPaid ? 'PAID' : 'PENDING',
+        paidAt: isPaid ? new Date() : null,
         paymentMethod: payment.method,
-        mpesaReference: payment.mpesaReference || null,
+        mpesaReference: referenceCode,
         customerPhone: payment.phone || customer.phone,
         customerFirstName: customer.firstName || null,
         customerLastName: customer.lastName || null,

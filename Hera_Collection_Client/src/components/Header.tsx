@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; 
+import { Link, useNavigate, useLocation } from "react-router-dom"; 
 import { useQuery } from "@tanstack/react-query"; 
 import {
   Sheet,
@@ -37,8 +37,10 @@ import {
   CheckCircle,
   MessageSquare
 } from "lucide-react";
-import Logo from '@/components/Images/HeraCollection Logo.jpg';
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/components/ThemeProvider";
+const darkLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745508/Hera-logo-white_kep2fm.png";
+const lightLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartProvider";
 import { useWishlist } from "@/context/WishlistProvider";
@@ -59,11 +61,14 @@ import DiscountService from "@/api/discount.service";
 const navigationItems = [
   { name: "Home", href: "/" },
   { name: "Collections", href: "/collections" },
-  { name: "About Us", href: "/about" },
+  { name: "Custom Orders", href: "/custom-orders" },
+  { name: "Corporate Orders", href: "/corporate-orders" },
+  { name: "About", href: "/about" },
 ];
 
 export default function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { 
     user, 
     isAuthenticated, 
@@ -86,6 +91,27 @@ export default function Header() {
     markAsRead, 
     markAllAsRead, 
   } = useNotifications();
+
+  const { theme } = useTheme();
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      
+      const listener = (e: MediaQueryListEvent) => {
+        setActualTheme(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    } else {
+      setActualTheme(theme as 'light' | 'dark');
+    }
+  }, [theme]);
+
+  const currentLogo = actualTheme === 'dark' ? darkLogo : lightLogo;
 
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["categories-tree"],
@@ -205,24 +231,30 @@ export default function Header() {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             <Link to="/" className="flex-shrink-0 group transition-transform duration-300 hover:scale-105">
-              <div className="h-16 w-16 flex items-center">
+              <div className="h-16 w-32 flex items-center">
                 <img
-                  src={Logo}
+                  src={currentLogo}
                   alt="Hera Collections - Premium Bags & Accessories"
-                  className="h-full w-full object-contain transition-all duration-300 rounded-full group-hover:brightness-110"
+                  className="h-full w-full object-contain transition-all duration-300 group-hover:brightness-110"
                 />
               </div>
             </Link>
 
-            <nav className="hidden lg:flex items-center space-x-1">
+            <nav className="hidden lg:flex items-center space-x-4 lg:space-x-6 xl:space-x-8">
               {navigationItems.map((item) => {
                 if (item.name === "Collections") {
                   return (
                     <DropdownMenu key={item.name}>
-                      <DropdownMenuTrigger className="relative px-6 py-2 text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent font-medium transition-all duration-300 group flex items-center gap-1 focus:outline-none">
+                      <DropdownMenuTrigger className={cn(
+                        "relative px-2 xl:px-4 py-2 text-sm font-medium transition-all duration-300 group flex items-center gap-1 focus:outline-none whitespace-nowrap",
+                        location.pathname.startsWith('/collections') ? "text-primary-accent" : "text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent"
+                      )}>
                         {item.name}
                         <ChevronDown className="h-4 w-4" />
-                        <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary-accent transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10"></div>
+                        <div className={cn(
+                          "absolute bottom-0 h-0.5 bg-primary-accent transition-all duration-300",
+                          location.pathname.startsWith('/collections') ? "w-4/5 left-[10%]" : "w-0 left-1/2 group-hover:w-4/5 group-hover:left-[10%]"
+                        )}></div>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-[600px] p-6 glass-card border-border/50 grid grid-cols-2 gap-8 shadow-2xl">
                         {categories?.length > 0 ? (
@@ -269,15 +301,27 @@ export default function Header() {
                   );
                 }
                 return (
-                  <Link key={item.name} to={item.href} className="relative px-6 py-2 text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent font-medium transition-all duration-300 group">
+                  <Link key={item.name} to={item.href} className={cn(
+                    "relative px-2 xl:px-4 py-2 text-sm font-medium transition-all duration-300 group whitespace-nowrap",
+                    location.pathname === item.href ? "text-primary" : "text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent"
+                  )}>
                     {item.name}
-                    <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary-accent transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10"></div>
+                    <div className={cn(
+                      "absolute bottom-0 h-0.5 bg-primary-accent transition-all duration-300",
+                      location.pathname === item.href ? "w-4/5 left-[10%]" : "w-0 left-1/2 group-hover:w-4/5 group-hover:left-[10%]"
+                    )}></div>
                   </Link>
                 );
               })}
-              <Link to="/contact" className="relative px-6 py-2 text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent font-medium transition-all duration-300 group">
-                Contact Us
-                <div className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-primary-accent transition-all duration-300 group-hover:w-4/5 group-hover:left-1/10"></div>
+              <Link to="/contact" className={cn(
+                "relative px-2 xl:px-4 py-2 text-sm font-medium transition-all duration-300 group whitespace-nowrap",
+                location.pathname === '/contact' ? "text-primary-accent" : "text-foreground/90 dark:text-foreground/80 hover:text-primary-accent dark:hover:text-primary-accent"
+              )}>
+                Contact
+                <div className={cn(
+                  "absolute bottom-0 h-0.5 bg-primary-accent transition-all duration-300",
+                  location.pathname === '/contact' ? "w-4/5 left-[10%]" : "w-0 left-1/2 group-hover:w-4/5 group-hover:left-[10%]"
+                )}></div>
               </Link>
             </nav>
 
@@ -460,14 +504,14 @@ export default function Header() {
                 <SheetContent side="right" className="w-80 bg-background/95 backdrop-blur-xl p-0">
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between p-6 border-b border-border">
-                      <Link to="/" onClick={() => setIsMobileMenuOpen(false)}><img src={Logo} alt="Logo" className="h-8 w-32 object-contain" /></Link>
+                      <Link to="/" onClick={() => setIsMobileMenuOpen(false)}><img src={currentLogo} alt="Logo" className="h-8 w-32 object-contain" /></Link>
                       <SheetClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></SheetClose>
                     </div>
-                    <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+                    <nav className="flex-1 p-8 space-y-2 overflow-y-auto">
                       {navigationItems.map((item) => (
-                        <Link key={item.name} to={item.href} className="block px-3 py-4 text-lg font-medium" onClick={() => setIsMobileMenuOpen(false)}>{item.name}</Link>
+                        <Link key={item.name} to={item.href} className={cn("block px-3 py-4 text-lg font-medium", location.pathname === item.href || (item.name === 'Collections' && location.pathname.startsWith('/collections')) ? "text-primary-accent" : "")} onClick={() => setIsMobileMenuOpen(false)}>{item.name}</Link>
                       ))}
-                      <Link to="/contact" className="block px-3 py-4 text-lg font-medium" onClick={() => setIsMobileMenuOpen(false)}>Contact Us</Link>
+                      <Link to="/contact" className={cn("block px-3 py-4 text-lg font-medium", location.pathname === '/contact' ? "text-primary-accent" : "")} onClick={() => setIsMobileMenuOpen(false)}>Contact Us</Link>
                     </nav>
                   </div>
                 </SheetContent>

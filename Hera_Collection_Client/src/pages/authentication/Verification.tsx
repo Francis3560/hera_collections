@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,12 +15,35 @@ import {
   AlertCircle,
   ArrowLeft,
   RefreshCw,
+  Shield,
   ShieldCheck,
   ArrowRight,
-  LogIn
+  LogIn,
+  Quote
 } from 'lucide-react';
 import { OrbitProgress } from 'react-loading-indicators';
 import Swal from 'sweetalert2';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/components/ThemeProvider';
+
+const darkLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745508/Hera-logo-white_kep2fm.png";
+const lightLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png";
+
+const SLIDES = [
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784615/Ekalale_Backpack_2_1_glnfr0.jpg",
+    quote: "It's the fact that they make out time to teach and walk me through the process of being a better entrepreneur.",
+  },
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784681/Nyathii_Baby_Bag_Brown_1_blxhpj.png",
+    quote: "Hera has completely transformed how I source luxury pieces for my collection. The quality is unmatched.",
+  },
+  {
+    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771785863/Naitore_Handbag_2_cukq0s.jpg",
+    quote: "The attention to detail and personalized service makes every purchase a world-class experience.",
+  }
+];
+
 
 const TOKEN_EXPIRY_TIME = 600; 
 const RESEND_COOLDOWN = 60; 
@@ -61,6 +84,37 @@ function VerifyEmailCode() {
   const [isPublicVerification, setIsPublicVerification] = useState(false);
   const [showFullLoader, setShowFullLoader] = useState(false);
   const [loaderMessage, setLoaderMessage] = useState('Verifying email...');
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Slideshow timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  // Theme detection
+  const { theme } = useTheme();
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      
+      const listener = (e: MediaQueryListEvent) => {
+        setActualTheme(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    } else {
+      setActualTheme(theme as 'light' | 'dark');
+    }
+  }, [theme]);
+
+  const currentThemeLogo = actualTheme === 'dark' ? darkLogo : lightLogo;
   
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -247,7 +301,10 @@ function VerifyEmailCode() {
     });
 
     try {
-      const result = await verifyEmailPublic(userId, code);
+      if (userId === null) {
+        throw new Error('User identification missing.');
+      }
+      const result = await verifyEmailPublic(userId.toString(), code);
 
       if (result.success) {
         setStatus('success');
@@ -562,223 +619,230 @@ const handleSubmit = async (submittedCode: string | null = null) => {
     };
   }, []);
 
-  // Full page loader
-  if (showFullLoader) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-backdrop p-4">
-        <div className="text-center space-y-6">
-          <OrbitProgress 
-            color="hsl(var(--primary))" 
-            size="large" 
-            text="" 
-            textColor=""
-          />
-          <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent mb-2">
-              {loaderMessage}
-            </h2>
-            <p className="text-muted-foreground">
-              Please wait while we complete the verification process...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Regular verification loader
-  if (status === 'verifying') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-backdrop p-4">
-        <div className="text-center space-y-6">
-          <OrbitProgress 
-            color="hsl(var(--primary))" 
-            size="large" 
-            text="" 
-            textColor=""
-          />
-          <div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent mb-2">
-              Verifying Email
-            </h2>
-            <p className="text-muted-foreground">
-              Please wait while we verify your email address...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-backdrop p-4">
-      {/* Back button */}
-      <div className="absolute top-6 left-6 flex gap-2">
-        <Button
-          variant="ghost"
-          onClick={handleBackToSignup}
-          className="gap-2"
-          disabled={isSubmitting}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Signup
-        </Button>
-        
-        {isAuthenticated && (
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            size="sm"
-            disabled={isSubmitting}
-          >
-            Logout
-          </Button>
-        )}
-      </div>
-
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+    <div className="min-h-screen flex bg-background overflow-hidden font-sans">
+      <AnimatePresence>
+        {(showFullLoader || status === 'verifying') && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center z-[100]">
+            <OrbitProgress color="hsl(var(--primary))" size="large" />
+            <motion.h2 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl font-black mt-8 text-foreground uppercase tracking-tighter"
+            >
+              {loaderMessage || "Verifying..."}
+            </motion.h2>
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent mb-2">
-            {isPublicVerification ? 'Email Verification' : 'Verify Your Email'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isPublicVerification 
-              ? 'Verifying your email address...'
-              : 'Enter the 6-digit code sent to your email address'
-            }
-          </p>
-          {email && !isPublicVerification && (
-            <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-muted/20 rounded-full">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">
-                Sent to: <span className="font-medium text-foreground">{email}</span>
-              </span>
+        )}
+      </AnimatePresence>
+
+      {/* Left Side: Visual / Marketing (Hidden on mobile) */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="hidden lg:flex lg:w-[42%] p-6 bg-secondary/10 overflow-hidden"
+      >
+        <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden shadow-2xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
+              className="absolute inset-0"
+            >
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+              <img 
+                src={SLIDES[currentSlide].image} 
+                alt="Hera Collection Exclusive"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </motion.div>
+          </AnimatePresence>
+          
+          {/* Top Logo Overlay */}
+          <div className="absolute top-10 left-10 z-20">
+            <Link to="/" className="flex items-center group">
+              <div className="h-12 w-32 flex items-center transition-transform duration-300 group-hover:scale-105">
+                <img 
+                  src={darkLogo} 
+                  alt="Hera Collections" 
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            </Link>
+          </div>
+
+          {/* Bottom Content Overlay */}
+          <div className="absolute bottom-12 left-10 right-10 z-20">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-4"
+              >
+                <h2 className="text-xl font-black text-white leading-tight">
+                  {SLIDES[currentSlide].quote}
+                </h2>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Pagination Dots */}
+            <div className="flex gap-2 mt-8">
+              {SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    currentSlide === i ? "w-8 bg-primary" : "w-2 bg-white/30"
+                  }`}
+                />
+              ))}
             </div>
-          )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Right Side: Verification Form */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="w-full lg:w-[58%] h-screen flex flex-col items-center bg-background overflow-y-auto custom-scrollbar pt-12 pb-8 px-6 md:px-12 lg:px-20 relative"
+      >
+        {/* Mobile Logo */}
+        <div className="lg:hidden absolute top-8 left-8">
+           <Link to="/" className="flex items-center">
+            <div className="h-12 w-32 flex items-center">
+              <img 
+                src={currentThemeLogo} 
+                alt="Hera Collections" 
+                className="h-full w-full object-contain"
+              />
+            </div>
+          </Link>
         </div>
 
-        <Card className="border border-border/50 shadow-strong backdrop-blur-sm bg-card/95">
-          <CardHeader className="text-center pb-4">
-            <CardTitle>
-              {isPublicVerification ? 'Email Verification Link' : 'Email Verification'}
-            </CardTitle>
-            <CardDescription>
-              {status === 'expired' 
-                ? 'Your verification code has expired'
-                : isPublicVerification
-                ? 'Click below to verify your email'
-                : `Enter the code below to verify your email`
+        <div className="w-full max-w-[480px] mt-auto mb-auto">
+          {/* Progress Bar */}
+          <div className="w-full h-1 bg-secondary mb-12 rounded-full overflow-hidden">
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: "66.66%" }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="h-full bg-primary"
+            />
+          </div>
+
+          {/* Back Button */}
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="h-10 w-10 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </motion.div>
+          {/* Header */}
+          <div className="mb-10">
+            <motion.h1 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-black tracking-tight text-foreground mb-3"
+            >
+              {isPublicVerification ? 'Verification' : 'Confirm Identity'}
+            </motion.h1>
+            <motion.p 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-lg text-muted-foreground"
+            >
+              {isPublicVerification 
+                ? 'Complete your account setup.'
+                : 'Enter the 6-digit code sent to your email.'
               }
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Public verification view */}
-            {isPublicVerification ? (
-              <div className="text-center space-y-4">
+            </motion.p>
+            {email && !isPublicVerification && (
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-2xl">
+                <Mail className="h-4 w-4 text-muted-foreground grayscale" />
+                <span className="text-sm font-bold text-foreground">
+                  {email}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-6">
+             {/* Public verification view */}
+             {isPublicVerification ? (
+              <div className="text-center space-y-6">
                 {status === 'success' ? (
-                  <Alert className="bg-green-500/10 border-green-500/20">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <AlertDescription className="text-green-500">
-                      Email verified successfully! Redirecting to login...
-                    </AlertDescription>
-                  </Alert>
-                ) : status === 'failed' ? (
-                  <Alert variant="destructive">
-                    <XCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {message || 'Verification failed. Please try again.'}
-                    </AlertDescription>
-                  </Alert>
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-8 bg-green-500/10 border border-green-500/20 rounded-3xl"
+                  >
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <p className="text-xl font-bold text-foreground">Identity Verified</p>
+                    <p className="text-muted-foreground mt-2 font-medium">Redirecting you to login...</p>
+                  </motion.div>
                 ) : (
                   <>
-                    <p className="text-muted-foreground">
-                      Click the button below to verify your email address.
+                    <p className="text-lg text-muted-foreground leading-relaxed">
+                      Please click the button below to verify your email address and activate your Hera account.
                     </p>
                     <Button
                       onClick={() => userId && handlePublicVerify(userId, code.join(''))}
-                      className="w-full h-12 gradient-primary hover:shadow-glow"
+                      className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl hover:shadow-primary/20 transition-all duration-300 bg-primary hover:bg-primary/90 text-white"
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <OrbitProgress color="#FFFFFF" size="small" text="" textColor="" />
-                          <span>Verifying...</span>
-                        </div>
-                      ) : (
-                        <>
-                          Verify Email
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
+                       Verify Now
+                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </>
                 )}
               </div>
             ) : (
-              <>
-                {/* Status indicator for logged-in users */}
-                {isAuthenticated && user && (
-                  <div className="p-3 bg-muted/10 rounded-lg border border-border/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${user.isVerified ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                        <span className="text-sm">
-                          Status: <span className="font-medium">
-                            {user.isVerified ? 'Verified' : 'Pending Verification'}
-                          </span>
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {isAuthenticated ? 'Logged In' : 'Not Logged In'}
-                      </span>
-                    </div>
-                    {!user.isVerified && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        You need to verify your email to access all features
-                      </p>
-                    )}
-                  </div>
-                )}
-
+              <div className="space-y-8">
                 {/* Countdown Timer */}
                 {!isExpired && status !== 'success' && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="p-4 bg-secondary/30 rounded-2xl border border-border/50">
+                    <div className="flex items-center justify-between mb-3 text-sm font-bold">
+                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        <span>Code expires in:</span>
+                        <span>Link Security Window:</span>
                       </div>
-                      <span className={`font-semibold ${countdown < 60 ? 'text-destructive' : 'text-primary'}`}>
+                      <span className={countdown < 60 ? 'text-destructive' : 'text-primary'}>
                         {formatTime(countdown)}
                       </span>
                     </div>
                     <Progress 
                       value={(countdown / TOKEN_EXPIRY_TIME) * 100} 
-                      className="h-2"
+                      className="h-1.5"
                     />
-                    {countdown < 60 && (
-                      <p className="text-xs text-destructive text-center">
-                        Hurry! Code will expire soon
-                      </p>
-                    )}
                   </div>
                 )}
 
                 {/* Code Input */}
                 {!isExpired && status !== 'success' && status !== 'failed' && (
-                  <div className="space-y-4">
-                    <Label htmlFor="code-input" className="text-center block">
-                      6-Digit Verification Code
-                    </Label>
-                    
-                    <div className="flex justify-center gap-2" onPaste={handlePaste}>
+                  <div className="space-y-6">
+                    <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
                       {code.map((digit, index) => (
-                        <Input
+                        <input
                           key={index}
                           ref={(el: HTMLInputElement | null) => {
                             if (el) inputsRef.current[index] = el;
@@ -790,143 +854,82 @@ const handleSubmit = async (submittedCode: string | null = null) => {
                           value={digit}
                           onChange={(e) => handleCodeChange(index, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(index, e)}
-                          className="h-14 w-14 text-center text-2xl font-bold"
+                          className="h-16 w-12 sm:w-14 text-center text-3xl font-black rounded-2xl border-2 border-border bg-secondary/5 transition-all focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none"
                           disabled={isSubmitting}
                           autoFocus={index === 0}
                         />
                       ))}
                     </div>
                     
-                    <div className="text-center space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Paste the entire code or type each digit
-                      </p>
-                      {code.join('').length === 6 && (
-                        <p className="text-xs text-green-600 animate-in fade-in">
-                          All digits entered. Press Enter or click Verify.
-                        </p>
-                      )}
-                    </div>
+                    <Button
+                      onClick={() => handleSubmit()}
+                      className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl hover:shadow-primary/20 transition-all duration-300 bg-primary hover:bg-primary/90 text-white"
+                      disabled={code.join('').length !== 6 || isSubmitting}
+                    >
+                      {isSubmitting ? "Processing..." : "Verify Code"}
+                    </Button>
                   </div>
                 )}
 
                 {/* Status Messages */}
                 {(status === 'expired' || status === 'failed') && (
-                  <Alert variant="destructive" className="animate-in fade-in">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {message}
-                    </AlertDescription>
-                  </Alert>
+                  <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-3xl flex flex-col items-center gap-4 text-center animate-in zoom-in duration-300">
+                    <AlertCircle className="h-10 w-10 text-destructive" />
+                    <div>
+                      <h4 className="font-black text-foreground uppercase tracking-tight">Access Error</h4>
+                      <p className="text-sm text-destructive font-medium mt-1">{message}</p>
+                    </div>
+                  </div>
                 )}
 
-                {status === 'success' && (
-                  <Alert className="animate-in fade-in bg-green-500/10 border-green-500/20">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <AlertDescription className="text-green-500">
-                      {message || 'Email verified successfully! You can now log in.'}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Actions */}
-                <div className="space-y-3 pt-2">
-                  {!isExpired && status !== 'success' && (
-                    <Button
-                      onClick={() => handleSubmit()}
-                      className="w-full h-12 gradient-primary hover:shadow-glow transition-smooth"
-                      disabled={code.join('').length !== 6 || isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center gap-2">
-                          <OrbitProgress color="#FFFFFF" size="small" text="" textColor="" />
-                          <span>Verifying...</span>
-                        </div>
-                      ) : (
-                        'Verify Email'
-                      )}
-                    </Button>
-                  )}
-
-                  {status === 'success' && (
-                    <Button
-                      onClick={handleGoToLogin}
-                      className="w-full h-12 gradient-primary hover:shadow-glow transition-smooth"
-                    >
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Go to Login
-                    </Button>
-                  )}
-
-                  <div className="flex gap-3">
-                    <Button
+                {/* Resend Action */}
+                <div className="pt-6 border-t border-border flex flex-col items-center gap-4">
+                   <p className="text-muted-foreground font-medium">Didn't receive a code?</p>
+                   <Button
                       onClick={handleResendCode}
                       variant="outline"
-                      className="flex-1 gap-2"
+                      className="h-12 w-full rounded-2xl border-2 border-primary/20 text-primary hover:bg-primary/5 font-bold gap-3"
                       disabled={resendDisabled || isResending || status === 'success'}
                     >
                       {isResending ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
+                        <OrbitProgress size="small" color="hsl(var(--primary))" />
                       ) : resendDisabled ? (
-                        `Resend (${resendCooldown}s)`
+                        `Wait ${resendCooldown}s`
                       ) : (
                         <>
                           <RefreshCw className="h-4 w-4" />
-                          Resend Code
+                          Send New Code
                         </>
                       )}
                     </Button>
-
-                    <Button
-                      onClick={handleGoToLogin}
-                      variant="ghost"
-                      className="flex-1"
-                    >
-                      Go to Login
-                    </Button>
-                  </div>
                 </div>
-
-                {/* Help Text */}
-                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/50 space-y-2">
-                  <p>
-                    Didn't receive the code? Check your spam folder or{' '}
-                    <Button
-                      variant="link"
-                      onClick={handleResendCode}
-                      className="h-auto p-0"
-                      disabled={resendDisabled || isResending}
-                    >
-                      click here to resend
-                    </Button>
-                  </p>
-                  <p>
-                    Already verified?{' '}
-                    <Button
-                      variant="link"
-                      onClick={handleGoToLogin}
-                      className="h-auto p-0"
-                    >
-                      Go to Login
-                    </Button>
-                  </p>
-                </div>
-              </>
+              </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <div className="mt-6 text-center text-xs text-muted-foreground space-y-1">
-          <p>Hera Collection © {new Date().getFullYear()}</p>
-          <p>Email verification required for account security</p>
+          </div>
         </div>
-      </div>
+
+        {/* Action Button */}
+        <div className="mt-8 py-8 flex flex-col items-center gap-6">
+            <Link to="/login" className="text-sm font-bold text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </Link>
+            
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className="text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors"
+                disabled={isSubmitting}
+              >
+                Sign Out
+              </Button>
+            )}
+        </div>
+      </motion.div>
     </div>
   );
-}
+};
+
 
 export default VerifyEmailCode;

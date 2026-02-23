@@ -171,18 +171,10 @@ const About = () => {
            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
            <div className="container mx-auto px-4 relative z-10">
               <div className="max-w-4xl mx-auto space-y-12">
-                 <div className="flex justify-center">
-                    <div className="flex -space-x-4">
-                       {[1,2,3,4].map(i => (
-                         <div key={i} className="w-16 h-16 rounded-full border-4 border-background bg-secondary flex items-center justify-center overflow-hidden shadow-xl">
-                            <img src={`https://i.pravatar.cc/150?img=${i+10}`} alt="User" />
-                         </div>
-                       ))}
-                    </div>
-                 </div>
+
                  
                   <div className="space-y-6">
-                    <h3 className="text-4xl sm:text-6xl font-bold text-foreground dark:text-white uppercase tracking-tighter">Ready to redefine <br className="hidden sm:block" /> your Everyday?</h3>
+                    <h3 className="text-4xl sm:text-6xl font-bold text-foreground dark:text-white  tracking-tighter">Ready to redefine <br className="hidden sm:block" /> your Everyday?</h3>
                     <p className="text-lg text-muted-foreground dark:text-white/60 max-w-xl mx-auto font-medium">
                        Join thousands of style-conscious Kenyans who haven't just bought a bag, but upgraded their lifestyle with Hera Collections.
                     </p>

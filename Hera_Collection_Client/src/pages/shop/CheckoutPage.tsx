@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { OrderSuccessSplash } from "@/components/shared/OrderSuccessSplash";
 import { motion, AnimatePresence } from "framer-motion";
 import ShippingService from "@/api/shipping.service";
+import { usePaystackPayment } from 'react-paystack';
 import {
   Command,
   CommandEmpty,
@@ -61,6 +62,7 @@ export default function CheckoutPage() {
   const [shippingRegions, setShippingRegions] = useState<any[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<any>(null);
   const [openShipping, setOpenShipping] = useState(false);
+  const [paystackKey, setPaystackKey] = useState<string>("");
 
   const calculatedTotal = items.reduce((sum: number, item: any) => {
     const price = item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0");
@@ -80,6 +82,21 @@ export default function CheckoutPage() {
     notes: "",
     mpesaReference: ""
   });
+
+  // Fetch Paystack configuration
+  useEffect(() => {
+    const fetchPaystackConfig = async () => {
+      try {
+        const config = await PaymentService.getPaystackConfig();
+        if (config.success && config.publicKey) {
+          setPaystackKey(config.publicKey);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Paystack config", error);
+      }
+    };
+    fetchPaystackConfig();
+  }, []);
 
   // Scroll to top on success
   useEffect(() => {
@@ -110,6 +127,27 @@ export default function CheckoutPage() {
   const grandTotal = displayTotal + shippingFee;
   const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - displayTotal;
   const freeShippingProgress = Math.min((displayTotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
+
+  const initializePayment = usePaystackPayment({
+    reference: new Date().getTime().toString(),
+    email: formData.email || user?.email || "customer@example.com",
+    amount: grandTotal * 100, // Amount in KES cents
+    publicKey: paystackKey || 'pk_test_d3e20e8d91c12e2c4cb71c841e0ff05e19bd8ff9', // Fallback to test key if not loaded yet
+    currency: 'KES',
+    firstname: formData.firstName,
+    lastname: formData.lastName,
+    phone: formData.phone
+  });
+
+
+  const onPaystackSuccess = async (reference: any) => {
+    await submitOrder("CARD", reference.reference);
+  };
+
+  const onPaystackClose = () => {
+    setLoading(false);
+    toast.error("Payment was cancelled.");
+  };
 
   const searchCustomers = useCallback(
     debounce(async (query: string) => {
@@ -243,10 +281,6 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // if (!formData.phone) {
-    //   toast.error("Please enter a valid phone number");
-    //   return;
-    // }
 
     if (paymentMethod === "MPESA" && !formData.mpesaReference) {
       toast.error("Please enter the M-Pesa Reference Code");
@@ -264,6 +298,14 @@ export default function CheckoutPage() {
     setLoading(true);
     setPaymentStatus("PENDING");
 
+    if (paymentMethod === "CARD") {
+      initializePayment({ onSuccess: onPaystackSuccess, onClose: onPaystackClose });
+    } else {
+      await submitOrder("MPESA");
+    }
+  };
+
+  const submitOrder = async (method: "MPESA" | "CARD", paymentRef?: string) => {
     try {
       // Format phone: remove + if present
       const formattedPhone = formData.phone ? formData.phone.replace('+', '') : '';
@@ -341,8 +383,9 @@ export default function CheckoutPage() {
           notes: formData.notes
         },
         payment: {
-            method: "MPESA",
-            mpesaReference: formData.mpesaReference,
+            method: method,
+            mpesaReference: method === "MPESA" ? (paymentRef || formData.mpesaReference) : undefined,
+            paystackReference: method === "CARD" ? paymentRef : undefined,
             phone: formattedPhone
         },
         amounts: {
@@ -360,7 +403,7 @@ export default function CheckoutPage() {
           setSuccessOrder(response.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-          toast.success("Order placed successfully! Pending payment verification.");
+          toast.success("Order placed successfully! " + (method === "MPESA" ? "Pending payment verification." : ""));
           clearCart();
       } else {
           throw new Error(response.message || "Failed to create order");
@@ -721,21 +764,23 @@ export default function CheckoutPage() {
                 </div>
                 
                 <div className="space-y-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <div 
-                        onClick={() => setPaymentMethod("MPESA")}
-                        className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${paymentMethod === "MPESA" ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
-                     >
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" className="h-8 object-contain" alt="M-Pesa" />
-                        <span className="font-bold">M-Pesa</span>
-                     </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div 
+                           onClick={() => setPaymentMethod("MPESA")}
+                           className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${paymentMethod === "MPESA" ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                        >
+                           <img src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" className="h-8 object-contain" alt="M-Pesa" />
+                           <span className="font-bold">M-Pesa</span>
+                        </div>
 
-                     <div className="p-6 rounded-2xl border-2 border-dashed border-muted bg-muted/20 opacity-60 flex flex-col items-center gap-3 relative">
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase">Soon</div>
-                        <img src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" className="h-8 object-contain" alt="Mastercard" />
-                        <span className="font-bold text-muted-foreground text-sm text-center">Credit Card</span>
+                        <div 
+                           onClick={() => setPaymentMethod("CARD")}
+                           className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${paymentMethod === "CARD" ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                        >
+                           <img src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" className="h-8 object-contain" alt="Mastercard" />
+                           <span className="font-bold">Credit / Debit Card</span>
+                        </div>
                      </div>
-                  </div>
 
                   {paymentMethod === "MPESA" && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 bg-secondary/10 p-4 rounded-xl border border-secondary/20">

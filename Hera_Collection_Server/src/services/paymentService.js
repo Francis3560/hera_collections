@@ -290,3 +290,45 @@ export async function getPaymentStats() {
     }
   };
 }
+
+/**
+ * Verifies a Paystack transaction status
+ * @param {string} reference - The transaction reference from frontend
+ * @returns {Promise<Object>} Verification status and data
+ */
+export async function verifyPaystackTransaction(reference) {
+  try {
+    const { paystack } = config;
+    
+    if (!paystack.secretKey) {
+      // In development, we might not have the secret key, but we should warn
+      console.warn('Paystack secret key is missing. Skipping server-side verification.');
+      return { success: true, amount: 0, status: 'mock_success' };
+    }
+
+    const response = await axios.get(
+      `${paystack.baseUrl}/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${paystack.secretKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    const { data } = response.data;
+    
+    return {
+      success: data.status === 'success',
+      amount: data.amount / 100, // Convert from KES cents
+      currency: data.currency,
+      status: data.status,
+      customer: data.customer,
+      gatewayResponse: data.gateway_response
+    };
+  } catch (err) {
+    console.error('Paystack transaction verification error:', err.message || err);
+    throw new Error('Failed to verify payment with Paystack');
+  }
+}

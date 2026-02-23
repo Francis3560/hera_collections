@@ -24,9 +24,18 @@ import {
   CheckCircle,
   Shield,
   Key,
+  Quote,
 } from 'lucide-react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '@/components/ThemeProvider';
+
+const darkLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745508/Hera-logo-white_kep2fm.png";
+const lightLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png";
+
+const HERO_IMAGE = "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=2069&auto=format&fit=crop"; 
+
 import userService from '@/api/UserService.js'; 
 
 const FullPageLoader = ({ message = "Processing..." }: { message?: string }) => (
@@ -146,6 +155,28 @@ const ResetPassword = () => {
     },
     mode: 'onChange',
   });
+
+  // Theme detection
+  const { theme } = useTheme();
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      
+      const listener = (e: MediaQueryListEvent) => {
+        setActualTheme(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    } else {
+      setActualTheme(theme as 'light' | 'dark');
+    }
+  }, [theme]);
+
+  const currentThemeLogo = actualTheme === 'dark' ? darkLogo : lightLogo;
 
   const password = form.watch("password");
 
@@ -307,7 +338,11 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-backdrop p-4">
+    <div className="min-h-screen flex bg-background overflow-hidden font-sans">
+      <AnimatePresence>
+        {showFullLoader && <FullPageLoader message={loaderMessage} />}
+      </AnimatePresence>
+
       {/* Response Modal */}
       <ResponseModal
         type={responseType}
@@ -317,254 +352,254 @@ const ResetPassword = () => {
         onClose={() => setShowResponseModal(false)}
       />
 
-      {/* Full page loader */}
-      {showFullLoader && (
-        <FullPageLoader 
-          message={loaderMessage} 
+      {/* Left Side: Visual / Support (Hidden on mobile) */}
+      <motion.div 
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="hidden lg:flex lg:w-[45%] relative bg-muted overflow-hidden"
+      >
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <img 
+          src={HERO_IMAGE} 
+          alt="Hera Collection Luxury"
+          className="absolute inset-0 w-full h-full object-cover"
         />
-      )}
-
-      <div className="w-full max-w-md">
-        {/* Back Link */}
-        <div className="mb-6">
-          <Link
-            to="/login"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Login
+        
+        {/* Top Logo Overlay */}
+        <div className="absolute top-12 left-12 z-20">
+          <Link to="/" className="flex items-center group">
+            <div className="h-12 w-32 flex items-center transition-transform duration-300 group-hover:scale-105">
+              <img 
+                src={darkLogo} 
+                alt="Hera Collections" 
+                className="h-full w-full object-contain"
+              />
+            </div>
           </Link>
         </div>
 
-        {/* Form Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <Key className="h-8 w-8 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent mb-2">
-            Reset Password
-          </h1>
-          <p className="text-muted-foreground">
-            Create a new password for your account
-          </p>
-          {email && (
-            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-muted/20 rounded-full">
-              <span className="text-sm text-muted-foreground">
-                For: <span className="font-medium">{email}</span>
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Form Container */}
-        <div className="bg-card border border-border rounded-xl shadow-strong p-6">
-          {/* Information Alert */}
-          <Alert className="mb-6 bg-blue-500/10 border-blue-500/20">
-            <Shield className="h-4 w-4 text-blue-500" />
-            <AlertDescription className="text-blue-500">
-              Create a strong password with at least 8 characters, including numbers and special characters.
-            </AlertDescription>
-          </Alert>
-
-          {error && !success && (
-            <Alert variant="destructive" className="mb-6 animate-in fade-in">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {error}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {success ? (
-            <div className="text-center py-6 space-y-4">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
+        {/* Bottom Testimonial Overlay */}
+        <div className="absolute bottom-20 left-12 right-12 z-20">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl"
+          >
+            <Quote className="h-10 w-10 text-primary mb-6 opacity-50" />
+            <p className="text-xl text-white font-medium leading-relaxed mb-6">
+              "Security is our top priority. Your new password will be encrypted using industry-standard protocols to ensure your collections remain private."
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/20 border border-primary/50" />
               <div>
-                <h3 className="text-lg font-semibold mb-2">Password Reset Successful!</h3>
-                <p className="text-muted-foreground mb-4">
-                  Your password has been reset successfully. You will be redirected to login.
-                </p>
+                <h4 className="text-white font-bold">Hera Security</h4>
+                <p className="text-white/60 text-sm italic">Trusted Shield</p>
               </div>
             </div>
-          ) : (
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(handleSubmit)}
-                className="space-y-4"
-              >
-                {/* New Password */}
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        New Password
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Enter new password"
-                            className="h-11 pr-12"
-                            disabled={isSubmitting || showFullLoader}
-                            autoComplete="new-password"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                            onClick={() => setShowPassword(!showPassword)}
-                            disabled={isSubmitting || showFullLoader}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      
-                      {/* Password Strength Indicator */}
-                      {password && (
-                        <div className="mt-3 space-y-2">
-                          <Label className="text-sm font-medium">
-                            Password Strength
-                          </Label>
-                          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-300"
-                              style={{
-                                width: `${Object.values(passwordChecks).filter(Boolean).length * 25}%`,
-                                background: `linear-gradient(90deg, 
-                                  ${passwordChecks.length ? 'hsl(var(--destructive))' : 'transparent'} 0%,
-                                  ${passwordChecks.number ? 'hsl(var(--warning))' : 'transparent'} 33%,
-                                  ${passwordChecks.letter ? 'hsl(var(--info))' : 'transparent'} 66%,
-                                  ${passwordChecks.special ? 'hsl(var(--success))' : 'transparent'} 100%
-                                )`,
-                              }}
-                            />
-                          </div>
-                          
-                          {/* Password Requirements */}
-                          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-                            {Object.entries(passwordChecks).map(([key, isValid]) => (
-                              <div
-                                key={key}
-                                className={`flex items-center gap-2 ${
-                                  isValid ? "text-green-600" : "text-muted-foreground"
-                                }`}
-                              >
-                                <div className={`h-2 w-2 rounded-full ${isValid ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <span>
-                                  {key === "length" && "8+ characters"}
-                                  {key === "number" && "Contains number"}
-                                  {key === "letter" && "Contains letter"}
-                                  {key === "special" && "Special character"}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          </motion.div>
+        </div>
+      </motion.div>
 
-                {/* Confirm Password */}
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Lock className="h-4 w-4" />
-                        Confirm New Password
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm new password"
-                            className="h-11 pr-12"
-                            disabled={isSubmitting || showFullLoader}
-                            autoComplete="new-password"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            disabled={isSubmitting || showFullLoader}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full h-12 text-base font-semibold gradient-primary hover:shadow-glow transition-smooth mt-2"
-                  disabled={isSubmitting || showFullLoader || !form.formState.isValid}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <OrbitProgress color="#FFFFFF" size="small" text="" textColor="" />
-                      <span>Resetting Password...</span>
-                    </div>
-                  ) : (
-                    <>
-                      Reset Password
-                      <Key className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-          )}
-
-          {/* Additional Links */}
-          {!success && (
-            <div className="mt-6 pt-6 border-t border-border text-center">
-              <p className="text-sm text-muted-foreground">
-                Remember your password?{' '}
-                <Link
-                  to="/login"
-                  className="font-semibold text-primary hover:text-primary-dark hover:underline transition-colors"
-                >
-                  Log in here
-                </Link>
-              </p>
+      {/* Right Side: Reset Password Form */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="w-full lg:w-[55%] flex flex-col justify-center items-center px-6 md:px-12 lg:px-20 relative bg-background"
+      >
+        {/* Mobile Logo */}
+        <div className="lg:hidden absolute top-8 left-8">
+           <Link to="/" className="flex items-center">
+            <div className="h-12 w-32 flex items-center">
+              <img 
+                src={currentThemeLogo} 
+                alt="Hera Collections" 
+                className="h-full w-full object-contain"
+              />
             </div>
-          )}
+          </Link>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>Hera Collection © {new Date().getFullYear()}</p>
-          <p className="mt-1">Secure password reset system</p>
+        <div className="w-full max-w-[440px] py-12">
+          {/* Form Header */}
+          <div className="mb-10">
+            <motion.h1 
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-black tracking-tight text-foreground mb-3"
+            >
+              Secure Reset
+            </motion.h1>
+            <motion.p 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-lg text-muted-foreground"
+            >
+              Choose a strong password to protect your account.
+            </motion.p>
+             {email && (
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-2xl">
+                <span className="text-sm font-bold text-muted-foreground grayscale">
+                  For: <span className="text-foreground">{email}</span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Form Area or Success Area */}
+          <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              {success ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-green-500/10 border border-green-500/20 rounded-3xl p-8 text-center"
+                >
+                  <div className="mx-auto w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg mb-6">
+                    <CheckCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-black text-foreground mb-4 uppercase tracking-tighter">Success!</h3>
+                  <p className="text-muted-foreground font-medium mb-8 text-lg">
+                    Your password has been updated securely. Redirecting you to sign in...
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/70 font-semibold">New Password</FormLabel>
+                            <FormControl>
+                              <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="Min. 8 characters"
+                                  className="h-14 pl-12 pr-12 rounded-2xl border-border bg-secondary/5 transition-all focus:ring-primary/20 focus:border-primary"
+                                  disabled={isSubmitting}
+                                  {...field}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                >
+                                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                             {/* Password Strength Indicator */}
+                            {password && (
+                              <div className="mt-4 space-y-3 p-4 bg-muted/30 rounded-2xl">
+                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden flex gap-1">
+                                  {[1, 2, 3, 4].map((step) => {
+                                    const score = Object.values(passwordChecks).filter(Boolean).length;
+                                    const active = score >= step;
+                                    return (
+                                      <div 
+                                        key={step}
+                                        className={`h-full flex-1 rounded-full transition-all duration-500 ${
+                                          active 
+                                            ? score <= 2 ? 'bg-orange-500' : 'bg-primary' 
+                                            : 'bg-muted'
+                                        }`} 
+                                      />
+                                    );
+                                  })}
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                   {Object.entries(passwordChecks).map(([key, isValid]) => (
+                                    <div key={key} className={`flex items-center gap-2 text-xs font-bold ${isValid ? "text-foreground" : "text-muted-foreground/50"}`}>
+                                      <div className={`h-1.5 w-1.5 rounded-full ${isValid ? 'bg-primary' : 'bg-muted'}`} />
+                                      {key === "length" && "8+ characters"}
+                                      {key === "number" && "Numbers"}
+                                      {key === "letter" && "Letters"}
+                                      {key === "special" && "Symbols"}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-foreground/70 font-semibold">Confirm Password</FormLabel>
+                            <FormControl>
+                              <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                  type={showConfirmPassword ? "text" : "password"}
+                                  placeholder="Must match exactly"
+                                  className="h-14 pl-12 pr-12 rounded-2xl border-border bg-secondary/5 transition-all focus:ring-primary/20 focus:border-primary"
+                                  disabled={isSubmitting}
+                                  {...field}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-transparent"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                >
+                                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Button
+                        type="submit"
+                        className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl hover:shadow-primary/20 transition-all duration-300 bg-primary hover:bg-primary/90 text-white"
+                        disabled={isSubmitting || !form.formState.isValid}
+                      >
+                        {isSubmitting ? "Resetting..." : "Update Password"}
+                      </Button>
+                    </form>
+                  </Form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      </div>
+
+        {/* Action Button */}
+        <div className="mt-auto py-8">
+            <Link to="/login" className="text-sm font-bold text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              Cancel & Return to Login
+            </Link>
+        </div>
+      </motion.div>
+
+      {/* Loading Overlay */}
+      {isSubmitting && !showFullLoader && (
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-md flex items-center justify-center z-[100]">
+           <OrbitProgress color="hsl(var(--primary))" size="large" />
+        </div>
+      )}
     </div>
   );
 };
+
 
 export default ResetPassword;

@@ -15,6 +15,12 @@ class PaymentService {
     const response = await axiosClient.post(`/payments/retry/${paymentIntentId}`);
     return response.data;
   }
+
+  async getPaystackConfig() {
+    const response = await axiosClient.get('/payments/paystack/config');
+    return response.data;
+  }
 }
+
 
 export default new PaymentService();

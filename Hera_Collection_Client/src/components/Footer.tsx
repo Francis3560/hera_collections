@@ -30,7 +30,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import Logo from '@/components/Images/HeraCollection Logo.jpg';
+import { useTheme } from "@/components/ThemeProvider";
+
+const darkLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745508/Hera-logo-white_kep2fm.png";
+const lightLogo = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png";
 
 export default function FreeFooter() {
   const [email, setEmail] = useState("");
@@ -40,6 +43,27 @@ export default function FreeFooter() {
     queryKey: ["categories-tree"],
     queryFn: () => CategoryService.getAllCategories({ tree: 'true' })
   });
+
+  const { theme } = useTheme();
+  const [actualTheme, setActualTheme] = React.useState<'light' | 'dark'>('light');
+
+  React.useEffect(() => {
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setActualTheme(mediaQuery.matches ? 'dark' : 'light');
+      
+      const listener = (e: MediaQueryListEvent) => {
+        setActualTheme(e.matches ? 'dark' : 'light');
+      };
+      
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    } else {
+      setActualTheme(theme as 'light' | 'dark');
+    }
+  }, [theme]);
+
+  const currentLogo = actualTheme === 'dark' ? darkLogo : lightLogo;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,11 +138,11 @@ export default function FreeFooter() {
               <div className="mb-6">
                 <Link to="/" className="inline-block">
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16">
+                    <div className="h-16 w-32">
                       <img
-                        src={Logo}
+                        src={currentLogo}
                         alt="Hera Collections - Premium Bags & Accessories"
-                        className="h-full w-full object-contain rounded-full"
+                        className="h-full w-full object-contain"
                       />
                     </div>
                     <div>
@@ -140,7 +164,7 @@ export default function FreeFooter() {
               {/* Social Media */}
               <div className="mb-6">
                 <h4 className="font-semibold text-foreground dark:text-foreground mb-3">
-                  Connect With Us on Instagram
+                  Connect With Us on Socials
                 </h4>
                 <div className="flex items-center gap-3">
                   {[
@@ -190,9 +214,11 @@ export default function FreeFooter() {
               </h3>
               <ul className="space-y-3">
                 {[
-                  { name: "Home", href: "/" },
-                  { name: "About Us", href: "/about" },
-                  { name: "Contact Us", href: "/contact" },
+                  { name: "Terms of Service", href: "/terms-of-service" },
+                  { name: "Refund Policy", href: "/refund-policy" },
+                  { name: "Shipping Policy", href: "/shipping-policy" },
+                  { name: "Privacy Policy", href: "/privacy-policy" },
+                  { name: "Care Instructions", href: "/care-instructions" },
                 ].map((link) => (
                   <li key={link.name}>
                     <Link
@@ -247,13 +273,8 @@ export default function FreeFooter() {
               <ul className="space-y-3">
                 {[
                   { name: "Contact Us", href: "/contact" },
-                  { name: "FAQs", href: "/faq" },
-                  { name: "Shipping Info", href: "/shipping" },
-                  { name: "Returns & Exchanges", href: "/returns" },
-                  { name: "Size Guide", href: "/size-guide" },
-                  { name: "Care Instructions", href: "/care" },
-                  { name: "Track Order", href: "/track-order" },
-                  { name: "Privacy Policy", href: "/privacy" },
+                  { name: "FAQs", href: "/#faq" },
+                  { name: "Track Order", href: "/profile/orders" },
                 ].map((link) => (
                   <li key={link.name}>
                     <Link
@@ -363,13 +384,13 @@ export default function FreeFooter() {
               
               <div className="flex items-center gap-6">
                 <Link 
-                  to="/terms" 
+                  to="/terms-of-service" 
                   className="text-sm text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors"
                 >
                   Terms of Service
                 </Link>
                 <Link 
-                  to="/privacy" 
+                  to="/privacy-policy" 
                   className="text-sm text-muted-foreground dark:text-muted-foreground hover:text-primary dark:hover:text-primary transition-colors"
                 >
                   Privacy Policy

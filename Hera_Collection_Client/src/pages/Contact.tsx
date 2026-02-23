@@ -353,57 +353,6 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* FAQ or Help Section */}
-      <section className="py-24 bg-background">
-        <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-sm font-bold text-primary uppercase tracking-[0.3em] mb-4">Common Questions</h2>
-            <h3 className="text-4xl font-bold text-foreground mb-4">Frequently Asked Questions</h3>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Quick answers to help you on your style journey.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                q: "Where do you deliver?",
-                a: "We currently offer delivery within Nairobi and its immediate environs. Most orders are delivered within 24 hours."
-              },
-              {
-                q: "What is your return policy?",
-                a: "To maintain the highest hygiene and quality standards, we do not accept returns. However, we encourage you to inspect your item upon delivery to ensure complete satisfaction."
-              },
-              {
-                q: "Specific payment methods?",
-                a: "We accept M-Pesa Buy Goods (Till Number: 5425861) and Cash for all local orders. Payment is made upon or before delivery."
-              }
-            ].map((faq, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-              >
-                <Card className="border-border/50 bg-secondary/5 h-full hover:shadow-lg transition-shadow">
-                  <CardContent className="p-8">
-                    <h4 className="text-lg font-bold text-foreground mb-4">{faq.q}</h4>
-                    <p className="text-muted-foreground leading-relaxed">{faq.a}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48"></div>

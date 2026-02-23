@@ -1,34 +1,88 @@
-/* PhoneInput country select fix */
-.PhoneInputCountrySelect {
-  /* Ensure the background is dark in dark mode or consistent with theme */
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  border-radius: var(--radius);
-  border: 1px solid hsl(var(--input));
+/* PhoneInput Container */
+.PhoneInput {
+  display: flex;
+  align-items: center;
 }
 
-/* Specific fix for options within the select to ensure they are readable */
-.PhoneInputCountrySelect option {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+/* Individual Input Styling */
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  padding: 0 0.5rem !important;
+  font-size: 1rem;
+  box-shadow: none !important;
+  color: inherit;
 }
 
-/* Ensure the country select matches the height and styling of custom inputs */
+/* Country Selector Styling */
 .PhoneInputCountry {
-  margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding-right: 12px;
+  margin-right: 12px;
+  border-right: 1px solid #e2e8f0; /* The vertical separator from the image */
+  gap: 2px;
 }
 
+/* Separation bar color for dark mode */
+.dark .PhoneInputCountry {
+  border-right-color: #334155;
+}
+
+/* Arrow indicator next to flag */
+.PhoneInputCountry::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid #64748b; /* Slate-500 */
+  margin-left: 2px;
+}
+
+/* Flag Icon Styling */
 .PhoneInputCountryIcon {
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  width: 28px !important;
+  height: 20px !important;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  display: flex;
 }
 
-/* Dark mode specific overrides if needed */
-.dark .PhoneInputCountrySelect {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+.PhoneInputCountryIconImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
+/* Ensure the native select is transparent and covers the flag/arrow/separator area for clicking */
+.PhoneInputCountrySelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Light Mode Options */
+.PhoneInputCountrySelect option {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Dark Mode Options */
 .dark .PhoneInputCountrySelect option {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: #0f172a;
+  color: #ffffff;
 }

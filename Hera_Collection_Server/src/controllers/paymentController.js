@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { initiateStkPush } from "../services/paymentService.js";
 import prisma from "../database.js";
 import * as orderService from "../services/orderService.js";
@@ -665,5 +666,75 @@ export async function retryPayment(req, res) {
       success: false,
       message: "Failed to retry payment"
     });
+  }
+}
+
+export async function getPaystackConfig(req, res) {
+  try {
+    const publicKey = process.env.PAYSTACK_PUBLIC_KEY?.replace(/\s/g, '');
+    
+    if (!publicKey) {
+      return res.status(404).json({
+        success: false,
+        message: "Paystack configuration not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      publicKey
+    });
+  } catch (err) {
+
+    console.error("getPaystackConfig error:", err.message || err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch Paystack configuration"
+    });
+  }
+}
+
+export async function paystackWebhook(req, res) {
+  try {
+    const secret = process.env.PAYSTACK_SECRET_KEY;
+    
+    if (!secret) {
+      console.warn("PAYSTACK_SECRET_KEY not found. Webhook verification skipped (NOT SECURE).");
+    } else {
+      const hash = crypto
+        .createHmac('sha512', secret)
+        .update(typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+        .digest('hex');
+
+      if (hash !== req.headers['x-paystack-signature']) {
+        console.warn("Paystack webhook signature mismatch!");
+        return res.status(401).json({ message: "Invalid signature" });
+      }
+    }
+
+    const event = req.body;
+    console.log(`[Paystack Webhook] Received event: ${event.event}`);
+
+    if (event.event === 'charge.success') {
+      const { reference, amount } = event.data;
+      
+      console.log(`[Paystack Webhook] Payment successful for ref: ${reference}, amount: ${amount}`);
+
+      const order = await prisma.order.findFirst({
+        where: { mpesaReference: reference }
+      });
+
+      if (order) {
+        if (order.status !== 'PAID') {
+          await orderService.updateOrderStatus(order.id, 'PAID', null, null, null, reference);
+          console.log(`[Paystack Webhook] Order ${order.orderNumber} status updated to PAID.`);
+        }
+      }
+    }
+
+    return res.status(200).json({ message: "Webhook processed" });
+  } catch (err) {
+    console.error("paystackWebhook error:", err.message || err);
+    return res.status(500).json({ message: "Internal server error" });
   }
 }

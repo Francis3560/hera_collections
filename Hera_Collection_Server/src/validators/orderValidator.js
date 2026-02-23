@@ -26,6 +26,7 @@ export const createOrderSchema = Joi.object({
     method: Joi.string().valid('MPESA', 'CARD', 'CASH', 'OTHER', 'MPESA_MANUAL').required(),
     phone: Joi.string().optional().allow(null, ''),
     mpesaReference: Joi.string().optional().allow('', null),
+    paystackReference: Joi.string().optional().allow('', null),
   }).required(),
 
   shipping: Joi.object({

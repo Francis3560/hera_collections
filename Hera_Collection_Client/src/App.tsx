@@ -58,6 +58,13 @@ import ShippingFeesPage from "./pages/administrator/Shipping/ShippingFeesPage";
 import About from "./pages/About";
 import InquiryDashboard from "./pages/admin/InquiryDashboard";
 import Contact from "./pages/Contact";
+import CorporateOrders from "./pages/CorporateOrders";
+import CustomOrders from "./pages/CustomOrders";
+import TermsOfService from "./pages/policies/TermsOfService";
+import RefundPolicy from "./pages/policies/RefundPolicy";
+import ShippingPolicy from "./pages/policies/ShippingPolicy";
+import PrivacyPolicy from "./pages/policies/PrivacyPolicy";
+import CareInstructions from "./pages/policies/CareInstructions";
 import { ProfileWishlist, ProfileAddresses, ProfilePayments, ProfileNotifications } from "./pages/authentication/ProfileSubPages";
 
 
@@ -92,6 +99,15 @@ const App = () => (
                   <Route path="/register" element={<Registration />} /> 
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/corporate-orders" element={<CorporateOrders />} />
+                  <Route path="/custom-orders" element={<CustomOrders />} />
+                  
+                  {/* Policies */}
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
+                  <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/care-instructions" element={<CareInstructions />} />
 
 
                   <Route path="/forgot-password" element={<ForgotPassword />} />
