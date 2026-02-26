@@ -282,8 +282,9 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (paymentMethod === "MPESA" && !formData.mpesaReference) {
-      toast.error("Please enter the M-Pesa Reference Code");
+    // Only require reference if not using STK Push (which is default now)
+    if (paymentMethod === "MPESA" && !formData.mpesaReference && !formData.phone) {
+      toast.error("Please enter a phone number for STK Push or a Reference Code");
       return;
     }
 
@@ -310,52 +311,52 @@ export default function CheckoutPage() {
       // Format phone: remove + if present
       const formattedPhone = formData.phone ? formData.phone.replace('+', '') : '';
 
-      // --- EXISTING STK PUSH LOGIC (COMMENTED OUT) ---
-      /*
-      // 1. Initiate M-Pesa STK Push
-      const paymentData = {
-        items: items.map(item => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
-        })),
-        customer: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          phone: formattedPhone
-        },
-        shipping: {
-          address: formData.address,
-          city: formData.city,
-          governorate: formData.governorate,
-          notes: formData.notes
-        },
-        payment: {
-            method: "MPESA",
+      // 1. Initiate M-Pesa STK Push if no manual reference is provided
+      if (method === "MPESA" && !paymentRef && !formData.mpesaReference) {
+        const paymentData = {
+          items: items.map(item => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+            price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
+          })),
+          customer: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
             phone: formattedPhone
-        },
-        amounts: {
-            subtotal: displayTotal,
-            shipping: shippingFee,
-            total: grandTotal
-        }
-      };
+          },
+          shipping: {
+            address: formData.address,
+            city: formData.city,
+            governorate: formData.governorate,
+            notes: formData.notes
+          },
+          payment: {
+              method: "MPESA",
+              phone: formattedPhone
+          },
+          amounts: {
+              subtotal: displayTotal,
+              shipping: shippingFee,
+              total: grandTotal
+          }
+        };
 
-      const response = await PaymentService.startMpesaPayment(paymentData);
-      
-      if (response.success) {
-        setCheckoutId(response.data.checkoutRequestId);
-        toast.info("STK Push sent! Please check your phone.");
+        const response = await PaymentService.startMpesaPayment(paymentData);
         
-        // 2. Start polling for payment status
-        pollPaymentStatus(response.data.checkoutRequestId);
-      } else {
-        throw new Error(response.message || "Failed to initiate payment");
+        if (response.success) {
+          setCheckoutId(response.data.checkoutRequestId);
+          toast.info("STK Push sent! Please check your phone.");
+          
+          // 2. Start polling for payment status
+          pollPaymentStatus(response.data.checkoutRequestId);
+          return; // Exit and wait for polling
+        } else {
+          throw new Error(response.message || "Failed to initiate payment");
+        }
       }
-      */
       
       // --- MANUAL MPESA PAYMENT LOGIC ---
       // For now, we simulate a successful order placement with the reference code
@@ -784,9 +785,7 @@ export default function CheckoutPage() {
 
                   {paymentMethod === "MPESA" && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-top-2 bg-secondary/10 p-4 rounded-xl border border-secondary/20">
-                        {/* 
-                        // --- STK PUSH UI (COMMENTED OUT) ---
-                        <Label htmlFor="phone">M-Pesa Phone Number</Label>
+                        <Label htmlFor="phone">M-Pesa Phone Number (for STK Push)</Label>
                         <PhoneInput
                           placeholder="Enter phone number" 
                           value={formData.phone} 
@@ -795,7 +794,6 @@ export default function CheckoutPage() {
                           inputComponent={Input}
                         />
                         <p className="text-xs text-muted-foreground">Ensure this is your active M-Pesa line for the STK Push.</p>
-                        */}
 
                         <div className="flex flex-col gap-3">
                             <h3 className="font-semibold text-primary flex items-center gap-2">

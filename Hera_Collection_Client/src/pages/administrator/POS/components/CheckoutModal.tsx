@@ -24,6 +24,8 @@ import paymentService from '@/api/payment.service';
 import { debounce } from 'lodash';
 import { OrderSuccessSplash } from '@/components/shared/OrderSuccessSplash';
 import { useAuth } from '@/context/AuthContext';
+import { usePaystackPayment } from 'react-paystack';
+import { toast } from 'sonner';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -62,6 +64,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [searching, setSearching] = useState(false);
   const [noResults, setNoResults] = useState(false);
+  const [paystackKey, setPaystackKey] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const change = Number(cashTendered) - total;
@@ -83,8 +86,40 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         email: '',
         phone_number: ''
       });
+      fetchPaystackConfig();
     }
   }, [isOpen]);
+
+  const fetchPaystackConfig = async () => {
+    try {
+      const config = await paymentService.getPaystackConfig();
+      if (config.success && config.publicKey) {
+        setPaystackKey(config.publicKey);
+      }
+    } catch (error) {
+      console.error("Failed to fetch Paystack config", error);
+    }
+  };
+
+  const initializePayment = usePaystackPayment({
+    reference: new Date().getTime().toString(),
+    email: customer.email || "customer@example.com",
+    amount: total * 100,
+    publicKey: paystackKey || 'pk_test_d3e20e8d91c12e2c4cb71c841e0ff05e19bd8ff9', 
+    currency: 'KES',
+    firstname: customer.full_name?.split(" ")[0] || "",
+    lastname: customer.full_name?.split(" ").slice(1).join(" ") || "",
+    phone: customer.phone_number
+  });
+
+  const onPaystackSuccess = async (reference: any) => {
+    await finalizeCheckout(reference.reference);
+  };
+
+  const onPaystackClose = () => {
+    setLoading(false);
+    toast.error("Payment was cancelled.");
+  };
 
   const pollPaymentStatus = async (id: string) => {
     let attempts = 0;
@@ -130,14 +165,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     return userId;
   };
 
-  const finalizeCheckout = async () => {
+  const finalizeCheckout = async (paystackRef?: string) => {
     try {
         const userId = await getOrCreateCustomer();
 
         await onConfirm({
           payment: {
             method: paymentMethod,
-            phone: customer.phone_number
+            phone: customer.phone_number,
+            paystackReference: paystackRef
           },
           customer: {
             ...customer,
@@ -264,6 +300,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         }
     }
 
+    if (paymentMethod === 'CARD') {
+        initializePayment({ onSuccess: onPaystackSuccess, onClose: onPaystackClose });
+        return;
+    }
+
     // For CASH or other immediate methods
     await finalizeCheckout();
   };
@@ -313,12 +354,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <span className="text-sm font-medium">M-Pesa</span>
                       </Label>
                     </div>
-                    <div className="relative opacity-50 cursor-not-allowed">
+                    <div className="relative">
+                      <RadioGroupItem value="CARD" id="card" className="peer sr-only" />
                       <Label
-                        className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-muted bg-muted/20 p-4 h-full"
+                        htmlFor="card"
+                        className="flex flex-col items-center justify-center rounded-2xl border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
                       >
-                        <CreditCard className="mb-2 h-6 w-6" />
-                        <span className="text-xs font-medium">Card (Soon)</span>
+                        <CreditCard className="mb-2 h-6 w-6 text-blue-600" />
+                        <span className="text-sm font-medium">Card</span>
                       </Label>
                     </div>
                     <div className="relative opacity-50 cursor-not-allowed">
