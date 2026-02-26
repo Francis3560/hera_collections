@@ -80,7 +80,6 @@ export default function CheckoutPage() {
     city: "",
     governorate: "Nairobi", // Default
     notes: "",
-    mpesaReference: ""
   });
 
   // Fetch Paystack configuration
@@ -282,9 +281,9 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Only require reference if not using STK Push (which is default now)
-    if (paymentMethod === "MPESA" && !formData.mpesaReference && !formData.phone) {
-      toast.error("Please enter a phone number for STK Push or a Reference Code");
+    // Require phone for M-Pesa STK Push
+    if (paymentMethod === "MPESA" && !formData.phone) {
+      toast.error("Please enter a phone number for STK Push");
       return;
     }
 
@@ -311,8 +310,8 @@ export default function CheckoutPage() {
       // Format phone: remove + if present
       const formattedPhone = formData.phone ? formData.phone.replace('+', '') : '';
 
-      // 1. Initiate M-Pesa STK Push if no manual reference is provided
-      if (method === "MPESA" && !paymentRef && !formData.mpesaReference) {
+      // 1. Initiate M-Pesa STK Push
+      if (method === "MPESA") {
         const paymentData = {
           items: items.map(item => ({
             productId: item.productId,
@@ -358,12 +357,7 @@ export default function CheckoutPage() {
         }
       }
       
-      // --- MANUAL MPESA PAYMENT LOGIC ---
-      // For now, we simulate a successful order placement with the reference code
-      // You would likely replace this with a call to your backend to create the order with "PENDING" payment status
-      // and valid reference code.
-
-      // Construct a generic order object to simulate success
+      // 3. Card Payment Logic (Called after Paystack success)
        const orderData = {
         items: items.map(item => ({
           productId: item.productId,
@@ -385,8 +379,7 @@ export default function CheckoutPage() {
         },
         payment: {
             method: method,
-            mpesaReference: method === "MPESA" ? (paymentRef || formData.mpesaReference) : undefined,
-            paystackReference: method === "CARD" ? paymentRef : undefined,
+            paystackReference: paymentRef,
             phone: formattedPhone
         },
         amounts: {
@@ -396,15 +389,13 @@ export default function CheckoutPage() {
         }
       };
       
-      // In a real scenario, you'd call an API endpoint like `OrderService.createOrder(orderData)`
       const response = await orderService.createOrder(orderData);
       
       if (response && response.success) {
-          // Success
           setSuccessOrder(response.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-          toast.success("Order placed successfully! " + (method === "MPESA" ? "Pending payment verification." : ""));
+          toast.success("Order placed successfully!");
           clearCart();
       } else {
           throw new Error(response.message || "Failed to create order");
@@ -794,34 +785,7 @@ export default function CheckoutPage() {
                           inputComponent={Input}
                         />
                         <p className="text-xs text-muted-foreground">Ensure this is your active M-Pesa line for the STK Push.</p>
-
-                        <div className="flex flex-col gap-3">
-                            <h3 className="font-semibold text-primary flex items-center gap-2">
-                                <Sparkles className="h-4 w-4" /> Manual Payment Instructions
-                            </h3>
-                            <div className="text-sm space-y-2 bg-background p-4 rounded-lg border border-border/50">
-                                <p>1. Go to your M-Pesa Menu.</p>
-                                <p>2. Select <strong>Lipa na M-Pesa</strong>.</p>
-                                <p>3. Select <strong>Buy Goods and Services</strong>.</p>
-                                <p>4. Enter Till Number: <strong className="text-primary text-lg">5425861</strong></p>
-                                <p>5. Enter Amount: <strong>{formatPrice(grandTotal)}</strong></p>
-                                <p>6. Enter your PIN and confirm.</p>
-                            </div>
-                            
-                            <div className="space-y-2 pt-2">
-                                <Label htmlFor="mpesaReference" className="text-base">M-Pesa Reference Code</Label>
-                                <Input 
-                                    id="mpesaReference" 
-                                    placeholder="e.g. QKH45..." 
-                                    value={formData.mpesaReference} 
-                                    onChange={handleInputChange} 
-                                    className="uppercase tracking-widest font-mono border-primary/30 focus:border-primary"
-                                    required
-                                />
-                                <p className="text-xs text-muted-foreground">Paste the confirmation code from the SMS here to verify your payment.</p>
-                            </div>
-                        </div>
-                    </div>
+                      </div>
                   )}
                   
                   <div className="space-y-2">
