@@ -72,8 +72,8 @@ export async function startMpesaPayment(req, res) {
       }
     }
 
-    // Generate order reference
-    const orderReference = `VZG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate order reference (shortened to 12 chars for M-Pesa limit)
+    const orderReference = `VZG${Math.random().toString(36).substr(2, 9).toUpperCase()}`.substring(0, 12);
 
     // Determine the buyer ID. For POS, the cashier is auth'd but the buyer is the customer.
     // If customer.userId is provided (from POS), use it. otherwise use req.auth.userId.
