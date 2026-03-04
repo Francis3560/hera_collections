@@ -191,80 +191,90 @@ const ExpenseCategoryModule = () => {
   };
 
   return (
-    <div className="space-y-8 p-6 lg:p-8 pb-20 animate-fade-in max-w-7xl mx-auto">
-      {/* Header Section */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
-        <div className="space-y-3">
-          <Badge variant="outline" className="px-4 py-1.5 border-primary/20 bg-primary/5 text-primary text-xs font-bold uppercase tracking-widest animate-scale-in">
-            Financial Infrastructure
-          </Badge>
-          <h2 className="text-4xl lg:text-6xl font-black tracking-tight gradient-text leading-tight">
-            Expense Categories
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl font-medium">
-            Classify and track your operational expenditures with precision.
+    <div className="min-h-screen bg-background p-6 lg:p-10 space-y-10 animate-fade-in max-w-7xl mx-auto">
+      {/* Hero Header */}
+      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center text-white shadow-glow">
+              <FolderTree className="h-5 w-5" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+              Financial Infrastructure
+            </span>
+          </div>
+          <h1 className="text-4xl lg:text-7xl font-black tracking-tight leading-none">
+            Expense <span className="gradient-text">Categories</span>
+          </h1>
+          <p className="text-muted-foreground text-lg font-medium max-w-xl">
+            Define the structural segments of your capital flow for precise auditing and reporting.
           </p>
         </div>
+        
         <Button 
           onClick={() => setIsDialogOpen(true)} 
-          className="btn-primary flex items-center gap-2 px-8 h-14 text-base font-bold group"
+          className="btn-primary h-16 px-10 rounded-2xl group relative overflow-hidden"
         >
-          <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-500" />
-          Create Category
+          <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+          <span className="relative flex items-center gap-3 text-lg font-bold">
+            <Plus className="h-6 w-6 group-hover:rotate-180 transition-transform duration-700" />
+            Create Category
+          </span>
         </Button>
-      </div>
+      </header>
 
-      {/* Search and Stats Section */}
-      <div className="flex flex-col md:flex-row items-center gap-6 bg-white/5 dark:bg-zinc-900/30 p-6 rounded-3xl border border-white/10 backdrop-blur-2xl shadow-strong">
+      {/* Controls Bar */}
+      <div className="glass-card flex flex-col md:flex-row items-center gap-6 border-white/10 dark:border-white/5 shadow-medium">
         <div className="relative flex-1 w-full group">
-          <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-all duration-300" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
-            placeholder="Search expense classifications..." 
+            placeholder="Filter by classification name or ID..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-14 h-14 bg-background/50 focus:bg-background border-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-2xl text-base transition-all shadow-inner"
+            className="pl-14 h-16 bg-background/50 border-white/10 focus:border-primary/50 text-lg rounded-xl shadow-inner transition-all"
           />
         </div>
+        
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-4 bg-primary/5 border border-primary/10 rounded-2xl">
-            <FolderTree className="h-5 w-5 text-primary" />
-            <span className="text-base font-bold text-primary">{categories.length}</span>
-            <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Categories</span>
+          <div className="flex items-center gap-3 px-6 py-4 bg-muted/30 border border-white/5 rounded-xl">
+            <FolderTree className="h-5 w-5 text-muted-foreground" />
+            <span className="font-bold text-xl">{categories.length}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Classifications</span>
           </div>
         </div>
       </div>
 
-      {/* Categories Table */}
-      <div className="glass-card !p-0 overflow-hidden shadow-strong border-white/10 dark:border-white/5 animate-slide-up">
+      {/* Categories Grid Table */}
+      <div className="glass-card !p-0 overflow-hidden shadow-strong border-white/10 animate-slide-up rounded-3xl">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-muted/50 border-white/10">
-              <TableRow className="hover:bg-transparent border-white/10">
-                <TableHead className="w-[80px] text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-6 px-8">ID</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-6">Identity</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-6">Usage</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-6 hidden md:table-cell">Overview</TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground py-6 px-8">Actions</TableHead>
+            <TableHeader className="bg-muted/30 border-b border-white/5">
+              <TableRow className="hover:bg-transparent border-none">
+                <TableHead className="w-[100px] py-6 px-8 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">ID</TableHead>
+                <TableHead className="py-6 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Identity & Visuals</TableHead>
+                <TableHead className="py-6 text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Utilization Metrics</TableHead>
+                <TableHead className="py-6 text-[10px] font-black uppercase tracking-[0.2em] opacity-60 hidden md:table-cell">Internal Description</TableHead>
+                <TableHead className="py-6 text-[10px] font-black uppercase tracking-[0.2em] opacity-60 text-right pr-8">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading && categories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
+                  <TableCell colSpan={5} className="h-96 text-center">
+                    <div className="flex flex-col items-center gap-4">
                       <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-                      <p className="text-sm font-medium text-muted-foreground">Loading Classifications...</p>
+                      <p className="text-muted-foreground font-bold tracking-widest animate-pulse uppercase text-[10px]">Synchronizing Financial Elements...</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : categories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3 opacity-50">
-                      <div className="p-4 bg-muted rounded-full">
-                        <Search className="h-8 w-8 text-muted-foreground" />
+                  <TableCell colSpan={5} className="h-96 text-center">
+                    <div className="flex flex-col items-center gap-4 opacity-30">
+                      <div className="h-20 w-20 rounded-full border-2 border-dashed border-muted-foreground flex items-center justify-center">
+                        <Search className="h-10 w-10 text-muted-foreground" />
                       </div>
-                      <p className="text-lg font-medium text-muted-foreground">No matches found in finance records</p>
+                      <p className="text-xl font-bold">No Classifications Found</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -272,54 +282,62 @@ const ExpenseCategoryModule = () => {
                 categories.map((category) => (
                   <TableRow 
                     key={category.id} 
-                    className="group border-white/5 hover:bg-primary/[0.02] dark:hover:bg-primary/[0.05] transition-colors"
+                    className="group border-white/5 hover:bg-primary/[0.03] transition-colors"
                   >
-                    <TableCell className="py-6 px-8 font-mono text-[10px] font-bold text-muted-foreground/60">
-                      #{category.id.toString().padStart(3, '0')}
+                    <TableCell className="py-8 px-8">
+                      <span className="font-mono text-[10px] font-black text-muted-foreground">
+                        {category.id.toString().padStart(3, '0')}
+                      </span>
                     </TableCell>
-                    <TableCell className="py-6">
-                      <div className="flex items-center gap-4">
+                    <TableCell className="py-8">
+                      <div className="flex items-center gap-5">
                         <div 
-                           className="h-12 w-12 rounded-xl flex items-center justify-center border border-white/10 shadow-soft group-hover:scale-110 transition-transform duration-500"
-                           style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                           className="h-14 w-14 rounded-2xl flex items-center justify-center border border-white/10 shadow-soft group-hover:scale-110 transition-transform duration-500"
+                           style={{ backgroundColor: `${category.color}15`, color: category.color, borderColor: `${category.color}30` }}
                         >
-                          {renderIcon(category.icon, 20)}
+                          {renderIcon(category.icon, 24)}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-black text-lg group-hover:text-primary transition-colors">{category.name}</span>
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{category.icon || 'DefaultIcon'}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-bold px-3 py-1 bg-white/5 border border-white/10 rounded-lg w-fit">
-                          {category._count?.expenses || 0} Expenses Linked
-                        </span>
-                        <div className="flex items-center gap-1.5 ml-1">
-                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: category.color }} />
-                          <span className="text-[10px] font-mono text-muted-foreground uppercase">{category.color}</span>
+                        <div className="space-y-1">
+                          <p className="text-lg font-black leading-tight group-hover:text-primary transition-colors">
+                            {category.name}
+                          </p>
+                          <div className="flex items-center gap-2">
+                             <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: category.color }} />
+                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">#{category.color.replace('#', '')}</span>
+                          </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="py-6 text-muted-foreground font-medium text-sm max-w-[300px] truncate hidden md:table-cell">
-                      {category.description || 'Global operational category'}
+                    <TableCell className="py-8">
+                      <div className="space-y-1">
+                        <p className="text-xl font-black tracking-tighter">
+                          {category._count?.expenses || 0} <span className="text-[10px] font-bold opacity-40">ENTRIES</span>
+                        </p>
+                        <Badge variant="outline" className="text-[8px] font-black tracking-[0.2em] px-2 py-0 h-4 border-none bg-primary/10 text-primary">
+                          LIVE CHANNEL
+                        </Badge>
+                      </div>
                     </TableCell>
-                    <TableCell className="py-6 px-8 text-right">
-                      <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
+                    <TableCell className="py-8 hidden md:table-cell max-w-[250px]">
+                       <p className="text-sm font-medium text-muted-foreground line-clamp-2 leading-relaxed">
+                          {category.description || 'Global classification for Hera Collections expenditures.'}
+                       </p>
+                    </TableCell>
+                    <TableCell className="py-8 pr-8 text-right">
+                      <div className="flex justify-end items-center gap-3">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleEdit(category)} 
-                          className="h-12 w-12 rounded-2xl hover:bg-primary/20 hover:text-primary dark:hover:bg-primary/10 transition-bounce text-foreground"
+                          onClick={() => handleEdit(category)}
+                          className="h-12 w-12 rounded-2xl hover:bg-primary/20 hover:text-primary transition-bounce"
                         >
                           <Pencil className="h-5 w-5" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => handleDeleteClick(category)} 
-                          className="h-12 w-12 rounded-2xl hover:bg-red-500/20 hover:text-red-500 dark:hover:bg-red-500/10 transition-bounce"
+                          onClick={() => handleDeleteClick(category)}
+                          className="h-12 w-12 rounded-2xl hover:bg-destructive/20 hover:text-destructive transition-bounce"
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
@@ -333,228 +351,196 @@ const ExpenseCategoryModule = () => {
         </div>
       </div>
 
-      {/* Dialog for Create/Edit */}
+      {/* Persistence Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="max-w-[900px] p-0 overflow-hidden border-none glass-card shadow-strong animate-scale-in text-foreground">
-          <div className="flex flex-col h-[90vh] md:h-auto max-h-[90vh]">
-            {/* Header */}
-            <div className="p-8 pb-0">
-              <DialogHeader>
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <FolderTree className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-3xl font-black tracking-tight gradient-text">
-                      {isEditing ? 'Refine Classification' : 'New Classification'}
-                    </DialogTitle>
-                    <DialogDescription className="text-base font-medium text-muted-foreground">
-                      {isEditing 
-                        ? 'Adjust the financial identity of this expense segment.' 
-                        : 'Define a new structural element for your expenditure tracking.'
-                      }
-                    </DialogDescription>
-                  </div>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none glass-card shadow-strong animate-scale-in">
+          <div className="flex flex-col max-h-[90vh]">
+            <div className="p-10 border-b border-white/5 bg-primary/5">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center text-white shadow-glow">
+                  <FolderTree className="h-8 w-8" />
                 </div>
-              </DialogHeader>
+                <div>
+                  <h2 className="text-3xl font-black tracking-tight leading-tight">
+                    {isEditing ? 'Modify' : 'Initialize'} <span className="gradient-text">Classification</span>
+                  </h2>
+                  <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px] mt-1">
+                    System Architecture Management
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <ScrollArea className="flex-1 px-8 py-6">
+            <ScrollArea className="flex-1 p-10">
               <Form {...form}>
-                <form id="expense-category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left Column: Core Identity */}
-                    <div className="space-y-6">
-                      <Card className="bg-white/5 border-white/10 shadow-soft overflow-hidden border-none">
-                        <CardHeader className="pb-4 bg-primary/5 border-b border-white/5">
-                          <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Type className="h-4 w-4 text-primary" /> Metadata
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Category Name</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="e.g., Marketing & Growth" 
-                                    {...field} 
-                                    className="bg-background/50 focus:bg-background border-white/10 h-12 rounded-xl transition-all font-bold text-base"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Contextual Narrative</FormLabel>
-                                <FormControl>
-                                  <Textarea 
-                                    placeholder="Define the scope of expenditures for this segment..." 
-                                    {...field} 
-                                    className="resize-none bg-background/50 focus:bg-background border-white/10 rounded-xl transition-all min-h-[140px] font-medium" 
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </CardContent>
-                      </Card>
+                <form id="expense-category-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-10">
+                  <div className="grid lg:grid-cols-2 gap-10">
+                    <div className="space-y-8">
+                       <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Classification Identity</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="e.g., Warehouse Logistics" 
+                                {...field} 
+                                className="h-14 text-lg font-bold border-white/10 bg-background/50 focus:border-primary px-5 rounded-xl transition-all"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-[10px] font-bold uppercase" />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Internal Narrative</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Define what expenditures fall under this segment..." 
+                                {...field} 
+                                className="bg-background/50 border-white/10 focus:border-primary rounded-xl font-medium min-h-[160px] p-5 leading-relaxed" 
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
-                    {/* Right Column: Visual Brand */}
-                    <div className="space-y-6">
-                      <Card className="bg-white/5 border-white/10 shadow-soft overflow-hidden h-full border-none">
-                        <CardHeader className="pb-4 bg-primary/5 border-b border-white/5">
-                          <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Palette className="h-4 w-4 text-primary" /> Visual Brand
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6 space-y-6">
-                          <div className="grid grid-cols-2 gap-6">
-                            <FormField
-                              control={form.control}
-                              name="color"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Signature Color</FormLabel>
-                                  <div className="flex items-center gap-3">
-                                    <FormControl>
-                                      <div className="relative h-12 w-full">
-                                        <Input 
-                                          type="color" 
-                                          {...field} 
-                                          className="h-12 w-full p-1 bg-background/50 border-white/10 rounded-xl cursor-pointer"
-                                        />
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                          <div className="h-4 w-4 rounded-full shadow-glow" style={{ backgroundColor: field.value }} />
-                                        </div>
-                                      </div>
-                                    </FormControl>
-                                  </div>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name="icon"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Identifier Icon</FormLabel>
-                                  <FormControl>
-                                    <div className="relative">
-                                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-primary opacity-50">
-                                         {renderIcon(field.value, 18)}
-                                      </div>
-                                      <Input 
-                                        placeholder="Lucide Icon Name" 
-                                        {...field} 
-                                        className="pl-10 bg-background/50 focus:bg-background border-white/10 h-12 rounded-xl transition-all font-mono text-xs"
-                                      />
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Visual Theme</FormLabel>
+                              <div className="flex items-center gap-3">
+                                <FormControl>
+                                  <div className="relative h-14 w-full">
+                                    <Input 
+                                      type="color" 
+                                      {...field} 
+                                      className="h-14 w-full p-1 bg-background/50 border-white/10 rounded-xl cursor-pointer"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                      <div className="h-6 w-6 rounded-lg shadow-glow" style={{ backgroundColor: field.value }} />
                                     </div>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          <div className="space-y-3">
-                            <FormLabel className="text-xs font-black uppercase tracking-wider opacity-70">Category Preview</FormLabel>
-                            <div 
-                               className="aspect-video rounded-3xl border border-white/10 flex flex-col items-center justify-center gap-4 transition-all duration-500 overflow-hidden relative group"
-                               style={{ backgroundColor: `${form.watch('color')}15` }}
-                            >
-                              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white to-transparent" />
-                              <div 
-                                className="h-20 w-20 rounded-2xl flex items-center justify-center shadow-strong animate-float"
-                                style={{ backgroundColor: `${form.watch('color')}40`, color: form.watch('color') }}
-                              >
-                                {renderIcon(form.watch('icon'), 36)}
+                                  </div>
+                                </FormControl>
                               </div>
-                              <div className="text-center z-10">
-                                <p className="font-black text-xl" style={{ color: form.watch('color') }}>{form.watch('name') || 'New Category'}</p>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Preview Identification</p>
-                              </div>
-                            </div>
-                          </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="icon"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Lucide Identifier</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary">
+                                     {renderIcon(field.value, 18)}
+                                  </div>
+                                  <Input 
+                                    placeholder="Icon Name" 
+                                    {...field} 
+                                    className="h-14 pl-12 bg-background/50 focus:bg-background border-white/10 rounded-xl transition-all font-mono text-xs uppercase"
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                          <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex gap-3 items-start">
-                            <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
-                              Choose a high-contrast color and a semantic Lucide icon (e.g., Receipt, CreditCard, ShoppingBag) for clear visual tracking.
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div className="space-y-3">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Real-time Visualization</FormLabel>
+                        <div 
+                           className="aspect-video rounded-3xl border border-white/10 flex flex-col items-center justify-center gap-6 transition-all duration-700 relative overflow-hidden group shadow-inner"
+                           style={{ backgroundColor: `${form.watch('color')}08` }}
+                        >
+                           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                           <div 
+                            className="h-24 w-24 rounded-[2.5rem] flex items-center justify-center shadow-glow transition-all duration-700 group-hover:rotate-[360deg] group-hover:scale-110"
+                            style={{ backgroundColor: `${form.watch('color')}20`, color: form.watch('color'), boxShadow: `0 0 40px ${form.watch('color')}15` }}
+                           >
+                            {renderIcon(form.watch('icon'), 40)}
+                           </div>
+                           <div className="text-center">
+                            <h4 className="font-black text-2xl tracking-tight" style={{ color: form.watch('color') }}>
+                              {form.watch('name') || 'Pending Identity'}
+                            </h4>
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] opacity-40 mt-1">Infrastructure Preview</p>
+                           </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </form>
               </Form>
             </ScrollArea>
 
-            {/* Footer Actions */}
-            <div className="p-8 pt-6 border-t border-white/5 bg-black/20">
-              <DialogFooter className="flex-row sm:justify-end gap-3 items-center">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setIsDialogOpen(false)} 
-                  className="h-14 rounded-2xl px-8 font-black text-xs uppercase tracking-widest border-white/10 hover:bg-white/5"
-                >
-                  Discard
-                </Button>
-                <Button 
-                  form="expense-category-form"
-                  type="submit" 
-                  disabled={form.formState.isSubmitting}
-                  className="h-14 rounded-2xl px-12 btn-primary font-black text-xs uppercase tracking-widest shadow-glow min-w-[200px]"
-                >
-                  {form.formState.isSubmitting ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : isEditing ? 'Update Registry' : 'Initialize Category'}
-                </Button>
-              </DialogFooter>
+            <div className="p-10 border-t border-white/5 bg-muted/20 flex justify-end gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsDialogOpen(false)}
+                className="h-14 rounded-xl px-10 font-black uppercase tracking-widest text-[10px] border-white/10"
+              >
+                Discard
+              </Button>
+              <Button 
+                form="expense-category-form"
+                type="submit" 
+                disabled={form.formState.isSubmitting}
+                className="btn-primary h-14 rounded-xl px-12 font-black uppercase tracking-widest text-[10px] min-w-[220px]"
+              >
+                {form.formState.isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : isEditing ? 'Commit Update' : 'Initialize Classification'}
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Confirmation Protocols */}
       <ConfirmModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={confirmDelete}
-          isLoading={isDeleting}
-          title="Archive Classification?"
-          description="This will permanently delete this expense classification. It can only be removed if no expenditures are assigned to it."
-          confirmText="Delete Registry"
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        title="Authorize Purge?"
+        description="This action will permanently remove this classification segment. This is only possible if there are ZERO transactions currently linked to this identity."
       >
-          {categoryToDelete && (
-              <div className="flex items-center gap-4">
-                  <div 
-                    className="h-16 w-16 rounded-xl flex items-center justify-center border border-white/10 shrink-0 shadow-soft"
-                    style={{ backgroundColor: `${categoryToDelete.color}20`, color: categoryToDelete.color }}
-                  >
-                      {renderIcon(categoryToDelete.icon, 24)}
-                  </div>
-                  <div className="flex flex-col">
-                      <span className="font-black text-foreground break-words">{categoryToDelete.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: categoryToDelete.color }} />
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{categoryToDelete.color}</span>
-                      </div>
-                  </div>
+        {categoryToDelete && (
+          <div className="glass shadow-strong rounded-2xl p-6 mt-4 border-red-500/20 bg-red-500/5">
+            <div className="flex items-center gap-5">
+              <div 
+                className="h-20 w-20 rounded-2xl flex items-center justify-center border shrink-0 shadow-soft transition-transform duration-700 hover:rotate-12"
+                style={{ backgroundColor: `${categoryToDelete.color}15`, color: categoryToDelete.color, borderColor: `${categoryToDelete.color}30` }}
+              >
+                {renderIcon(categoryToDelete.icon, 32)}
               </div>
-          )}
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/70 mb-1">Target Classification</p>
+                <p className="font-black text-2xl leading-tight">{categoryToDelete.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: categoryToDelete.color }} />
+                   <span className="text-xs font-bold opacity-60 uppercase tracking-widest font-mono">#{categoryToDelete.color.replace('#', '')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </ConfirmModal>
     </div>
   );
