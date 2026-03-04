@@ -30,16 +30,33 @@ export const DashboardAnalytics: React.FC<AnalyticsProps> = ({ data, isLoading }
   const totalRevenue = data?.salesAnalytics?.summary?.totalRevenue || 0;
   const totalOrders = data?.salesAnalytics?.summary?.totalOrders || 0;
   const totalExpenses = data?.stats?.expenseStats?.totals?.amount || 0;
-  const avgOrderValue = data?.salesAnalytics?.summary?.avgOrderValue || 0;
+  const totalCustomers = data?.salesAnalytics?.summary?.totalCustomers || 0;
+  const retentionRate = data?.salesAnalytics?.summary?.retentionRate || 0;
+  const growth = data?.salesAnalytics?.summary?.growth || { revenue: 0, orders: 0, customers: 0 };
   
-  const cac = totalOrders > 0 ? (totalExpenses / totalOrders).toFixed(2) : "0.00";
-  const clv = (avgOrderValue * 2.5).toFixed(2);
-  const retention = totalOrders > 5 ? "82%" : "64%";
+  const cac = totalCustomers > 0 ? (totalExpenses / totalCustomers).toFixed(0) : "0";
+  const clv = totalCustomers > 0 ? (totalRevenue / totalCustomers * 1.2).toFixed(0) : "0";
+  const retention = `${retentionRate.toFixed(1)}%`;
 
   const growthMetrics = [
-    { label: 'Customer Acquisition Cost', value: `KES ${Number(cac).toLocaleString()}`, trend: '-4%', color: 'text-success' },
-    { label: 'Customer Lifetime Value', value: `KES ${Number(clv).toLocaleString()}`, trend: '+12%', color: 'text-success' },
-    { label: 'Retention Rate', value: retention, trend: '+3%', color: 'text-success' }
+    { 
+      label: 'Customer Acquisition Cost', 
+      value: `KES ${Number(cac).toLocaleString()}`, 
+      trend: `Based on expenses`, 
+      color: 'text-muted-foreground' 
+    },
+    { 
+      label: 'Estimated Customer Value', 
+      value: `KES ${Number(clv).toLocaleString()}`, 
+      trend: `${growth.revenue >= 0 ? '+' : ''}${growth.revenue.toFixed(1)}% revenue`, 
+      color: growth.revenue >= 0 ? 'text-success' : 'text-destructive' 
+    },
+    { 
+      label: 'Customer Retention', 
+      value: retention, 
+      trend: `${growth.customers >= 0 ? '+' : ''}${growth.customers.toFixed(1)}% users`, 
+      color: growth.customers >= 0 ? 'text-success' : 'text-destructive' 
+    }
   ];
 
   return (

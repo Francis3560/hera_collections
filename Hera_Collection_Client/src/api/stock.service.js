@@ -104,8 +104,8 @@ class StockService {
     return response.data;
   }
 
-  async getAlertStats() {
-    const response = await axiosClient.get('/stock/alerts/stats');
+  async getAlertStats(params = {}) {
+    const response = await axiosClient.get('/stock/alerts/stats', { params });
     return response.data;
   }
 }

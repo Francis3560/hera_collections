@@ -57,9 +57,9 @@ class ExpenseService {
    * @param {string} timeframe - 'daily', 'weekly', 'monthly', 'yearly', 'last-month'
    * @returns {Promise} Axios response data
    */
-  getExpenseAnalytics = async (timeframe = 'monthly') => {
+  getExpenseAnalytics = async (params = {}) => {
     const response = await axiosClient.get('/expenses/analytics/expenses', {
-      params: { timeframe }
+      params
     });
     return response.data;
   };
@@ -68,8 +68,8 @@ class ExpenseService {
    * Fetch general expense statistics (Admin only)
    * @returns {Promise} Axios response data
    */
-  getExpenseStats = async () => {
-    const response = await axiosClient.get('/expenses/stats/expenses');
+  getExpenseStats = async (params = {}) => {
+    const response = await axiosClient.get('/expenses/stats/expenses', { params });
     return response.data;
   };
 

@@ -12,17 +12,18 @@ import { format } from 'date-fns';
 interface DashboardReportsProps {
   period: string;
   dateRange: { from: Date | undefined; to: Date | undefined };
+  data: any;
 }
 
 const BRAND_INFO = {
   name: 'HERA COLLECTION',
-  logo: 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png', // Official Brand Logo
+  logo: 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png',
   email: 'admin@heracollections.com',
-  phone: '+254718577608 | +254707064827',
+  phone: '+254 718 577 608 / +254 707 064 827',
   location: 'Nairobi, Kenya'
 };
 
-export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, dateRange }) => {
+export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, dateRange, data }) => {
   const [generating, setGenerating] = useState<string | null>(null);
 
   const getParams = () => {
@@ -41,7 +42,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
       title: "Sales Summary",
       description: "Detailed breakdown of sales performance by product and category.",
       icon: TrendingUp,
-      color: "text-blue-500 bg-blue-500/10",
+      color: "text-primary bg-primary/10",
       formats: ['PDF', 'CSV']
     },
     {
@@ -49,7 +50,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
       title: "Inventory Value",
       description: "Current stock valuation and variant pricing report.",
       icon: PieChart,
-      color: "text-purple-500 bg-purple-500/10",
+      color: "text-amber-600 bg-amber-500/10",
       formats: ['PDF', 'CSV']
     },
     {
@@ -57,21 +58,41 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
       title: "Expense Report",
       description: "Operational costs and category-wise overhead analysis.",
       icon: FileText,
-      color: "text-amber-500 bg-amber-500/10",
+      color: "text-zinc-600 bg-zinc-500/10",
       formats: ['PDF', 'CSV']
     },
     {
       id: 'profit-loss',
       title: "Profit and Loss",
-      description: "Comprehensive financial overview of revenue vs expenses.",
+      description: "Financial overview: Operational revenue vs expenses.",
       icon: ShieldCheck,
-      color: "text-green-500 bg-green-500/10",
+      color: "text-emerald-600 bg-emerald-500/10",
       formats: ['PDF']
+    },
+    {
+      id: 'growth-metrics',
+      title: "Growth Metrics",
+      description: "Business health: CAC, CLV, Retention, and Growth trends.",
+      icon: TrendingUp,
+      color: "text-blue-600 bg-blue-500/10",
+      formats: ['PDF', 'CSV']
     }
   ];
 
-  const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+  const exportToCSV = (data: any[], title: string, headers: string[]) => {
+    const dateStr = period === 'custom' && dateRange.from ? 
+       `${format(dateRange.from, 'PP')} - ${format(dateRange.to || new Date(), 'PP')}` : 
+       `Period: Last ${period.charAt(0).toUpperCase() + period.slice(1)}`;
+
     const csvRows = [];
+    // Brand Headers
+    csvRows.push(`"${BRAND_INFO.name}"`);
+    csvRows.push(`"Report: ${title}"`);
+    csvRows.push(`"Range: ${dateStr}"`);
+    csvRows.push(`"Generated: ${format(new Date(), 'PPP p')}"`);
+    csvRows.push(""); // Spacer
+    
+    // Table Headers
     csvRows.push(headers.join(','));
     
     data.forEach(row => {
@@ -86,7 +107,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `${filename}.csv`);
+    link.setAttribute('download', `${title.toLowerCase().replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -94,23 +115,20 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
 
   const generatePDF = (title: string, data: any[], columns: any[], filename: string) => {
     const doc = new jsPDF();
-    const primaryColor = [124, 58, 237]; // Hera Brand Purple
+    const primaryColor = [205, 127, 50]; // Hera Global Primary
 
-    // Add Logo if available (Base64 or URL)
-    // For simplicity, we use text-based branding for robustness
-    
-    // Header Background Header
+    // Header Color Block
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 210, 45, 'F');
 
     // Add Brand Name
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(26);
+    doc.setFontSize(24);
     doc.setTextColor(255, 255, 255);
     doc.text(BRAND_INFO.name, 14, 25);
     
     // Add Report Title
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     doc.text(title.toUpperCase(), 14, 35);
     
@@ -138,7 +156,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
         fontSize: 10,
         fontStyle: 'bold'
       },
-      alternateRowStyles: { fillColor: [245, 243, 255] },
+      alternateRowStyles: { fillColor: [253, 251, 246] }, // Light cream/gold background
       styles: { fontSize: 9, cellPadding: 4, font: 'helvetica' },
       margin: { left: 14, right: 14 }
     });
@@ -147,14 +165,11 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      
-      // Footer line
       doc.line(14, doc.internal.pageSize.getHeight() - 20, 196, doc.internal.pageSize.getHeight() - 20);
-      
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(150);
       doc.text(
-        `© ${new Date().getFullYear()} Hera Collection Business Insights - Nairobi, Kenya`,
+        `© ${new Date().getFullYear()} Hera Collection Business Insights - Official Confidential Report`,
         14,
         doc.internal.pageSize.getHeight() - 12
       );
@@ -191,7 +206,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           }
 
           if (formatType === 'CSV') {
-            exportToCSV(salesData, 'sales_summary', Object.keys(salesData[0]));
+            exportToCSV(salesData, "Sales Summary Report", Object.keys(salesData[0]));
           } else {
             generatePDF(
               "Sales Summary Report", 
@@ -219,7 +234,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           }
 
           if (formatType === 'CSV') {
-            exportToCSV(invData, 'inventory_valuation', Object.keys(invData[0]));
+            exportToCSV(invData, "Inventory Valuation Report", Object.keys(invData[0]));
           } else {
             generatePDF(
               "Inventory Valuation Report", 
@@ -246,7 +261,7 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           }
 
           if (formatType === 'CSV') {
-            exportToCSV(expData, 'expense_report', Object.keys(expData[0]));
+            exportToCSV(expData, "Expense Analysis Report", Object.keys(expData[0]));
           } else {
             generatePDF(
               "Expense Analysis Report", 
@@ -262,7 +277,9 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           const pl = response.data;
           // P&L is special, we generate a custom PDF layout for it
           const doc = new jsPDF();
-          const pColor = [124, 58, 237];
+          const pColor: [number, number, number] = [205, 127, 50]; // Brand Primary
+          const successColor: [number, number, number] = [21, 128, 61]; 
+          const dangerColor: [number, number, number] = [239, 68, 68];
           
           // Header Background
           doc.setFillColor(pColor[0], pColor[1], pColor[2]);
@@ -295,14 +312,14 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
             head: [['Financial Categorization', 'Amount (KES)']],
             body: [
               ['Total Gross Revenue', { content: Number(pl.summary.totalRevenue).toLocaleString(), styles: { fontStyle: 'bold' } }],
-              ['Total Operating Expenses', `(${Number(pl.summary.totalExpenses || 0).toLocaleString()})`],
+              ['Total Operating Expenses', { content: `(${Number(pl.summary.totalExpenses || 0).toLocaleString()})`, styles: { textColor: dangerColor } }],
               ['Gross Profit Margin', { content: Number(pl.summary.grossProfit).toLocaleString(), styles: { fontStyle: 'bold' } }],
               ['Operating Percentage', `${pl.summary.operatingMargin?.toFixed(1) || 0}%`],
               [{ content: 'NET BUSINESS PROFIT', styles: { fontStyle: 'bold', fontSize: 12 } }, 
-               { content: Number(pl.summary.netProfit).toLocaleString(), styles: { fontStyle: 'bold', textColor: [21, 128, 61], fontSize: 12 } }],
+               { content: Number(pl.summary.netProfit).toLocaleString(), styles: { fontStyle: 'bold', textColor: successColor, fontSize: 12 } }],
             ],
             theme: 'grid',
-            headStyles: { fillColor: pColor as [number, number, number] },
+            headStyles: { fillColor: pColor },
             columnStyles: { 1: { halign: 'right' } },
             styles: { cellPadding: 8 }
           });
@@ -317,6 +334,30 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           );
 
           doc.save(`ProfitLoss_Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
+          break;
+
+        case 'growth-metrics':
+          response = await reportService.getGrowthMetrics(params);
+          const gm = response.data.summary;
+          const gmData = [
+            { Metric: 'Customer Acquisition Cost (CAC)', Value: `KES ${Number(gm.cac).toLocaleString()}`, Detail: 'Based on period expenses' },
+            { Metric: 'Estimated Customer Value', Value: `KES ${Number(gm.clv).toLocaleString()}`, Detail: 'Revenue projection' },
+            { Metric: 'Retention Rate', Value: `${Number(gm.retentionRate).toFixed(1)}%`, Detail: 'Returning customers' },
+            { Metric: 'Revenue Growth', Value: `${gm.growth.revenue.toFixed(1)}%`, Detail: 'Vs previous period' },
+            { Metric: 'Customer Growth', Value: `${gm.growth.customers.toFixed(1)}%`, Detail: 'New user base trend' },
+            { Metric: 'Order Volume', Value: gm.totalOrders, Detail: 'Total confirmed transactions' },
+          ];
+
+          if (formatType === 'CSV') {
+            exportToCSV(gmData, "Growth Performance Report", Object.keys(gmData[0]));
+          } else {
+            generatePDF(
+              "Growth and Performance Analysis", 
+              gmData, 
+              Object.keys(gmData[0]).map(k => ({ header: k, key: k })),
+              'growth_performance'
+            );
+          }
           break;
       }
       toast.success(`${id.replace(/-/g, ' ')} report generated successfully!`);
@@ -383,19 +424,25 @@ export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, date
           <div className="grid gap-4 md:grid-cols-3">
             {[
               {
-                title: "Stock Alert",
-                insight: "High demand for 'Back Packs' detected. Restock suggested before weekend.",
-                variant: "destructive"
+                title: "Revenue Insight",
+                insight: data?.salesAnalytics?.summary?.growth?.revenue >= 0 
+                  ? `Revenue is up ${data.salesAnalytics.summary.growth.revenue.toFixed(1)}% this period. Trend is positive.` 
+                  : `Revenue slowed by ${Math.abs(data?.salesAnalytics?.summary?.growth?.revenue || 0).toFixed(1)}%. Review pricing strategy.`,
+                variant: (data?.salesAnalytics?.summary?.growth?.revenue || 0) >= 0 ? "success" : "warning"
               },
               {
-                title: "Profit Optimizer",
-                insight: "Current margin is 12% above target. Consider loyalty promotions.",
-                variant: "success"
+                title: "Efficiency",
+                insight: (data?.salesAnalytics?.summary?.totalRevenue || 0) > (data?.stats?.expenseStats?.totals?.amount || 0) * 2
+                  ? "Operational efficiency is high. Profit margins are healthy."
+                  : "High overhead detected relative to revenue. Audit operational costs.",
+                variant: (data?.salesAnalytics?.summary?.totalRevenue || 0) > (data?.stats?.expenseStats?.totals?.amount || 0) * 2 ? "success" : "destructive"
               },
               {
-                title: "Expenses",
-                insight: "Operational overhead is steady. No unusual spikes detected.",
-                variant: "info"
+                title: "Growth",
+                insight: (data?.salesAnalytics?.summary?.retentionRate || 0) > 20
+                  ? `Retention is solid at ${data.salesAnalytics.summary.retentionRate.toFixed(1)}%. Loyalty is increasing.`
+                  : "Retention is low. Consider engagement campaigns for returning users.",
+                variant: (data?.salesAnalytics?.summary?.retentionRate || 0) > 20 ? "info" : "warning"
               }
             ].map((insight, i) => (
               <div key={i} className="p-4 rounded-2xl bg-background/50 border border-border/50 hover:shadow-medium transition-all">

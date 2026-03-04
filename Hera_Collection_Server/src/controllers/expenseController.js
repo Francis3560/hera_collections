@@ -1,5 +1,5 @@
-// controllers/expenseController.js
 import * as expenseService from '../services/expenseService.js';
+import { getDatesFromTimeframe } from '../utils/dateUtils.js';
 
 export const getAllExpenses = async (req, res) => {
   try {
@@ -157,7 +157,12 @@ export const deleteExpense = async (req, res) => {
 export const getExpenseAnalytics = async (req, res) => {
   try {
     const timeframe = req.query.timeframe || 'monthly';
-    const analytics = await expenseService.getExpenseAnalytics(timeframe);
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const analytics = await expenseService.getExpenseAnalytics(timeframe, filters);
 
     return res.status(200).json({
       success: true,
@@ -174,7 +179,13 @@ export const getExpenseAnalytics = async (req, res) => {
 
 export const getExpenseStats = async (req, res) => {
   try {
-    const stats = await expenseService.getExpenseStats();
+    const timeframe = req.query.timeframe || 'monthly'; // Used for date calculation
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const stats = await expenseService.getExpenseStats(filters);
 
     return res.status(200).json({
       success: true,

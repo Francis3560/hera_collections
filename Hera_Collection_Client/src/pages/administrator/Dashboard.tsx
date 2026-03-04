@@ -125,7 +125,7 @@ export default function DashboardPage() {
               <DashboardAnalytics data={dashboardData} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="reports">
-              <DashboardReports period={period} dateRange={dateRange} />
+              <DashboardReports period={period} dateRange={dateRange} data={dashboardData} />
             </TabsContent>
             <TabsContent value="alerts">
               <DashboardAlerts data={dashboardData} isLoading={isLoading} />

@@ -1,4 +1,5 @@
 import * as orderService from '../services/orderService.js';
+import { getDatesFromTimeframe } from '../utils/dateUtils.js';
 
 export async function createOrder(req, res) {
   try {
@@ -208,7 +209,12 @@ export async function deleteOrder(req, res) {
 export async function salesAnalytics(req, res) {
   try {
     const timeframe = req.query.timeframe || 'monthly';
-    const analytics = await orderService.getSalesAnalytics(timeframe);
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const analytics = await orderService.getSalesAnalytics(timeframe, filters);
     
     return res.json({
       success: true,
@@ -225,7 +231,13 @@ export async function salesAnalytics(req, res) {
 
 export async function salesTrends(req, res) {
   try {
-    const trends = await orderService.getSalesTrends();
+    const timeframe = req.query.timeframe || 'monthly';
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const trends = await orderService.getSalesTrends(filters);
     
     return res.json({
       success: true,
@@ -249,7 +261,13 @@ export async function orderStats(req, res) {
       });
     }
 
-    const stats = await orderService.getOrderStats();
+    const timeframe = req.query.timeframe || 'monthly';
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const stats = await orderService.getOrderStats(filters);
     
     return res.json({
       success: true,

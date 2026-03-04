@@ -1,4 +1,7 @@
 import prisma from '../database.js';
+import * as orderService from './orderService.js';
+import * as expenseService from './expenseService.js';
+import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfDay, subDays, subYears } from 'date-fns';
 
 /**
  * Get Sales Summary Report Data
@@ -122,5 +125,31 @@ export const getProfitLossData = async (startDate, endDate) => {
       orderCount: sales._count,
       expenseCount: expenses._count
     }
+  };
+};
+/**
+ * Get Growth and Performance Metrics Data
+ */
+export const getGrowthMetricsData = async (startDate, endDate, timeframe = 'monthly') => {
+  const analytics = await orderService.getSalesAnalytics(timeframe, { startDate, endDate });
+  const expenses = await expenseService.getExpenseStats({ startDate, endDate });
+
+  const totalRevenue = analytics.summary.totalRevenue;
+  const totalCustomers = analytics.summary.totalCustomers;
+  const totalOrders = analytics.summary.totalOrders;
+  const totalExpenses = expenses.totals.amount;
+
+  const cac = totalCustomers > 0 ? totalExpenses / totalCustomers : 0;
+  const clv = totalCustomers > 0 ? (totalRevenue / totalCustomers) * 1.2 : 0;
+
+  return {
+    summary: {
+      ...analytics.summary,
+      cac,
+      clv,
+      totalExpenses
+    },
+    growth: analytics.summary.growth,
+    recentTrends: analytics.recentOrders
   };
 };

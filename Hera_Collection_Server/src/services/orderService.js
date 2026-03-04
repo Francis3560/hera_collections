@@ -577,48 +577,101 @@ export async function deleteOrder(orderId) {
   };
 }
 
-export async function getSalesAnalytics(timeframe = 'monthly') {
+export async function getSalesAnalytics(timeframe = 'monthly', filters = {}) {
   const now = new Date();
-  let startDate;
+  let startDate = filters.startDate ? new Date(filters.startDate) : null;
+  let endDate = filters.endDate ? new Date(filters.endDate) : now;
 
-  switch (timeframe) {
-    case 'daily':
-      startDate = startOfDay(now);
-      break;
-    case 'weekly':
-      startDate = subDays(now, 7);
-      break;
-    case 'monthly':
-      startDate = subMonths(now, 1);
-      break;
-    case 'yearly':
-      startDate = subYears(now, 1);
-      break;
-    default:
-      startDate = subMonths(now, 1);
+  if (!startDate) {
+    switch (timeframe) {
+      case 'today':
+      case 'daily': 
+        startDate = startOfDay(now); 
+        break;
+      case 'yesterday':
+        startDate = startOfDay(subDays(now, 1));
+        endDate = startOfDay(now);
+        break;
+      case 'week':
+      case 'weekly': 
+        startDate = subDays(now, 7); 
+        break;
+      case 'month':
+      case 'monthly': 
+        startDate = subMonths(now, 1); 
+        break;
+      case 'quarter':
+        startDate = subMonths(now, 3);
+        break;
+      case 'year':
+      case 'yearly': 
+        startDate = subYears(now, 1); 
+        break;
+      default: 
+        startDate = subMonths(now, 1);
+    }
   }
 
-  const orders = await prisma.order.findMany({
-    where: {
-      status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] },
-      createdAt: { gte: startDate },
-    },
-    include: {
-      items: {
-        include: { 
-          product: { 
-            select: { 
-              category: true,
-              title: true
-            } 
-          } 
-        }
+  // Calculate Previous Period for Comparison
+  const periodDuration = endDate.getTime() - startDate.getTime();
+  const prevStartDate = new Date(startDate.getTime() - periodDuration);
+  const prevEndDate = new Date(startDate.getTime());
+
+  const [orders, prevOrders] = await Promise.all([
+    prisma.order.findMany({
+      where: {
+        status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] },
+        createdAt: { gte: startDate, lte: endDate },
       },
-    },
-  });
+      include: {
+        items: {
+          include: { 
+            product: { 
+              select: { 
+                category: true,
+                title: true
+              } 
+            } 
+          }
+        },
+      },
+    }),
+    prisma.order.findMany({
+      where: {
+        status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] },
+        createdAt: { gte: prevStartDate, lte: prevEndDate },
+      },
+      select: { totalAmount: true, buyerId: true }
+    })
+  ]);
 
   const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
   const totalOrders = orders.length;
+  const customers = new Set(orders.map(o => o.buyerId).filter(Boolean));
+  const totalCustomers = customers.size;
+
+  const prevRevenue = prevOrders.reduce((sum, o) => sum + Number(o.totalAmount), 0);
+  const prevOrdersCount = prevOrders.length;
+  const prevCustomers = new Set(prevOrders.map(o => o.buyerId).filter(Boolean)).size;
+
+  const calcGrowth = (curr, prev) => prev > 0 ? ((curr - prev) / prev) * 100 : (curr > 0 ? 100 : 0);
+  
+  const growth = {
+    revenue: calcGrowth(totalRevenue, prevRevenue),
+    orders: calcGrowth(totalOrders, prevOrdersCount),
+    customers: calcGrowth(totalCustomers, prevCustomers)
+  };
+
+  const customerIds = Array.from(customers);
+  const recurringCount = await prisma.order.count({
+    where: {
+      buyerId: { in: customerIds },
+      createdAt: { lt: startDate }
+    }
+  });
+  
+  const retentionRate = totalCustomers > 0 ? (recurringCount / totalCustomers) * 100 : 0;
+
   const totalItemsSold = orders.reduce(
     (sum, o) => sum + o.items.reduce((s, i) => s + i.quantity, 0),
     0
@@ -655,20 +708,20 @@ export async function getSalesAnalytics(timeframe = 'monthly') {
 
   return {
     timeframe,
-    period: {
-      start: startDate,
-      end: now
-    },
+    period: { start: startDate, end: endDate },
     summary: {
       totalRevenue,
       totalOrders,
       totalItemsSold,
       avgOrderValue,
-      avgItemsPerOrder: totalOrders > 0 ? totalItemsSold / totalOrders : 0
+      totalCustomers,
+      avgItemsPerOrder: totalOrders > 0 ? totalItemsSold / totalOrders : 0,
+      retentionRate,
+      growth
     },
     categoryBreakdown,
     paymentMethodBreakdown,
-    topProducts: await getTopProducts(startDate, now),
+    topProducts: await getTopProducts(startDate, endDate),
     recentOrders: orders.slice(0, 10).map(o => ({
       id: o.id,
       orderNumber: o.orderNumber,
@@ -734,10 +787,10 @@ async function getTopProducts(startDate, endDate, limit = 5) {
   });
 }
 
-export async function getSalesTrends() {
+export async function getSalesTrends(filters = {}) {
   const now = new Date();
-  const yearStart = startOfYear(now);
-  const yearEnd = endOfYear(now);
+  const yearStart = filters.startDate ? new Date(filters.startDate) : startOfYear(now);
+  const yearEnd = filters.endDate ? new Date(filters.endDate) : endOfYear(now);
   const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
   const monthly = [];
 
@@ -776,11 +829,12 @@ export async function getSalesTrends() {
       avgOrderValue,
     });
   }
-  const currentMonthStart = startOfMonth(now);
+  const currentMonthStart = filters.startDate ? new Date(filters.startDate) : startOfMonth(now);
+  const currentMonthEnd = filters.endDate ? new Date(filters.endDate) : now;
   const dailyOrders = await prisma.order.findMany({
     where: {
       status: { in: ['PAID', 'FULFILLED'] },
-      createdAt: { gte: currentMonthStart, lte: now },
+      createdAt: { gte: currentMonthStart, lte: currentMonthEnd },
     },
     select: { 
       totalAmount: true, 
@@ -818,7 +872,17 @@ export async function getSalesTrends() {
     }
   };
 }
-export async function getOrderStats() {
+export async function getOrderStats(filters = {}) {
+  const whereBase = {
+    status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] }
+  };
+
+  if (filters.startDate || filters.endDate) {
+    whereBase.createdAt = {};
+    if (filters.startDate) whereBase.createdAt.gte = new Date(filters.startDate);
+    if (filters.endDate) whereBase.createdAt.lte = new Date(filters.endDate);
+  }
+
   const [
     totalOrders,
     pendingOrders,
@@ -829,24 +893,24 @@ export async function getOrderStats() {
     todayOrders,
     todayRevenue
   ] = await Promise.all([
-    prisma.order.count(),
-    prisma.order.count({ where: { status: 'PENDING' } }),
-    prisma.order.count({ where: { status: 'PAID' } }),
-    prisma.order.count({ where: { status: 'FULFILLED' } }),
-    prisma.order.count({ where: { status: 'CANCELLED' } }),
+    prisma.order.count({ where: filters.startDate || filters.endDate ? whereBase : {} }),
+    prisma.order.count({ where: { status: 'PENDING', ...(filters.startDate || filters.endDate ? { createdAt: whereBase.createdAt } : {}) } }),
+    prisma.order.count({ where: { status: 'PAID', ...(filters.startDate || filters.endDate ? { createdAt: whereBase.createdAt } : {}) } }),
+    prisma.order.count({ where: { status: 'FULFILLED', ...(filters.startDate || filters.endDate ? { createdAt: whereBase.createdAt } : {}) } }),
+    prisma.order.count({ where: { status: 'CANCELLED', ...(filters.startDate || filters.endDate ? { createdAt: whereBase.createdAt } : {}) } }),
     prisma.order.aggregate({
-      where: { status: { in: ['PAID', 'FULFILLED'] } },
+      where: whereBase,
       _sum: { totalAmount: true }
     }),
     prisma.order.count({
       where: {
-        status: { in: ['PAID', 'FULFILLED'] },
+        ...whereBase,
         createdAt: { gte: startOfDay(new Date()) }
       }
     }),
     prisma.order.aggregate({
       where: {
-        status: { in: ['PAID', 'FULFILLED'] },
+        ...whereBase,
         createdAt: { gte: startOfDay(new Date()) }
       },
       _sum: { totalAmount: true }

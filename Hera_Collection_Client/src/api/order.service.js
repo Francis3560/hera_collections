@@ -31,13 +31,13 @@ class OrderService {
     return response.data;
   }
 
-  async getOrderAnalytics(timeframe = 'month') {
-    const response = await axiosClient.get('/orders/admin/analytics/sales', { params: { timeframe } });
+  async getOrderAnalytics(params = {}) {
+    const response = await axiosClient.get('/orders/admin/analytics/sales', { params });
     return response.data;
   }
 
-  async getOrderStats() {
-    const response = await axiosClient.get('/orders/stats');
+  async getOrderStats(params = {}) {
+    const response = await axiosClient.get('/orders/stats', { params });
     return response.data;
   }
 

@@ -54,14 +54,14 @@ export const DashboardOverview: React.FC<OverviewProps> = ({ data, isLoading }) 
           title="Total Revenue" 
           value={salesSummary?.totalRevenue || 0} 
           prefix="KES "
-          change={12.5} 
+          change={salesSummary?.growth?.revenue || 0} 
           icon={DollarSign}
           color="primary"
         />
         <StatsCard 
           title="Total Orders" 
           value={salesSummary?.totalOrders || 0} 
-          change={8.2} 
+          change={salesSummary?.growth?.orders || 0} 
           icon={ShoppingBag}
           color="success"
         />
@@ -76,7 +76,7 @@ export const DashboardOverview: React.FC<OverviewProps> = ({ data, isLoading }) 
           title="Avg Order Value" 
           value={salesSummary?.avgOrderValue || 0} 
           prefix="KES "
-          change={3.1} 
+          change={salesSummary?.growth?.revenue || 0} // Using revenue growth as a proxy or just showing revenue health
           icon={TrendingUp}
           color="info"
         />

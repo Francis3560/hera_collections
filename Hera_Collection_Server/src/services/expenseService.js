@@ -332,34 +332,49 @@ export const deleteExpense = async (id) => {
   };
 };
 
-export const getExpenseAnalytics = async (timeframe = 'monthly') => {
+export const getExpenseAnalytics = async (timeframe = 'monthly', filters = {}) => {
   const now = new Date();
-  let startDate, endDate;
+  let startDate = filters.startDate ? new Date(filters.startDate) : null;
+  let endDate = filters.endDate ? new Date(filters.endDate) : now;
 
-  switch (timeframe) {
-    case 'daily':
-      startDate = new Date(now.setHours(0, 0, 0, 0));
-      endDate = new Date(now.setHours(23, 59, 59, 999));
-      break;
-    case 'weekly':
-      startDate = new Date(now.setDate(now.getDate() - 7));
-      endDate = new Date();
-      break;
-    case 'monthly':
-      startDate = startOfMonth(now);
-      endDate = endOfMonth(now);
-      break;
-    case 'yearly':
-      startDate = startOfYear(now);
-      endDate = endOfYear(now);
-      break;
-    case 'last-month':
-      startDate = startOfMonth(subMonths(now, 1));
-      endDate = endOfMonth(subMonths(now, 1));
-      break;
-    default:
-      startDate = startOfMonth(now);
-      endDate = endOfMonth(now);
+  if (!startDate) {
+    switch (timeframe) {
+      case 'today':
+      case 'daily':
+        startDate = startOfDay(now);
+        endDate = now;
+        break;
+      case 'yesterday':
+        startDate = startOfDay(subDays(now, 1));
+        endDate = startOfDay(now);
+        break;
+      case 'week':
+      case 'weekly':
+        startDate = subDays(now, 7);
+        endDate = now;
+        break;
+      case 'month':
+      case 'monthly':
+        startDate = subMonths(now, 1);
+        endDate = now;
+        break;
+      case 'quarter':
+        startDate = subMonths(now, 3);
+        endDate = now;
+        break;
+      case 'year':
+      case 'yearly':
+        startDate = subYears(now, 1);
+        endDate = now;
+        break;
+      case 'last-month':
+        startDate = startOfMonth(subMonths(now, 1));
+        endDate = endOfMonth(subMonths(now, 1));
+        break;
+      default:
+        startDate = subMonths(now, 1);
+        endDate = now;
+    }
   }
 
   // Get total expenses for period
@@ -443,9 +458,12 @@ export const getExpenseAnalytics = async (timeframe = 'monthly') => {
     take: 10,
   });
   const monthlyTrends = [];
+  const trendEndDate = endDate;
+  const trendStartDate = subMonths(trendEndDate, 11);
+
   for (let i = 0; i < 12; i++) {
-    const monthStart = new Date(now.getFullYear(), i, 1);
-    const monthEnd = new Date(now.getFullYear(), i + 1, 0, 23, 59, 59, 999);
+    const monthStart = startOfMonth(subMonths(trendEndDate, 11 - i));
+    const monthEnd = endOfMonth(monthStart);
 
     const monthExpenses = await prisma.expense.findMany({
       where: {
@@ -489,12 +507,20 @@ export const getExpenseAnalytics = async (timeframe = 'monthly') => {
   };
 };
 
-export const getExpenseStats = async () => {
+export const getExpenseStats = async (filters = {}) => {
   const now = new Date();
-  const currentMonthStart = startOfMonth(now);
-  const currentMonthEnd = endOfMonth(now);
-  const previousMonthStart = startOfMonth(subMonths(now, 1));
-  const previousMonthEnd = endOfMonth(subMonths(now, 1));
+  
+  const currentMonthStart = filters.startDate ? new Date(filters.startDate) : startOfMonth(now);
+  const currentMonthEnd = filters.endDate ? new Date(filters.endDate) : endOfMonth(now);
+  const previousMonthStart = startOfMonth(subMonths(currentMonthStart, 1));
+  const previousMonthEnd = endOfMonth(subMonths(currentMonthStart, 1));
+
+  const whereBase = { status: 'ACTIVE' };
+  if (filters.startDate || filters.endDate) {
+    whereBase.date = {};
+    if (filters.startDate) whereBase.date.gte = new Date(filters.startDate);
+    if (filters.endDate) whereBase.date.lte = new Date(filters.endDate);
+  }
 
   const [
     totalExpenses,
@@ -505,7 +531,7 @@ export const getExpenseStats = async () => {
     topSpenders,
   ] = await Promise.all([
     prisma.expense.aggregate({
-      where: { status: 'ACTIVE' },
+      where: whereBase,
       _sum: { amount: true },
       _count: true,
     }),
@@ -539,7 +565,7 @@ export const getExpenseStats = async () => {
     }),
     prisma.expense.groupBy({
       by: ['categoryId'],
-      where: { status: 'ACTIVE' },
+      where: whereBase,
       _sum: { amount: true },
       _count: true,
       orderBy: { _sum: { amount: 'desc' } },
@@ -547,7 +573,7 @@ export const getExpenseStats = async () => {
     }),
     prisma.expense.groupBy({
       by: ['createdById'],
-      where: { status: 'ACTIVE' },
+      where: whereBase,
       _sum: { amount: true },
       _count: true,
       orderBy: { _sum: { amount: 'desc' } },

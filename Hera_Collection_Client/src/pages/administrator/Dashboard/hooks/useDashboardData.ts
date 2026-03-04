@@ -22,9 +22,9 @@ export const useDashboardData = (period: string, dateRange: { from: Date | undef
     queryKey: ['dashboard-stats', params],
     queryFn: async () => {
       const [orderStatsRes, expenseStatsRes, alertStatsRes] = await Promise.all([
-        orderService.getOrderStats(),
-        expenseService.getExpenseStats(),
-        stockService.getAlertStats(),
+        orderService.getOrderStats(params),
+        expenseService.getExpenseStats(params),
+        stockService.getAlertStats(params),
       ]);
       return { 
         orderStats: orderStatsRes.data, 
@@ -37,7 +37,7 @@ export const useDashboardData = (period: string, dateRange: { from: Date | undef
   const salesAnalyticsQuery = useQuery({
     queryKey: ['sales-analytics', params],
     queryFn: async () => {
-      const res = await orderService.getOrderAnalytics(period === 'custom' ? 'custom' : period);
+      const res = await orderService.getOrderAnalytics(params);
       return res.data;
     }
   });
@@ -53,7 +53,7 @@ export const useDashboardData = (period: string, dateRange: { from: Date | undef
   const expenseAnalyticsQuery = useQuery({
     queryKey: ['expense-analytics', params],
     queryFn: async () => {
-      const res = await expenseService.getExpenseAnalytics(period === 'custom' ? 'monthly' : period);
+      const res = await expenseService.getExpenseAnalytics(params);
       return res.data;
     }
   });

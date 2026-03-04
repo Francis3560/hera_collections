@@ -5,6 +5,7 @@ const ReportService = {
   getExpensesReport: (params) => axiosClient.get('/reports/expenses', { params }).then(res => res.data),
   getInventoryValue: () => axiosClient.get('/reports/inventory-value').then(res => res.data),
   getProfitLoss: (params) => axiosClient.get('/reports/profit-loss', { params }).then(res => res.data),
+  getGrowthMetrics: (params) => axiosClient.get('/reports/growth-metrics', { params }).then(res => res.data),
 };
 
 export default ReportService;

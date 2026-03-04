@@ -2,6 +2,7 @@
 import * as stockService from '../services/stockService.js';
 import * as stockTakeService from '../services/stockTakeService.js';
 import * as stockAlertService from '../services/stockAlertService.js';
+import { getDatesFromTimeframe } from '../utils/dateUtils.js';
 
 export const addStock = async (req, res) => {
   try {
@@ -579,7 +580,13 @@ export const getStockAlertHistory = async (req, res) => {
 
 export const getStockAlertStats = async (req, res) => {
   try {
-    const stats = await stockAlertService.getStockAlertStats();
+    const timeframe = req.query.timeframe || 'monthly';
+    const dates = getDatesFromTimeframe(timeframe);
+    const filters = {
+      startDate: req.query.startDate || dates.startDate,
+      endDate: req.query.endDate || dates.endDate
+    };
+    const stats = await stockAlertService.getStockAlertStats(filters);
 
     return res.status(200).json({
       success: true,

@@ -39,7 +39,7 @@ export const expenseQuerySchema = Joi.object({
 
 export const analyticsQuerySchema = Joi.object({
   timeframe: Joi.string()
-    .valid('daily', 'weekly', 'monthly', 'month', 'yearly', 'last-month')
+    .valid('today', 'yesterday', 'daily', 'week', 'weekly', 'month', 'monthly', 'quarter', 'year', 'yearly', 'last-month')
     .default('monthly'),
 });
 

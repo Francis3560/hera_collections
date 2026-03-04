@@ -250,10 +250,18 @@ export const getStockAlertHistory = async (filters = {}) => {
 /**
  * Get stock alert statistics
  */
-export const getStockAlertStats = async () => {
+export const getStockAlertStats = async (filters = {}) => {
   try {
     const now = new Date();
-    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startDate = filters.startDate ? new Date(filters.startDate) : null;
+    const endDate = filters.endDate ? new Date(filters.endDate) : now;
+
+    const whereBase = { isActive: true };
+    if (startDate || endDate) {
+      whereBase.updatedAt = {};
+      if (startDate) whereBase.updatedAt.gte = startDate;
+      if (endDate) whereBase.updatedAt.lte = endDate;
+    }
 
     const [
       totalAlerts,
@@ -262,9 +270,9 @@ export const getStockAlertStats = async () => {
       recentAlerts,
       productsBelowThreshold,
     ] = await Promise.all([
-      // Total alerts records in DB
+      // Total active alerts record count in period
       prisma.stockAlert.count({
-        where: { isActive: true },
+        where: whereBase,
       }),
 
       // Variants currently below their threshold (Explicit or Default 10)
@@ -272,24 +280,27 @@ export const getStockAlertStats = async () => {
         where: {
           isActive: true,
           OR: [
-            { stockAlerts: { some: { isActive: true, isResolved: false } } },
+            { stockAlerts: { some: { isActive: true, isResolved: false, ...(startDate || endDate ? { updatedAt: whereBase.updatedAt } : {}) } } },
             { stock: { lte: 10 }, stockAlerts: { none: {} } }
           ]
         },
       }),
 
-      // Resolved alerts records
+      // Resolved alerts records in period
       prisma.stockAlert.count({
         where: {
-          isActive: true,
+          ...whereBase,
           isResolved: true,
         },
       }),
 
-      // Alerts created in last 30 days
+      // Alerts created in period
       prisma.stockAlert.count({
         where: {
-          createdAt: { gte: last30Days },
+          createdAt: startDate || endDate ? { 
+            ...(startDate ? { gte: startDate } : {}),
+            ...(endDate ? { lte: endDate } : {})
+          } : { gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) },
         },
       }),
 
@@ -302,12 +313,9 @@ export const getStockAlertStats = async () => {
       }),
     ]);
 
-    // Get products with most frequent alerts (Recent alerts with the most impact)
-    // Since variantId is unique, we just take the top 5 recently notified ones
+    // Get products with most frequent alerts
     const frequentAlertsData = await prisma.stockAlert.findMany({
-      where: {
-        isActive: true,
-      },
+      where: whereBase,
       orderBy: {
         updatedAt: 'desc',
       },
@@ -333,7 +341,7 @@ export const getStockAlertStats = async () => {
       productTitle: alert.variant?.product?.title || 'Unknown',
       sku: alert.variant?.sku,
       currentStock: alert.variant?.stock || 0,
-      alertCount: 1, // With unique constraint, it's always 1 per alert record
+      alertCount: 1,
     }));
 
     return {
