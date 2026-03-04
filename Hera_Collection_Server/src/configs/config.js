@@ -37,12 +37,14 @@ export const config = {
   },
 
   mpesa: {
-    shortCode: process.env.MPESA_SHORTCODE,
+    shortCode: process.env.MPESA_SHORTCODE,       // BusinessShortCode (Go-Live HQ number)
+    tillNumber: process.env.MPESA_TILL_NUMBER,    // PartyB (actual store Till Number)
     passkey: process.env.MPESA_PASSKEY,
     consumerKey: process.env.MPESA_CONSUMER_KEY,
     consumerSecret: process.env.MPESA_CONSUMER_SECRET,
     callbackUrl: process.env.MPESA_CALLBACK_URL,
     baseUrl: process.env.MPESA_BASE_URL,
+    transactionType: process.env.MPESA_TRANSACTION_TYPE || 'CustomerBuyGoodsOnline',
   },
   paystack: {
     secretKey: process.env.PAYSTACK_SECRET_KEY,

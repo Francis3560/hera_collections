@@ -102,29 +102,34 @@ export async function initiateStkPush({ amount, phone, accountReference, transac
     // Get access token
     const token = await getAccessToken();
     
-    // Generate timestamp and password
+    // Generate timestamp in East Africa Time (EAT = UTC+3) as required by Safaricom Daraja API.
+    // Using local server time causes a timezone mismatch which leads to error code 2029.
     const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
-      now.getDate()
-    ).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(
-      now.getMinutes()
-    ).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const eatOffset = 3 * 60; // EAT is UTC+3 in minutes
+    const eatTime = new Date(now.getTime() + (eatOffset + now.getTimezoneOffset()) * 60000);
+    const timestamp = `${eatTime.getFullYear()}${String(eatTime.getMonth() + 1).padStart(2, '0')}${String(
+      eatTime.getDate()
+    ).padStart(2, '0')}${String(eatTime.getHours()).padStart(2, '0')}${String(
+      eatTime.getMinutes()
+    ).padStart(2, '0')}${String(eatTime.getSeconds()).padStart(2, '0')}`;
 
     const password = Buffer.from(`${mpesa.shortCode}${mpesa.passkey}${timestamp}`).toString('base64');
     
     // Prepare request payload
+    // BusinessShortCode = Go-Live HQ shortcode, PartyB = actual Till Number
+    const partyB = mpesa.tillNumber || mpesa.shortCode;
     const requestPayload = {
       BusinessShortCode: mpesa.shortCode,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
+      TransactionType: mpesa.transactionType,
       Amount: Math.round(amount), // Round to nearest whole number
       PartyA: normalizedPhone,
-      PartyB: mpesa.shortCode,
+      PartyB: partyB,
       PhoneNumber: normalizedPhone,
       CallBackURL: mpesa.callbackUrl,
-      AccountReference: accountReference || 'VizX Global',
-      TransactionDesc: transactionDesc || 'VizX Global Purchase',
+      AccountReference: (accountReference || 'HeraCollection').substring(0, 12),
+      TransactionDesc: (transactionDesc || 'Purchase').substring(0, 13),
     };
     
     console.log('Initiating MPESA STK Push:', {
@@ -132,6 +137,9 @@ export async function initiateStkPush({ amount, phone, accountReference, transac
       phone: normalizedPhone,
       accountReference,
       businessShortCode: mpesa.shortCode,
+      partyB: requestPayload.PartyB,
+      transactionType: requestPayload.TransactionType,
+      callbackUrl: mpesa.callbackUrl,
       timestamp
     });
     
@@ -207,11 +215,13 @@ export async function queryTransactionStatus(checkoutRequestId) {
     const token = await getAccessToken();
     
     const now = new Date();
-    const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
-      now.getDate()
-    ).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(
-      now.getMinutes()
-    ).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    const eatOffset = 3 * 60; // EAT is UTC+3 in minutes
+    const eatTime = new Date(now.getTime() + (eatOffset + now.getTimezoneOffset()) * 60000);
+    const timestamp = `${eatTime.getFullYear()}${String(eatTime.getMonth() + 1).padStart(2, '0')}${String(
+      eatTime.getDate()
+    ).padStart(2, '0')}${String(eatTime.getHours()).padStart(2, '0')}${String(
+      eatTime.getMinutes()
+    ).padStart(2, '0')}${String(eatTime.getSeconds()).padStart(2, '0')}`;
 
     const password = Buffer.from(`${mpesa.shortCode}${mpesa.passkey}${timestamp}`).toString('base64');
     
