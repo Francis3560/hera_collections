@@ -54,6 +54,14 @@ const ProductsDisplay = () => {
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
     const [searchQuery, setSearchQuery] = useState('');
     
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        total: 0,
+        totalPages: 1,
+        pageSize: 20
+    });
+    
     // Modal state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
@@ -67,8 +75,17 @@ const ProductsDisplay = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const data = await productService.getAllProducts();
+            const data = await productService.getAllProducts({
+                page: currentPage,
+                limit: 20,
+                search: searchQuery
+            });
             setProducts(data.items || []);
+            setPagination({
+                total: data.total || 0,
+                totalPages: data.totalPages || 1,
+                pageSize: data.pageSize || 20
+            });
         } catch (error) {
             console.error("Fetch products error:", error);
             toast({
@@ -82,8 +99,11 @@ const ProductsDisplay = () => {
     };
 
     useEffect(() => {
-        fetchProducts();
-    }, []);
+        const timeoutId = setTimeout(() => {
+            fetchProducts();
+        }, 300);
+        return () => clearTimeout(timeoutId);
+    }, [currentPage, searchQuery]);
 
     const handleDeleteClick = (product) => {
         setProductToDelete(product);
@@ -119,13 +139,7 @@ const ProductsDisplay = () => {
         }
     };
 
-    const filteredProducts = useMemo(() => {
-        return products.filter(p => 
-            p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [products, searchQuery]);
+
 
 const formatPrice = (price) => {
     if (!price) return 'N/A';
@@ -204,7 +218,10 @@ const formatPrice = (price) => {
                     <Input 
                         placeholder="Search by title, SKU, or brand..." 
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(1);
+                        }}
                         className="pl-14 h-14 bg-background/50 focus:bg-background border-white/20 focus:border-primary/50 focus:ring-primary/20 rounded-2xl text-base transition-all shadow-inner"
                     />
                 </div>
@@ -212,7 +229,7 @@ const formatPrice = (price) => {
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="flex-1 md:flex-none flex items-center justify-center gap-3 px-6 py-4 bg-primary/5 border border-primary/10 rounded-2xl">
                         <Package className="h-5 w-5 text-primary" />
-                        <span className="text-base font-bold text-primary">{filteredProducts.length}</span>
+                        <span className="text-base font-bold text-primary">{pagination.total}</span>
                         <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wider">Products</span>
                     </div>
                 </div>
@@ -234,7 +251,7 @@ const formatPrice = (price) => {
                         </div>
                         <p className="text-xl font-bold text-muted-foreground animate-pulse">Synchronizing Inventory...</p>
                     </motion.div>
-                ) : filteredProducts.length === 0 ? (
+                ) : products.length === 0 ? (
                     <motion.div 
                         key="empty"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -274,7 +291,7 @@ const formatPrice = (price) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredProducts.map((product) => (
+                                    {products.map((product) => (
                                         <TableRow 
                                             key={product.id} 
                                             className="group border-white/5 hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-all duration-300"
@@ -362,7 +379,7 @@ const formatPrice = (price) => {
                         exit={{ opacity: 0, y: -20 }}
                         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8"
                     >
-                        {filteredProducts.map((product) => (
+                        {products.map((product) => (
                             <Card key={product.id} className="bag-card border-white/10 overflow-hidden relative group">
                                 <div className="aspect-[4/5] relative overflow-hidden bg-muted">
                                     {product.photos?.[0] ? (
@@ -427,14 +444,65 @@ const formatPrice = (price) => {
             </AnimatePresence>
             
             {/* Simple Pagination/Footer */}
-            {!loading && filteredProducts.length > 0 && (
-                <div className="flex items-center justify-between py-10 border-t border-white/5">
-                    <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">
-                        Showing <span className="text-foreground font-bold">{filteredProducts.length}</span> luxury items
+            {/* Pagination Controls */}
+            {!loading && products.length > 0 && (
+                <div className="flex flex-col md:flex-row items-center justify-between py-10 border-t border-white/5 gap-6">
+                    <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest order-2 md:order-1">
+                        Showing <span className="text-foreground font-bold">{products.length}</span> of <span className="text-foreground font-bold">{pagination.total}</span> luxury items
                     </p>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="icon" disabled className="h-12 w-12 rounded-2xl border-white/10 opacity-50"><ChevronLeft className="h-5 w-5" /></Button>
-                        <Button variant="outline" size="icon" disabled className="h-12 w-12 rounded-2xl border-white/10 opacity-50"><ChevronRight className="h-5 w-5" /></Button>
+                    <div className="flex items-center gap-3 order-1 md:order-2">
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            disabled={currentPage === 1} 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            className="h-12 w-12 rounded-2xl border-white/10 hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                        >
+                            <ChevronLeft className="h-5 w-5" />
+                        </Button>
+                        
+                        <div className="flex items-center gap-2">
+                            {[...Array(pagination.totalPages)].map((_, i) => {
+                                const pageNum = i + 1;
+                                // Only show current page, first, last, and pages around current
+                                if (
+                                    pageNum === 1 || 
+                                    pageNum === pagination.totalPages || 
+                                    (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                ) {
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={currentPage === pageNum ? "default" : "outline"}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`h-12 w-12 rounded-2xl transition-all duration-300 ${
+                                                currentPage === pageNum 
+                                                ? 'bg-primary text-white shadow-elegant scale-110' 
+                                                : 'border-white/10 hover:bg-primary/5'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    );
+                                } else if (
+                                    pageNum === currentPage - 2 || 
+                                    pageNum === currentPage + 2
+                                ) {
+                                    return <span key={pageNum} className="text-muted-foreground px-1">...</span>;
+                                }
+                                return null;
+                            })}
+                        </div>
+
+                        <Button 
+                            variant="outline" 
+                            size="icon" 
+                            disabled={currentPage === pagination.totalPages} 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
+                            className="h-12 w-12 rounded-2xl border-white/10 hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                        >
+                            <ChevronRight className="h-5 w-5" />
+                        </Button>
                     </div>
                 </div>
             )}
