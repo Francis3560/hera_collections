@@ -266,7 +266,7 @@ export const getUserStatsController = async (req, res) => {
       prisma.order.aggregate({
         where: { 
           buyerId: userId,
-          status: { in: ['PAID', 'FULFILLED'] }
+          status: { in: ['PAID', 'FULFILLED', 'PROCESSING', 'COMPLETED', 'SHIPPED'] }
         },
         _sum: { totalAmount: true },
       }),
