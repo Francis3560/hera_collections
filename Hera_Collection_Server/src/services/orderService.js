@@ -291,9 +291,7 @@ export async function getAllOrderItems(filters = {}) {
                 sku: true,
                 image: true,
                 price: true,
-                stock: true,
-                color: true,
-                size: true,
+                stock: true
             }
         }
     }

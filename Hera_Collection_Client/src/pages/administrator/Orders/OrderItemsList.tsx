@@ -132,12 +132,6 @@ const OrderItemsList = () => {
                                                     SKU: {item.variant.sku}
                                                 </span>
                                             )}
-                                            {item.variant?.color && (
-                                                <span className="text-[10px] text-muted-foreground">Color: {item.variant.color}</span>
-                                            )}
-                                            {item.variant?.size && (
-                                                <span className="text-[10px] text-muted-foreground">Size: {item.variant.size}</span>
-                                            )}
                                         </div>
                                     </TableCell>
 
