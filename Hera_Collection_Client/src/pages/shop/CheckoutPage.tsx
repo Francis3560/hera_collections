@@ -13,6 +13,58 @@ import PaymentService from "@/api/payment.service";
 import orderService from "@/api/order.service";
 import { API_BASE_URL } from "@/utils/axiosClient.ts";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
+
+// ── SweetAlert2 M-Pesa helpers ──────────────────────────────────────────────
+const mpesaSwal = Swal.mixin({
+  background: '#0f172a',
+  color: '#f1f5f9',
+  confirmButtonColor: '#16a34a',
+  cancelButtonColor: '#dc2626',
+  customClass: {
+    popup: 'mpesa-swal-popup',
+    confirmButton: 'mpesa-swal-confirm',
+    cancelButton: 'mpesa-swal-cancel',
+  },
+});
+
+function showMpesaLoader(phone: string) {
+  mpesaSwal.fire({
+    title: '<span style="color:#4ade80">M-Pesa STK Push Sent</span>',
+    html: `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0">
+        <div style="position:relative;width:80px;height:80px">
+          <svg viewBox="0 0 80 80" style="position:absolute;top:0;left:0;animation:mpesaSpin 1.4s linear infinite" width="80" height="80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#16a34a" stroke-width="6" stroke-dasharray="160" stroke-dashoffset="40" stroke-linecap="round"/>
+          </svg>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px">📱</div>
+        </div>
+        <p style="margin:0;font-size:15px;color:#94a3b8">Check <strong style="color:#f1f5f9">${phone}</strong> for the<br/>M-Pesa payment prompt</p>
+        <p style="margin:0;font-size:12px;color:#64748b">Enter your M-Pesa PIN to confirm</p>
+        <div id="mpesa-dots" style="display:flex;gap:6px;margin-top:4px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0s infinite"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.2s infinite"></span>
+          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.4s infinite"></span>
+        </div>
+      </div>
+      <style>
+        @keyframes mpesaSpin { to { transform: rotate(360deg); } }
+        @keyframes mpesaBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+      </style>
+    `,
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    showCancelButton: true,
+    cancelButtonText: '✕ Cancel Payment',
+    didOpen: () => { /* loader is shown via CSS */ },
+  });
+}
+
+function closeMpesaLoader() {
+  Swal.close();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 import 'react-phone-number-input/style.css';
 import '@/components/ui/phone-input.css';
 import PhoneInput from 'react-phone-number-input';
@@ -283,7 +335,12 @@ export default function CheckoutPage() {
 
     // Require phone for M-Pesa STK Push
     if (paymentMethod === "MPESA" && !formData.phone) {
-      toast.error("Please enter a phone number for STK Push");
+      mpesaSwal.fire({
+        icon: 'warning',
+        title: 'Phone Number Required',
+        text: 'Please enter your M-Pesa phone number to proceed.',
+        confirmButtonText: 'Got it',
+      });
       return;
     }
 
@@ -347,7 +404,9 @@ export default function CheckoutPage() {
         
         if (response.success) {
           setCheckoutId(response.data.checkoutRequestId);
-          toast.info("STK Push sent! Please check your phone.");
+          // Show the animated SweetAlert2 loader
+          const displayPhone = formData.phone || formattedPhone;
+          showMpesaLoader(displayPhone);
           
           // 2. Start polling for payment status
           pollPaymentStatus(response.data.checkoutRequestId);
@@ -419,21 +478,50 @@ export default function CheckoutPage() {
         const response = await PaymentService.checkPaymentStatus(id);
         if (response.success && response.data.status === "SUCCESS") {
           clearInterval(interval);
+          closeMpesaLoader();
           setSuccessOrder(response.data.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-          toast.success("Payment successful! Order placed.");
           clearCart();
+          // Success modal
+          await mpesaSwal.fire({
+            icon: 'success',
+            title: '<span style="color:#4ade80">Payment Successful! 🎉</span>',
+            html: `<p style="color:#94a3b8">Your M-Pesa payment was confirmed.<br/>Your order has been placed successfully.</p>`,
+            confirmButtonText: 'View My Order',
+            showConfirmButton: true,
+            timer: 4000,
+            timerProgressBar: true,
+          });
         } else if (response.data.status === "FAILED") {
           clearInterval(interval);
+          closeMpesaLoader();
           setPaymentStatus("FAILED");
           setLoading(false);
-          toast.error(`Payment failed: ${response.data.failureReason || "User cancelled"}`);
+          const reason = response.data.failureReason || 'Payment was declined or cancelled.';
+          // Check if user cancelled vs actual failure
+          const isCancelled = reason.toLowerCase().includes('cancel') || reason.toLowerCase().includes('user');
+          mpesaSwal.fire({
+            icon: isCancelled ? 'warning' : 'error',
+            title: isCancelled
+              ? '<span style="color:#facc15">Payment Cancelled</span>'
+              : '<span style="color:#f87171">Payment Failed</span>',
+            html: `<p style="color:#94a3b8">${reason}</p><p style="font-size:13px;color:#64748b;margin-top:8px">You can try again from the checkout page.</p>`,
+            confirmButtonText: 'Try Again',
+            showCancelButton: true,
+            cancelButtonText: 'Go Back',
+          });
         } else if (attempts >= maxAttempts) {
           clearInterval(interval);
+          closeMpesaLoader();
           setPaymentStatus("FAILED");
           setLoading(false);
-          toast.error("Payment timeout. Please try again.");
+          mpesaSwal.fire({
+            icon: 'error',
+            title: '<span style="color:#f87171">Payment Timed Out</span>',
+            html: `<p style="color:#94a3b8">We did not receive a confirmation from M-Pesa.<br/>Please check your M-Pesa messages and try again.</p>`,
+            confirmButtonText: 'Try Again',
+          });
         }
       } catch (error) {
         console.error("Polling error:", error);
