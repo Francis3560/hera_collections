@@ -77,8 +77,9 @@ const ProductsDisplay = () => {
         try {
             const data = await productService.getAllProducts({
                 page: currentPage,
-                limit: 20,
-                search: searchQuery
+                pageSize: 20,
+                q: searchQuery,
+                includePhotos: true
             });
             setProducts(data.items || []);
             setPagination({
