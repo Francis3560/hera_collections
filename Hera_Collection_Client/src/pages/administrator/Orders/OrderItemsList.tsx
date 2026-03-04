@@ -125,7 +125,21 @@ const OrderItemsList = () => {
                                                     {item.variantName}: <span className="font-semibold ml-1">{item.variantValue}</span>
                                                 </Badge>
                                             ) : (
-                                                <span className="text-muted-foreground text-xs">—</span>
+                                                (() => {
+                                                    // Fallback check for "Color" in product photos altText
+                                                    const colorPhoto = item.product?.photos?.find((p: any) => 
+                                                        p.altText?.toLowerCase().includes('color:')
+                                                    );
+                                                    if (colorPhoto) {
+                                                        const colorValue = colorPhoto.altText.split(/[:：]/)[1]?.trim();
+                                                        return (
+                                                            <Badge variant="secondary" className="text-[10px] w-fit font-bold uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 border-none">
+                                                                Color: {colorValue}
+                                                            </Badge>
+                                                        );
+                                                    }
+                                                    return <span className="text-muted-foreground text-xs opacity-40">—</span>;
+                                                })()
                                             )}
                                             {item.variant?.sku && (
                                                 <span className="text-[10px] font-mono text-muted-foreground">
