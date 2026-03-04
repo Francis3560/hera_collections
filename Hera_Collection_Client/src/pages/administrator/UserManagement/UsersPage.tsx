@@ -201,31 +201,21 @@ const UsersPage = () => {
     
     setDialogLoading(true);
     try {
-      // Update role if changed
-      if (updatedUser.role && updatedUser.role !== selectedUser.role) {
-        await handleUpdateRole(selectedUser.id, updatedUser.role);
-      }
-      
-      // Update status if changed
-      if (updatedUser.isActive !== undefined && updatedUser.isActive !== selectedUser.isActive) {
-        await handleToggleStatus(selectedUser.id, selectedUser.isActive);
-      }
-      
-      // Update verification if changed
-      if (updatedUser.isVerified !== undefined && updatedUser.isVerified !== selectedUser.isVerified) {
-        await handleToggleVerification(selectedUser.id, selectedUser.isVerified);
-      }
+      // Perform a single update with all changed fields
+      await userService.updateUser(selectedUser.id, updatedUser);
       
       toast({
         title: 'Success',
-        description: 'User updated successfully',
+        description: 'User profile updated successfully',
       });
+      
       setIsEditDialogOpen(false);
-      fetchUsers(); // Refresh the list
-    } catch (error) {
+      fetchUsers(); // Refresh the list to show updated data
+    } catch (error: any) {
+      console.error('Update error:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update user',
+        title: 'Update Failed',
+        description: error.response?.data?.message || 'Failed to update user details. Please check your connection.',
         variant: 'destructive',
       });
     } finally {

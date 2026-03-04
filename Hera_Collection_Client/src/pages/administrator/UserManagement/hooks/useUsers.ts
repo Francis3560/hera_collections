@@ -185,6 +185,19 @@ export const useUsers = () => {
           title: 'Success',
           description: `${selectedUsers.length} user(s) deleted successfully`,
         });
+      } else if (action === 'activate' || action === 'deactivate') {
+        const isActive = action === 'activate';
+        const updatePromises = selectedUsers.map(userId => 
+          userService.updateUser(userId, { isActive })
+        );
+        await Promise.all(updatePromises);
+        
+        await fetchUsers();
+        setSelectedUsers([]);
+        toast({
+          title: 'Success',
+          description: `${selectedUsers.length} user(s) ${action}d successfully`,
+        });
       }
     } catch (error) {
       toast({

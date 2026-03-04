@@ -9,16 +9,31 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 
+interface DashboardReportsProps {
+  period: string;
+  dateRange: { from: Date | undefined; to: Date | undefined };
+}
+
 const BRAND_INFO = {
   name: 'HERA COLLECTION',
-  logo: 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769805371/HeraCollection_Logo-removebg-preview_tcjo8h.png',
-  email: 'info@heracollections.com',
-  phone: '+254 718 577 608 / +254 707 064 827',
+  logo: 'https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png', // Official Brand Logo
+  email: 'admin@heracollections.com',
+  phone: '+254718577608 | +254707064827',
   location: 'Nairobi, Kenya'
 };
 
-export const DashboardReports: React.FC = () => {
+export const DashboardReports: React.FC<DashboardReportsProps> = ({ period, dateRange }) => {
   const [generating, setGenerating] = useState<string | null>(null);
+
+  const getParams = () => {
+    if (period === 'custom' && dateRange.from && dateRange.to) {
+      return {
+        startDate: format(dateRange.from, 'yyyy-MM-dd'),
+        endDate: format(dateRange.to, 'yyyy-MM-dd'),
+      };
+    }
+    return { timeframe: period };
+  };
 
   const reportTypes = [
     {
@@ -81,18 +96,21 @@ export const DashboardReports: React.FC = () => {
     const doc = new jsPDF();
     const primaryColor = [124, 58, 237]; // Hera Brand Purple
 
+    // Add Logo if available (Base64 or URL)
+    // For simplicity, we use text-based branding for robustness
+    
     // Header Background Header
     doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.rect(0, 0, 210, 45, 'F');
 
     // Add Brand Name
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
+    doc.setFontSize(26);
     doc.setTextColor(255, 255, 255);
     doc.text(BRAND_INFO.name, 14, 25);
     
     // Add Report Title
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
     doc.text(title.toUpperCase(), 14, 35);
     
@@ -103,10 +121,15 @@ export const DashboardReports: React.FC = () => {
     doc.text(BRAND_INFO.location, 196, 25, { align: 'right' });
 
     doc.setFontSize(10);
-    doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 14, 55);
+    doc.setTextColor(60);
+    const dateStr = period === 'custom' && dateRange.from ? 
+       `${format(dateRange.from, 'PP')} - ${format(dateRange.to || new Date(), 'PP')}` : 
+       `Period: Last ${period.charAt(0).toUpperCase() + period.slice(1)}`;
+    doc.text(`Report Range: ${dateStr}`, 14, 55);
+    doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 196, 55, { align: 'right' });
 
     autoTable(doc, {
-      startY: 60,
+      startY: 62,
       head: [columns.map(c => c.header)],
       body: data.map(row => columns.map(c => row[c.key])),
       headStyles: { 
@@ -126,13 +149,12 @@ export const DashboardReports: React.FC = () => {
       doc.setPage(i);
       
       // Footer line
-      doc.setDrawColor(230);
       doc.line(14, doc.internal.pageSize.getHeight() - 20, 196, doc.internal.pageSize.getHeight() - 20);
       
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text(
-        `© ${new Date().getFullYear()} Hera Collection Executive Report - Confidential`,
+        `© ${new Date().getFullYear()} Hera Collection Business Insights - Nairobi, Kenya`,
         14,
         doc.internal.pageSize.getHeight() - 12
       );
@@ -144,26 +166,27 @@ export const DashboardReports: React.FC = () => {
       );
     }
 
-    doc.save(`${filename}.pdf`);
+    doc.save(`${filename}_${format(new Date(), 'yyyyMMdd')}.pdf`);
   };
 
   const handleGenerate = async (id: string, formatType: 'PDF' | 'CSV') => {
     setGenerating(id);
+    const params = getParams();
     try {
       let response;
       switch (id) {
         case 'sales-summary':
-          response = await reportService.getSalesSummary();
+          response = await reportService.getSalesSummary(params);
           const salesData = response.data.map((o: any) => ({
             'Order #': o.orderNumber,
-            'Customer': o.buyer?.name || 'Guest',
+            'Customer': o.buyer?.name || o.customerFirstName || 'Guest',
             'Amount': `KES ${Number(o.totalAmount).toLocaleString()}`,
             'Status': o.status,
             'Date': format(new Date(o.createdAt), 'yyyy-MM-dd')
           }));
           
           if (!salesData || salesData.length === 0) {
-            toast.error("No sales data found for this period.");
+            toast.error("No sales data found for the selected period.");
             return;
           }
 
@@ -208,7 +231,7 @@ export const DashboardReports: React.FC = () => {
           break;
 
         case 'expense-report':
-          response = await reportService.getExpensesReport();
+          response = await reportService.getExpensesReport(params);
           const expData = response.data.map((e: any) => ({
             'Title': e.title,
             'Category': e.category?.name || 'Uncategorized',
@@ -218,7 +241,7 @@ export const DashboardReports: React.FC = () => {
           }));
 
           if (!expData || expData.length === 0) {
-            toast.error("No expense data found for this period.");
+            toast.error("No expense data found for the selected period.");
             return;
           }
 
@@ -235,7 +258,7 @@ export const DashboardReports: React.FC = () => {
           break;
 
         case 'profit-loss':
-          response = await reportService.getProfitLoss();
+          response = await reportService.getProfitLoss(params);
           const pl = response.data;
           // P&L is special, we generate a custom PDF layout for it
           const doc = new jsPDF();
@@ -246,7 +269,7 @@ export const DashboardReports: React.FC = () => {
           doc.rect(0, 0, 210, 45, 'F');
 
           doc.setFont("helvetica", "bold");
-          doc.setFontSize(28);
+          doc.setFontSize(26);
           doc.setTextColor(255, 255, 255);
           doc.text(BRAND_INFO.name, 14, 25);
           
@@ -260,42 +283,46 @@ export const DashboardReports: React.FC = () => {
           doc.text(BRAND_INFO.location, 196, 25, { align: 'right' });
           
           doc.setFontSize(10);
-          doc.setTextColor(100);
-          doc.text(`Period: Lifetime/Global Statement`, 14, 55);
-          doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 14, 60);
+          doc.setTextColor(60);
+          const plDateStr = period === 'custom' && dateRange.from ? 
+            `${format(dateRange.from, 'PP')} - ${format(dateRange.to || new Date(), 'PP')}` : 
+            `Time Range: ${period.charAt(0).toUpperCase() + period.slice(1)}`;
+          doc.text(`Financial Performance: ${plDateStr}`, 14, 55);
+          doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 196, 55, { align: 'right' });
 
           autoTable(doc, {
-            startY: 70,
-            head: [['Financial Description', 'Amount (KES)']],
+            startY: 65,
+            head: [['Financial Categorization', 'Amount (KES)']],
             body: [
-              ['Total Revenue', Number(pl.summary.totalRevenue).toLocaleString()],
-              ['Total Expenses', `(${Number(pl.summary.totalExpenses).toLocaleString()})`],
-              ['Gross Profit', { content: Number(pl.summary.grossProfit).toLocaleString(), styles: { fontStyle: 'bold' } }],
-              ['Operating Margin', `${pl.summary.operatingMargin.toFixed(2)}%`],
-              ['Net Profit', { content: Number(pl.summary.netProfit).toLocaleString(), styles: { fontStyle: 'bold', textColor: [21, 128, 61] } }],
+              ['Total Gross Revenue', { content: Number(pl.summary.totalRevenue).toLocaleString(), styles: { fontStyle: 'bold' } }],
+              ['Total Operating Expenses', `(${Number(pl.summary.totalExpenses || 0).toLocaleString()})`],
+              ['Gross Profit Margin', { content: Number(pl.summary.grossProfit).toLocaleString(), styles: { fontStyle: 'bold' } }],
+              ['Operating Percentage', `${pl.summary.operatingMargin?.toFixed(1) || 0}%`],
+              [{ content: 'NET BUSINESS PROFIT', styles: { fontStyle: 'bold', fontSize: 12 } }, 
+               { content: Number(pl.summary.netProfit).toLocaleString(), styles: { fontStyle: 'bold', textColor: [21, 128, 61], fontSize: 12 } }],
             ],
-            theme: 'striped',
+            theme: 'grid',
             headStyles: { fillColor: pColor as [number, number, number] },
             columnStyles: { 1: { halign: 'right' } },
-            styles: { cellPadding: 6 }
+            styles: { cellPadding: 8 }
           });
 
           // Add footer
           doc.setFontSize(8);
           doc.setTextColor(150);
           doc.text(
-            `© ${new Date().getFullYear()} Hera Collection Financial Division - Confidential`,
+            `© ${new Date().getFullYear()} Hera Collection Financial Division - Executive Confidential`,
             14,
             doc.internal.pageSize.getHeight() - 12
           );
 
-          doc.save('profit_and_loss.pdf');
+          doc.save(`ProfitLoss_Report_${format(new Date(), 'yyyyMMdd')}.pdf`);
           break;
       }
-      toast.success(`${id.replace(/-/g, ' ')} ${formatType} generated successfully!`);
+      toast.success(`${id.replace(/-/g, ' ')} report generated successfully!`);
     } catch (error) {
       console.error(error);
-      toast.error('Failed to generate report.');
+      toast.error('Failed to generate the requested report.');
     } finally {
       setGenerating(null);
     }
