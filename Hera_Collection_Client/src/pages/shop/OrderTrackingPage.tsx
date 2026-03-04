@@ -91,9 +91,11 @@ export default function OrderTrackingPage() {
         {/* Receipt Header */}
         <div className="flex justify-between items-start border-b-2 border-zinc-100 pb-8 mb-8">
           <div className="flex gap-4 items-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center">
-               <Package className="w-10 h-10 text-primary" />
-            </div>
+            <img 
+              src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png" 
+              alt="Hera Collection Logo" 
+              className="w-24 h-auto object-contain"
+            />
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-zinc-900 leading-none">HERA COLLECTION</h1>
               <p className="text-sm text-zinc-500 mt-1 uppercase tracking-widest">Premium Bags & Accessories</p>
