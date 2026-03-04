@@ -75,12 +75,17 @@ const ProductsDisplay = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const data = await productService.getAllProducts({
+            const params = {
                 page: currentPage,
                 pageSize: 20,
-                q: searchQuery,
                 includePhotos: true
-            });
+            };
+            
+            if (searchQuery) {
+                params.q = searchQuery;
+            }
+
+            const data = await productService.getAllProducts(params);
             setProducts(data.items || []);
             setPagination({
                 total: data.total || 0,
