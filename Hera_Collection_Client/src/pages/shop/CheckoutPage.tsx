@@ -735,9 +735,14 @@ export default function CheckoutPage() {
                           className="w-full justify-between h-auto py-5 px-6 rounded-2xl border-2 bg-transparent transition-all shadow-sm group"
                         >
                           {selectedRegion ? (
-                            <div className="flex flex-col items-start gap-0.5">
+                            <div className="flex flex-col items-start gap-1">
                               <span className="font-bold text-base tracking-tight">{selectedRegion.name}</span>
-                              <span className="text-xs text-black dark:text-white font-medium">{selectedRegion.estimatedDays || "Standard delivery time"}</span>
+                              <div className="flex flex-col items-start gap-0.5">
+                                <span className="text-[10px] text-black dark:text-white font-bold uppercase tracking-wider">{selectedRegion.estimatedDays || "Standard delivery time"}</span>
+                                {selectedRegion.description && (
+                                  <span className="text-[10px] text-muted-foreground font-medium leading-relaxed">{selectedRegion.description}</span>
+                                )}
+                              </div>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 text-muted-foreground italic">
@@ -801,7 +806,7 @@ export default function CheckoutPage() {
                                       <div className="flex flex-col gap-0.5">
                                         <span className="text-[10px] text-black dark:text-white font-bold uppercase tracking-wider group-aria-selected:text-white/90">{region.estimatedDays || "2-3 Working Days"}</span>
                                         {region.description && (
-                                          <span className="text-[10px] text-muted-foreground group-aria-selected:text-white/70 line-clamp-1 max-w-[200px]">{region.description}</span>
+                                          <span className="text-[10px] text-muted-foreground group-aria-selected:text-white/70 font-medium leading-relaxed">{region.description}</span>
                                         )}
                                       </div>
                                     </div>
