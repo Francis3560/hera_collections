@@ -228,6 +228,11 @@ export async function mpesaCallback(req, res) {
       try {
         const payload = JSON.parse(intent.payload);
         
+        // Extract the real M-Pesa receipt number from Safaricom callback metadata
+        const mpesaReceiptNumber = transactionData['MpesaReceiptNumber'] || null;
+        const mpesaAmount = transactionData['Amount'] || null;
+        const mpesaTransactionDate = transactionData['TransactionDate'] || null;
+        
         // Create order
         const order = await orderService.createOrder(
           intent.buyerId,
@@ -237,8 +242,20 @@ export async function mpesaCallback(req, res) {
 
         console.log(`Order created: ${order.orderNumber} (ID: ${order.id})`);
 
+        // ✅ AUTO-RECONCILE: Immediately mark the order as PAID with the real M-Pesa receipt
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'PAID',
+            paidAt: new Date(),
+            mpesaReference: mpesaReceiptNumber, // Real Safaricom receipt number e.g. "QBH8U7XKLA"
+          }
+        });
+        
+        console.log(`✅ Order ${order.orderNumber} auto-reconciled → PAID | Receipt: ${mpesaReceiptNumber}`);
+
         // Update payment intent with success and connect to order
-        const updatedIntent = await prisma.paymentIntent.update({
+        await prisma.paymentIntent.update({
           where: { id: intent.id },
           data: {
             status: "SUCCESS",
@@ -247,6 +264,9 @@ export async function mpesaCallback(req, res) {
               ...payload,
               mpesaTransaction: {
                 ...transactionData,
+                mpesaReceiptNumber,
+                mpesaAmount,
+                mpesaTransactionDate,
                 resultCode,
                 resultDesc,
                 processedAt: new Date().toISOString()
@@ -257,6 +277,9 @@ export async function mpesaCallback(req, res) {
 
         console.log(`Payment intent ${intent.id} updated to SUCCESS`);
         console.log(`Order ${order.id} connected successfully to payment ${intent.id}`);
+
+
+
 
         // Send payment success notification
         try {

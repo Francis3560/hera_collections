@@ -263,25 +263,37 @@ export async function getAllOrderItems(filters = {}) {
     include: {
         order: {
             select: { 
+              id: true,
               orderNumber: true, 
               status: true, 
               buyerId: true,
               customerFirstName: true,
               customerLastName: true,
+              customerPhone: true,
+              customerEmail: true,
               mpesaReference: true,
               totalAmount: true,
               shippingCost: true,
               paymentMethod: true,
+              paidAt: true,
               createdAt: true
             }
         },
         product: {
-             include: { photos: true }
+             include: { 
+               photos: true,
+               category: { select: { name: true } }
+             }
         },
         variant: {
             select: {
+                id: true,
                 sku: true,
-                image: true
+                image: true,
+                price: true,
+                stock: true,
+                color: true,
+                size: true,
             }
         }
     }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import orderService from '@/api/order.service';
-import { Eye, Search, Filter, Loader2, MoreHorizontal } from 'lucide-react';
+import { Eye, Search, Filter, Loader2, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,16 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { Link } from 'react-router-dom';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 const OrdersList = () => {
@@ -33,11 +23,6 @@ const OrdersList = () => {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    
-    // Status Update State
-    const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<any>(null);
-    const [verificationCode, setVerificationCode] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
@@ -60,54 +45,18 @@ const OrdersList = () => {
         }
     };
 
-    const handleStatusUpdate = async (orderId, newStatus, mpesaRef = null) => {
+    const handleStatusUpdate = async (orderId, newStatus) => {
         setIsUpdating(true);
         try {
-            await orderService.updateOrderStatus(orderId, newStatus, mpesaRef);
+            await orderService.updateOrderStatus(orderId, newStatus);
             toast.success(`Order status updated to ${newStatus}`);
-            fetchOrders(); // Refresh list data
-            
-            // Perform a full page refresh to ensure all global state and UI elements are synced
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        } catch (error) {
+            fetchOrders();
+        } catch (error: any) {
             console.error(error);
-            toast.error("Failed to update status");
+            toast.error(error?.response?.data?.message || "Failed to update status");
         } finally {
             setIsUpdating(false);
-            setConfirmDialogOpen(false);
-            setSelectedOrder(null);
-            setVerificationCode('');
         }
-    };
-
-    const initiateStatusChange = (order, newStatus) => {
-        // Workflow Enforcement
-        if (order.status === 'PENDING' && newStatus === 'PAID') {
-            setSelectedOrder({ ...order, newStatus });
-            setVerificationCode(order.mpesaReference || '');
-            setConfirmDialogOpen(true);
-        } else if (order.status === 'PAID' && newStatus === 'PROCESSING') {
-             handleStatusUpdate(order.id, newStatus);
-        } else if (order.status === 'PROCESSING' && newStatus === 'COMPLETED') {
-             handleStatusUpdate(order.id, newStatus);
-        } else {
-             // Allow other transitions
-             handleStatusUpdate(order.id, newStatus);
-        }
-    };
-
-    const confirmPayment = () => {
-        if (!selectedOrder) return;
-        
-        // If it was a manual payment and no code existed/entered
-        if (!verificationCode && selectedOrder.paymentMethod === 'MPESA') {
-            toast.error("Please enter the M-Pesa Reference Code to verify payment.");
-            return;
-        }
-        
-        handleStatusUpdate(selectedOrder.id, 'PAID', verificationCode);
     };
 
     const getStatusVariant = (status) => {
@@ -225,13 +174,13 @@ const OrdersList = () => {
                                             </Badge>
                                             
                                             {order.mpesaReference ? (
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-secondary/50 px-1.5 py-0.5 rounded border border-border/40 w-fit" title="M-Pesa Reference">
-                                                    <span className="font-semibold text-primary">#</span>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono bg-secondary/50 px-1.5 py-0.5 rounded border border-border/40 w-fit" title="M-Pesa Receipt">
+                                                    <CheckCircle2 className="h-3 w-3 text-green-500" />
                                                     {order.mpesaReference}
                                                 </div>
                                             ) : (
-                                                order.status === 'PENDING' && order.paymentMethod === 'MPESA' && (
-                                                     <span className="text-[10px] text-destructive font-semibold blink-animation">Verify Payment</span>
+                                                order.status === 'PENDING' && (
+                                                    <span className="text-[10px] text-amber-500 font-semibold">Awaiting Payment</span>
                                                 )
                                             )}
                                         </div>
@@ -252,34 +201,30 @@ const OrdersList = () => {
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 
-                                                {/* Workflow Actions */}
-                                                {order.status === 'PENDING' && (
-                                                     <DropdownMenuItem onClick={() => initiateStatusChange(order, 'PAID')}>
-                                                        <span className="text-green-600 font-semibold">Confirm Payment</span>
-                                                     </DropdownMenuItem>
-                                                )}
+                                                {/* Admin Workflow Actions: PAID→PROCESSING→FULFILLED→SHIPPED→COMPLETED */}
+                                                {/* PENDING→PAID is automatic (M-Pesa callback) */}
                                                 {order.status === 'PAID' && (
-                                                     <DropdownMenuItem onClick={() => initiateStatusChange(order, 'PROCESSING')}>
+                                                     <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'PROCESSING')}>
                                                         <span className="text-blue-600 font-semibold">Mark Processing</span>
                                                      </DropdownMenuItem>
                                                 )}
                                                  {order.status === 'PROCESSING' && (
-                                                      <DropdownMenuItem onClick={() => initiateStatusChange(order, 'FULFILLED')}>
+                                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'FULFILLED')}>
                                                          <span className="text-blue-600 font-semibold">Mark Fulfilled</span>
                                                       </DropdownMenuItem>
                                                  )}
                                                  {order.status === 'FULFILLED' && (
-                                                      <DropdownMenuItem onClick={() => initiateStatusChange(order, 'SHIPPED')}>
+                                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'SHIPPED')}>
                                                          <span className="text-orange-600 font-semibold">Mark Shipped</span>
                                                       </DropdownMenuItem>
                                                  )}
                                                  {(order.status === 'SHIPPED' || order.status === 'FULFILLED') && (
-                                                      <DropdownMenuItem onClick={() => initiateStatusChange(order, 'COMPLETED')}>
+                                                      <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'COMPLETED')}>
                                                          <span className="text-emerald-600 font-bold">Mark Completed</span>
                                                       </DropdownMenuItem>
                                                  )}
                                                 {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
-                                                    <DropdownMenuItem onClick={() => initiateStatusChange(order, 'CANCELLED')}>
+                                                    <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'CANCELLED')}>
                                                         <span className="text-red-600">Cancel Order</span>
                                                     </DropdownMenuItem>
                                                 )}
@@ -304,40 +249,6 @@ const OrdersList = () => {
                 </div>
             </div>
 
-            {/* Payment Confirmation Dialog */}
-            <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Confirm Payment</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to mark Order <strong>#{selectedOrder?.orderNumber}</strong> as PAID?
-                            <br/><br/>
-                            Please verify the M-Pesa Reference Code below:
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    
-                    <div className="py-4">
-                        <label className="text-sm font-medium mb-2 block">M-Pesa Reference Code</label>
-                        <Input 
-                            value={verificationCode} 
-                            onChange={(e) => setVerificationCode(e.target.value.toUpperCase())}
-                            placeholder="e.g. QKH45..."
-                            className="font-mono uppercase tracking-widest"
-                        />
-                         <p className="text-xs text-muted-foreground mt-2">
-                            Check your M-Pesa statement for this code to ensure payment was received.
-                        </p>
-                    </div>
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isUpdating}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={(e) => { e.preventDefault(); confirmPayment(); }} disabled={isUpdating}>
-                            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Confirm Payment
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 };

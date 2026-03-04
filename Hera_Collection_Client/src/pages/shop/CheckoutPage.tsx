@@ -197,7 +197,13 @@ export default function CheckoutPage() {
 
   const onPaystackClose = () => {
     setLoading(false);
-    toast.error("Payment was cancelled.");
+    setPaymentStatus("IDLE");
+    mpesaSwal.fire({
+      icon: 'warning',
+      title: '<span style="color:#facc15">Payment Cancelled</span>',
+      html: '<p style="color:#94a3b8">You closed the payment window.<br/>Your order has not been placed.</p>',
+      confirmButtonText: 'Try Again',
+    });
   };
 
   const searchCustomers = useCallback(
@@ -454,8 +460,17 @@ export default function CheckoutPage() {
           setSuccessOrder(response.order);
           setPaymentStatus("SUCCESS");
           setLoading(false);
-          toast.success("Order placed successfully!");
           clearCart();
+          // Show the same quality success modal as M-Pesa
+          await mpesaSwal.fire({
+            icon: 'success',
+            title: '<span style="color:#4ade80">Payment Successful! 🎉</span>',
+            html: `<p style="color:#94a3b8">Your card payment was confirmed by Paystack.<br/>Your order has been placed successfully.</p>`,
+            confirmButtonText: 'View My Order',
+            showConfirmButton: true,
+            timer: 4000,
+            timerProgressBar: true,
+          });
       } else {
           throw new Error(response.message || "Failed to create order");
       }
@@ -470,7 +485,7 @@ export default function CheckoutPage() {
 
   const pollPaymentStatus = async (id: string) => {
     let attempts = 0;
-    const maxAttempts = 20; // ~10 minutes total (30s intervals)
+    const maxAttempts = 24; // ~2 minutes total (5s intervals)
     
     const interval = setInterval(async () => {
       attempts++;
@@ -526,7 +541,7 @@ export default function CheckoutPage() {
       } catch (error) {
         console.error("Polling error:", error);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 5000); // Poll every 5 seconds (24 attempts = ~2 minutes)
   };
 
   if (paymentStatus === "SUCCESS") {

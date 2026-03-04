@@ -112,27 +112,31 @@ const OrderDetails = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('PENDING')}>
-                            <Clock className="mr-2 h-4 w-4" /> Mark Pending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('PAID')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" /> Mark Paid
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('PROCESSING')}>
-                            <Package className="mr-2 h-4 w-4 text-blue-500" /> Mark Processing
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('FULFILLED')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> Mark Fulfilled
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('SHIPPED')}>
-                            <Truck className="mr-2 h-4 w-4 text-orange-500" /> Mark Shipped
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('COMPLETED')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Mark Completed
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusUpdate('CANCELLED')}>
-                            <XCircle className="mr-2 h-4 w-4 text-red-500" /> Mark Cancelled
-                        </DropdownMenuItem>
+                        {order.status === 'PAID' && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate('PROCESSING')}>
+                              <Package className="mr-2 h-4 w-4 text-blue-500" /> Mark Processing
+                          </DropdownMenuItem>
+                        )}
+                        {order.status === 'PROCESSING' && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate('FULFILLED')}>
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> Mark Fulfilled
+                          </DropdownMenuItem>
+                        )}
+                        {(order.status === 'FULFILLED' || order.status === 'PROCESSING') && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate('SHIPPED')}>
+                              <Truck className="mr-2 h-4 w-4 text-orange-500" /> Mark Shipped
+                          </DropdownMenuItem>
+                        )}
+                        {(order.status === 'SHIPPED' || order.status === 'FULFILLED') && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate('COMPLETED')}>
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" /> Mark Completed
+                          </DropdownMenuItem>
+                        )}
+                        {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                          <DropdownMenuItem onClick={() => handleStatusUpdate('CANCELLED')}>
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" /> Cancel Order
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
@@ -344,27 +348,40 @@ const OrderDetails = () => {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="pt-4 text-sm space-y-2">
+                            {order.status === 'PENDING' && order.paymentMethod === 'MPESA' && (
+                                <div className="flex items-center gap-2 text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded p-2 text-xs">
+                                    <Clock className="h-3 w-3 flex-shrink-0" />
+                                    <span>Awaiting M-Pesa confirmation. Will auto-reconcile on payment.</span>
+                                </div>
+                            )}
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Method:</span>
                                 <span className="font-semibold">{order.paymentMethod}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Payment Status:</span>
-                                <Badge variant={order.status === 'PAID' || order.paidAt ? "default" : "outline"} className="">
-                                    {order.status === 'PAID' || order.paidAt ? 'Paid' : 'Unpaid'}
+                                <Badge variant={order.paidAt ? "default" : "outline"}>
+                                    {order.paidAt ? '✓ Auto-Reconciled' : 'Unpaid'}
                                 </Badge>
                             </div>
+                            {order.paidAt && (
+                                <div className="flex justify-between text-xs">
+                                    <span className="text-muted-foreground">Paid At:</span>
+                                    <span className="font-mono">{format(new Date(order.paidAt), 'MMM dd, HH:mm')}</span>
+                                </div>
+                            )}
                             {order.mpesaReference && (
                                 <div className="mt-2 pt-2 border-t text-sm">
-                                    <span className="text-muted-foreground block text-xs mb-1">M-Pesa Reference:</span>
-                                    <div className="font-mono bg-secondary/20 p-1.5 rounded text-center font-semibold text-primary select-all border border-primary/20">
+                                    <span className="text-muted-foreground block text-xs mb-1">M-Pesa Receipt:</span>
+                                    <div className="font-mono bg-green-500/10 p-1.5 rounded text-center font-semibold text-green-600 select-all border border-green-500/20 flex items-center justify-center gap-1">
+                                        <CheckCircle2 className="h-3 w-3" />
                                         {order.mpesaReference}
                                     </div>
                                 </div>
                             )}
                              {order.paymentIntentId && (
                                 <div className="text-xs text-muted-foreground break-all mt-1">
-                                    ID: {order.paymentIntentId}
+                                    Intent: {order.paymentIntentId}
                                 </div>
                             )}
                         </CardContent>
