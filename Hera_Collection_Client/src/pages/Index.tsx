@@ -19,7 +19,7 @@ export default function Index() {
       <FeaturedProducts/>
       {/* <ShopBySubCategory/> */}
       {/* <ImageWithText/> */}
-      <Testimonials/>
+      {/* <Testimonials/> */}
       <FAQSection/>
       <Footer/>
       <LiveChat />

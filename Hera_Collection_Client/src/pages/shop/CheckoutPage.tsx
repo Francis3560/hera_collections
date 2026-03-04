@@ -780,37 +780,42 @@ export default function CheckoutPage() {
                               {shippingRegions.map((region) => (
                                 <CommandItem
                                   key={region.id}
-                                  value={region.name}
+                                  value={`${region.name} ${region.description || ""}`}
                                   onSelect={() => {
                                     setSelectedRegion(region);
                                     setOpenShipping(false);
                                   }}
-                                  className="flex items-center justify-between p-4 my-1 rounded-xl cursor-pointer aria-selected:bg-secondary transition-colors group"
+                                  className="flex items-center justify-between p-4 my-1 rounded-xl cursor-pointer aria-selected:bg-primary transition-colors group"
                                 >
                                   <div className="flex items-center gap-4">
                                     <div className={cn(
                                        "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
                                        selectedRegion?.id === region.id 
-                                         ? 'text-primary scale-110 shadow-lg shadow-primary/5 bg-primary/10' 
-                                         : 'text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary bg-secondary/30'
+                                         ? 'text-primary scale-110 shadow-lg shadow-primary/5 bg-primary/10 group-aria-selected:text-white group-aria-selected:bg-white/20' 
+                                         : 'text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary bg-secondary/30 group-aria-selected:text-white group-aria-selected:bg-white/10'
                                     )}>
                                       <MapPin className="w-5 h-5" />
                                     </div>
                                     <div className="flex flex-col">
-                                      <span className="font-bold text-foreground text-sm tracking-tight">{region.name}</span>
-                                      <span className="text-[10px] text-black dark:text-white font-bold uppercase tracking-wider">{region.estimatedDays || "2-3 Working Days"}</span>
+                                      <span className="font-bold text-foreground text-sm tracking-tight group-aria-selected:text-white">{region.name}</span>
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] text-black dark:text-white font-bold uppercase tracking-wider group-aria-selected:text-white/90">{region.estimatedDays || "2-3 Working Days"}</span>
+                                        {region.description && (
+                                          <span className="text-[10px] text-muted-foreground group-aria-selected:text-white/70 line-clamp-1 max-w-[200px]">{region.description}</span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-4">
                                     <div className="flex flex-col items-end">
-                                      <span className="font-bold text-primary">{formatPrice(Number(region.fee))}</span>
-                                      {Number(region.fee) === 0 && <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider">Free Shipping</span>}
+                                      <span className="font-bold text-primary group-aria-selected:text-white">{formatPrice(Number(region.fee))}</span>
+                                      {Number(region.fee) === 0 && <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider group-aria-selected:text-white/80">Free Shipping</span>}
                                     </div>
                                     <div className={cn(
                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
                                        selectedRegion?.id === region.id 
-                                         ? "border-primary text-primary bg-primary/10" 
-                                         : "border-muted group-hover:border-primary/50"
+                                         ? "border-primary text-primary bg-primary/10 group-aria-selected:border-white group-aria-selected:text-white" 
+                                         : "border-muted group-hover:border-primary/50 group-aria-selected:border-white/50"
                                     )}>
                                        {selectedRegion?.id === region.id && <Check className="h-3 w-3" />}
                                     </div>
