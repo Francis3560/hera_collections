@@ -4,7 +4,7 @@ export const paymentRequestSchema = Joi.object({
   items: Joi.array()
     .items(
       Joi.object({
-        productId: Joi.number().integer().required(),
+        productId: Joi.number().integer().optional().allow(null),
         quantity: Joi.number().integer().min(1).required(),
         price: Joi.number().precision(2).required(),
         variantName: Joi.string().optional().allow('', null),

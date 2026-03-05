@@ -142,6 +142,10 @@ export async function addToCart(userId, sessionId, itemData) {
     }
   }
 
+  let variantName = null;
+  let variantValue = null;
+  let price = 0;
+
   if (productId) {
     // Check product availability
     const product = await prisma.product.findUnique({
