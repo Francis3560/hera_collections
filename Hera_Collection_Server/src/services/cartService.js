@@ -76,33 +76,40 @@ export async function getCart(userId, sessionId) {
   if (!cart.items) cart.items = [];
 
   const itemsWithDiscounts = cart.items.map(item => {
-    const product = item.product;
-    const variant = item.variant;
+    const product = item.product;  // null for custom items
+    const variant = item.variant;  // null for custom items
     
     const originalPrice = Number(variant?.price || 0);
     let finalPrice = originalPrice;
     let appliedDiscount = null;
 
-    // Check for active discounts on product
-    const activeDiscount = product.discounts?.[0]; // Prisma query already filters for isActive: true
-
-    if (activeDiscount) {
-       const percentage = Number(activeDiscount.discountPercentage);
-       const discountAmount = (originalPrice * percentage) / 100;
-       finalPrice = originalPrice - discountAmount;
-       appliedDiscount = {
+    // Only check discounts if product exists and has discounts array
+    if (product != null && Array.isArray(product.discounts) && product.discounts.length > 0) {
+      const activeDiscount = product.discounts[0]; // Prisma filtered for isActive: true
+      if (activeDiscount) {
+        const percentage = Number(activeDiscount.discountPercentage);
+        const discountAmount = (originalPrice * percentage) / 100;
+        finalPrice = originalPrice - discountAmount;
+        appliedDiscount = {
           id: activeDiscount.id,
           name: activeDiscount.name,
           percentage: percentage,
           amountSaved: discountAmount
-       };
+        };
+      }
     }
+
+    // For custom items item.price is the stored custom price;
+    // for catalog items item.price is null so we use the variant-derived finalPrice.
+    const resolvedPrice = (item.price !== null && item.price !== undefined)
+      ? Number(item.price)
+      : finalPrice;
 
     return {
       ...item,
       originalPrice,
-      price: item.price !== null ? Number(item.price) : finalPrice,
-      discountedPrice: item.price !== null ? Number(item.price) : finalPrice,
+      price: resolvedPrice,
+      discountedPrice: resolvedPrice,
       appliedDiscount,
       title: item.customTitle || product?.title
     };
@@ -296,16 +303,19 @@ export async function checkoutCart(userId, sessionId, paymentData, customerData,
   // createOrder expects: items: [{ productId, quantity, price, variantName, variantValue }]
   // Create order items
   const items = cartData.items.map(item => {
-    // item.price comes from getCart and includes discounts if applicable
-    const price = item.price !== undefined ? item.price : (item.variant ? item.variant.price : 0);
+    // item.price comes from getCart (includes discount for catalog items, or custom price for custom items)
+    const price = (item.price !== null && item.price !== undefined)
+      ? item.price
+      : (item.variant?.price ?? 0);
     
     return {
-      productId: item.productId,
+      productId: item.productId || null,
       quantity: item.quantity,
       price: Number(price),
-      variantName: item.variantName,
-      variantValue: item.variantValue,
-      variantId: item.variantId 
+      variantName: item.variantName || item.customTitle || null,
+      variantValue: item.variantValue || null,
+      variantId: item.variantId || null,
+      customTitle: item.customTitle || null  // preserve for OrderItem
     };
   });
 

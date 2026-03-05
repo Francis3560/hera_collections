@@ -16,10 +16,14 @@ export const createOrderSchema = Joi.object({
     .required(),
 
   customer: Joi.object({
-    firstName: Joi.string().max(120).required(),
-    lastName: Joi.string().max(120).required(),
-    phone: Joi.string().max(32).required(),
-    email: Joi.string().email().max(191).required(),
+    firstName: Joi.string().max(120).optional().allow('', null),
+    lastName: Joi.string().max(120).optional().allow('', null),
+    full_name: Joi.string().max(255).optional().allow('', null),
+    name: Joi.string().max(255).optional().allow('', null),
+    phone: Joi.string().max(32).optional().allow('', null),
+    phone_number: Joi.string().max(32).optional().allow('', null),
+    email: Joi.string().email().max(191).optional().allow('', null),
+    userId: Joi.number().integer().optional().allow(null),
   }).required(),
 
   payment: Joi.object({

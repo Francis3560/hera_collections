@@ -14,8 +14,8 @@ export async function startMpesaPayment(req, res) {
     const { items, customer, payment, amounts, shipping } = req.body;
 
     // Validate that all products exist and are in stock
-    const productIds = items.map(item => item.productId);
-    const products = await prisma.product.findMany({
+    const productIds = items.map(item => item.productId).filter(Boolean);
+    const products = productIds.length > 0 ? await prisma.product.findMany({
       where: { 
         id: { in: productIds }, 
         isPublished: true 
@@ -33,9 +33,10 @@ export async function startMpesaPayment(req, res) {
           }
         }
       }
-    });
+    }) : [];
 
-    if (products.length !== items.length) {
+    const nonCustomItemsCount = items.filter(item => item.productId).length;
+    if (products.length !== nonCustomItemsCount) {
       return res.status(400).json({
         success: false,
         message: "Some products are invalid or unavailable"
@@ -44,6 +45,8 @@ export async function startMpesaPayment(req, res) {
 
     // Check stock availability
     for (const item of items) {
+      if (!item.productId) continue; // Skip stock check for custom items
+      
       const product = products.find(p => p.id === item.productId);
       if (!product) {
         return res.status(400).json({
