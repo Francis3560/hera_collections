@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RotateCcw, Loader2 } from 'lucide-react';
+import { Search, RotateCcw, Loader2, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { ProductCard } from './components/ProductCard';
 import { CartSidebar } from './components/CartSidebar';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -23,6 +24,8 @@ const PosTerminal = () => {
   const [categories, setCategories] = useState([]);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<any>(null);
+  const [customItem, setCustomItem] = useState({ title: '', price: '' });
+  const [isAddingCustom, setIsAddingCustom] = useState(false);
   const { toast } = useToast();
 
   // Load initial data
@@ -137,6 +140,29 @@ const PosTerminal = () => {
       toast({ title: 'Success', description: 'Item added to cart' });
     } catch (error: any) {
       toast({ title: 'Error', description: error.response?.data?.message || 'Failed to add item', variant: 'destructive' });
+    } finally {
+      setLoadingCart(false);
+    }
+  };
+
+  const handleAddCustomItem = async () => {
+    if (!customItem.title || !customItem.price) {
+      toast({ title: 'Missing Information', description: 'Please provide both title and price', variant: 'destructive' });
+      return;
+    }
+
+    setLoadingCart(true);
+    try {
+      await posService.addToCart(null, null, 1, { 
+        customTitle: customItem.title, 
+        price: parseFloat(customItem.price) 
+      });
+      await loadCart();
+      setCustomItem({ title: '', price: '' });
+      setIsAddingCustom(false);
+      toast({ title: 'Success', description: 'Custom item added to cart' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.response?.data?.message || 'Failed to add custom item', variant: 'destructive' });
     } finally {
       setLoadingCart(false);
     }
@@ -261,8 +287,18 @@ const PosTerminal = () => {
               </Button>
            </div>
            
-           {/* Categories */}
-           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {/* Categories */}
+           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar items-center">
+              <Button 
+                variant={isAddingCustom ? "default" : "outline"}
+                size="sm"
+                className="rounded-full gap-2 whitespace-nowrap"
+                onClick={() => setIsAddingCustom(!isAddingCustom)}
+              >
+                <Plus className="h-4 w-4" />
+                Custom Sale
+              </Button>
+              <div className="h-4 w-[1px] bg-border mx-1 flex-shrink-0" />
               <Badge 
                 variant={selectedCategory === null ? "default" : "outline"}
                 className="cursor-pointer whitespace-nowrap"
@@ -281,6 +317,43 @@ const PosTerminal = () => {
                 </Badge>
               ))}
            </div>
+
+           {/* Custom Item Form */}
+           {isAddingCustom && (
+             <div className="flex flex-col sm:flex-row gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/20 animate-in slide-in-from-top-2 duration-300">
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="custom-title" className="text-[10px] font-bold uppercase tracking-wider text-primary ml-1">Custom Item Name</Label>
+                  <Input 
+                    id="custom-title"
+                    placeholder="e.g. Custom Repair, Special Wedding Bag..." 
+                    className="bg-white dark:bg-zinc-900 border-primary/20"
+                    value={customItem.title}
+                    onChange={(e) => setCustomItem({...customItem, title: e.target.value})}
+                  />
+                </div>
+                <div className="w-full sm:w-40 space-y-1">
+                  <Label htmlFor="custom-price" className="text-[10px] font-bold uppercase tracking-wider text-primary ml-1">Price (KES)</Label>
+                  <Input 
+                    id="custom-price"
+                    type="number" 
+                    placeholder="0.00" 
+                    className="bg-white dark:bg-zinc-900 border-primary/20"
+                    value={customItem.price}
+                    onChange={(e) => setCustomItem({...customItem, price: e.target.value})}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button 
+                    className="w-full sm:w-auto h-10 px-6 font-bold"
+                    onClick={handleAddCustomItem}
+                    disabled={loadingCart}
+                  >
+                    {loadingCart ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Add to Sale
+                  </Button>
+                </div>
+             </div>
+           )}
         </div>
         
         {/* Product Grid */}

@@ -101,13 +101,14 @@ export async function getCart(userId, sessionId) {
     return {
       ...item,
       originalPrice,
-      price: finalPrice,
-      discountedPrice: finalPrice,
-      appliedDiscount
+      price: item.price !== null ? Number(item.price) : finalPrice,
+      discountedPrice: item.price !== null ? Number(item.price) : finalPrice,
+      appliedDiscount,
+      title: item.customTitle || product?.title
     };
   });
 
-  const subtotal = itemsWithDiscounts.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = itemsWithDiscounts.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
 
   return { ...cart, items: itemsWithDiscounts, subtotal };
 }
@@ -141,61 +142,61 @@ export async function addToCart(userId, sessionId, itemData) {
     }
   }
 
-  // Check product availability
-  const product = await prisma.product.findUnique({
-    where: { id: productId },
-    include: { variants: true }
-  });
-
-  if (!product) throw new Error('Product not found');
-
-  let price = 0;
-  let variantName = null;
-  let variantValue = null;
-
-  if (variantId) {
-    const variant = await prisma.productVariant.findUnique({
-      where: { id: variantId },
-      include: {
-        optionValues: {
-          include: { optionValue: { include: { option: true } } }
-        }
-      }
-    });
-
-    if (!variant) throw new Error('Variant not found');
-    if (variant.stock < quantity) throw new Error('Insufficient stock for variant');
-    
-    price = variant.price;
-    
-    // Construct variant strings (e.g., "Color", "Red")
-    if (variant.optionValues && variant.optionValues.length > 0) {
-      variantName = variant.optionValues.map(ov => ov.optionValue.option.name).join(' / ');
-      variantValue = variant.optionValues.map(ov => ov.optionValue.value).join(' / ');
-    } else {
-      variantName = 'Default';
-      variantValue = variant.sku || 'Default';
-    }
-  } else {
-    // If product has variants, one must be selected.
-    const productWithVariants = await prisma.product.findUnique({
+  if (productId) {
+    // Check product availability
+    const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { variants: { where: { isActive: true } } }
+      include: { variants: true }
     });
-    
-    if (productWithVariants?.variants.length > 0) {
-      throw new Error('Product variant must be selected');
+
+    if (!product) throw new Error('Product not found');
+
+    if (variantId) {
+      const variant = await prisma.productVariant.findUnique({
+        where: { id: variantId },
+        include: {
+          optionValues: {
+            include: { optionValue: { include: { option: true } } }
+          }
+        }
+      });
+
+      if (!variant) throw new Error('Variant not found');
+      if (variant.stock < quantity) throw new Error('Insufficient stock for variant');
+      
+      price = variant.price;
+      
+      // Construct variant strings (e.g., "Color", "Red")
+      if (variant.optionValues && variant.optionValues.length > 0) {
+        variantName = variant.optionValues.map(ov => ov.optionValue.option.name).join(' / ');
+        variantValue = variant.optionValues.map(ov => ov.optionValue.value).join(' / ');
+      } else {
+        variantName = 'Default';
+        variantValue = variant.sku || 'Default';
+      }
+    } else {
+      // If product has variants, one must be selected.
+      const productWithVariants = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { variants: { where: { isActive: true } } }
+      });
+      
+      if (productWithVariants?.variants.length > 0) {
+        throw new Error('Product variant must be selected');
+      }
     }
+  } else if (!itemData.customTitle || !itemData.price) {
+    throw new Error('Custom items require a title and price');
   }
 
   // Upsert CartItem
-  const existingItem = await prisma.cartItem.findFirst({
+  const existingItem = productId ? await prisma.cartItem.findFirst({
     where: {
       cartId: cart.id,
       productId,
       variantId: variantId || null
     }
-  });
+  }) : null;
 
   if (existingItem) {
     await prisma.cartItem.update({
@@ -206,11 +207,13 @@ export async function addToCart(userId, sessionId, itemData) {
     await prisma.cartItem.create({
       data: {
         cartId: cart.id,
-        productId,
-        variantId,
+        productId: productId || null,
+        variantId: variantId || null,
         quantity,
-        variantName, // Populate if possible
-        variantValue
+        variantName,
+        variantValue,
+        customTitle: itemData.customTitle || null,
+        price: itemData.price ? Number(itemData.price) : null
       }
     });
   }

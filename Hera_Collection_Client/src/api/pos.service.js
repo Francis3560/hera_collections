@@ -7,8 +7,13 @@ const posService = {
     return response.data;
   },
 
-  addToCart: async (productId, variantId, quantity) => {
-    const response = await axiosClient.post('/cart/add', { productId, variantId, quantity });
+  addToCart: async (productId, variantId, quantity, customData = {}) => {
+    const response = await axiosClient.post('/cart/add', { 
+      productId, 
+      variantId, 
+      quantity,
+      ...customData 
+    });
     return response.data;
   },
 

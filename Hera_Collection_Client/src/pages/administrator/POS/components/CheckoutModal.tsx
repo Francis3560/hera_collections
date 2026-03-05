@@ -259,10 +259,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             
             const paymentData = {
                 items: items.map(item => ({
-                    productId: item.productId,
-                    variantId: item.variantId,
+                    productId: item.productId || null,
+                    variantId: item.variantId || null,
                     quantity: item.quantity,
-                    price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
+                    price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0"),
+                    variantName: item.variantName || item.title || null
                 })),
                 customer: {
                   full_name: customer.full_name,

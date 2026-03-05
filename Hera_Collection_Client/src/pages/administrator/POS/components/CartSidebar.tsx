@@ -11,10 +11,11 @@ interface CartItem {
   variantId?: number;
   quantity: number;
   variantName?: string;
-  product: {
+  product?: {
     title: string;
     photos: { url: string; isPrimary: boolean }[];
   };
+  title?: string;
   variant?: {
     price: string;
     sku: string;
@@ -85,38 +86,38 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {items.map((item) => {
-             const price = Number(item.variant?.price || 0);
-             const itemTotal = price * item.quantity;
-             const photoUrl = item.product.photos?.[0]?.url;
-             const fullPhotoUrl = photoUrl ? `${API_BASE_URL}${photoUrl}` : null;
+              const price = Number(item.price || item.variant?.price || 0);
+              const displayTitle = item.title || item.product?.title || 'Unknown Item';
+              const photoUrl = item.product?.photos?.[0]?.url;
+              const fullPhotoUrl = photoUrl ? `${API_BASE_URL}${photoUrl}` : null;
 
-             return (
-               <div key={item.id} className="flex gap-3">
-                 <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0 border flex items-center justify-center">
-                   {fullPhotoUrl ? (
-                     <img src={fullPhotoUrl} alt={item.product.title} className="w-full h-full object-cover" />
-                   ) : (
-                     <Package className="w-8 h-8 text-muted-foreground/50" />
-                   )}
-                 </div>
-                 <div className="flex-1 min-w-0 flex flex-col justify-between">
-                   <div>
-                     <h4 className="font-medium text-sm line-clamp-1" title={item.product.title}>{item.product.title}</h4>
-                     <p className="text-xs text-muted-foreground">
-                        {item.variantName || item.variant?.sku || 'Default'}
-                     </p>
-                   </div>
-                   <div className="flex items-center justify-between mt-1">
-                     <div className="flex flex-col">
-                       {item.price !== undefined && Number(item.price) < Number(item.variant?.price || 0) ? (
-                         <>
-                            <span className="text-xs text-muted-foreground line-through">KES {Number(item.variant?.price || 0).toLocaleString()}</span>
-                            <span className="font-semibold text-sm text-red-500">KES {Number(item.price).toLocaleString()}</span>
-                         </>
-                       ) : (
-                         <p className="font-semibold text-sm">KES {price.toLocaleString()}</p>
-                       )}
-                     </div>
+              return (
+                <div key={item.id} className="flex gap-3">
+                  <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0 border flex items-center justify-center">
+                    {fullPhotoUrl ? (
+                      <img src={fullPhotoUrl} alt={displayTitle} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-8 h-8 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-medium text-sm line-clamp-1" title={displayTitle}>{displayTitle}</h4>
+                      <p className="text-xs text-muted-foreground">
+                         {item.variantName || item.variant?.sku || 'Custom Item'}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex flex-col">
+                        {item.price !== undefined && item.variant?.price && Number(item.price) < Number(item.variant?.price) ? (
+                          <>
+                             <span className="text-xs text-muted-foreground line-through">KES {Number(item.variant?.price).toLocaleString()}</span>
+                             <span className="font-semibold text-sm text-red-500">KES {Number(item.price).toLocaleString()}</span>
+                          </>
+                        ) : (
+                          <p className="font-semibold text-sm">KES {price.toLocaleString()}</p>
+                        )}
+                      </div>
                      
                      <div className="flex items-center gap-1">
                        <Button 

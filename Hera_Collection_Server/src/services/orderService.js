@@ -41,9 +41,9 @@ async function generateOrderNumber() {
 
 export async function createOrder(userId, data, paymentIntentId = null) {
   const { items, customer, payment, amounts, shipping } = data;
-  const productIds = items.map((i) => i.productId);
+  const productIds = items.map((i) => i.productId).filter(Boolean);
 
-  const products = await prisma.product.findMany({
+  const products = productIds.length > 0 ? await prisma.product.findMany({
     where: { 
       id: { in: productIds }, 
       isPublished: true 
@@ -57,9 +57,9 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         }
       }
     }
-  });
+  }) : [];
 
-  if (products.length !== items.length) {
+  if (products.length !== productIds.length) {
     throw new Error('Some products are invalid or unavailable');
   }
   
@@ -84,7 +84,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         if (variant.stock < item.quantity) {
           throw new Error(`Not enough stock for "${variant.product.title}" (${variant.sku}). Available: ${variant.stock}, Requested: ${item.quantity}`);
         }
-      } else {
+      } else if (item.productId) {
         // Fallback for items without variantId (if any)
         const product = products.find(p => p.id === item.productId);
         if (!product) {
@@ -99,6 +99,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
           throw new Error(`Not enough stock for "${product.title}". Available: ${firstVariant.stock}, Requested: ${item.quantity}`);
         }
       }
+      // Skip stock check for custom items (no productId and no variantId)
     }
 
     console.log(`[OrderService] Creating order record...`);
@@ -146,13 +147,13 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         paymentIntentId,
         items: {
           create: items.map((item) => ({
-            productId: item.productId,
+            productId: item.productId || null,
             quantity: item.quantity,
             price: new Prisma.Decimal(item.price),
-            total: new Prisma.Decimal(item.price * item.quantity), // Fixed: Calculate total for line item
-            variantName: item.variantName || null,
+            total: new Prisma.Decimal(item.price * item.quantity),
+            variantName: item.variantName || item.customTitle || null,
             variantValue: item.variantValue || null,
-            variantId: item.variantId || null // Link to the specific variant
+            variantId: item.variantId || null
           })),
         },
       },
