@@ -41,41 +41,6 @@ const mpesaSwal = Swal.mixin({
   },
 });
 
-function showMpesaLoader(phone: string) {
-  mpesaSwal.fire({
-    title: '<span style="color:#4ade80">M-Pesa STK Push Sent</span>',
-    html: `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0">
-        <div style="position:relative;width:80px;height:80px">
-          <svg viewBox="0 0 80 80" style="position:absolute;top:0;left:0;animation:mpesaSpin 1.4s linear infinite" width="80" height="80">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="#16a34a" stroke-width="6" stroke-dasharray="160" stroke-dashoffset="40" stroke-linecap="round"/>
-          </svg>
-          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px">📱</div>
-        </div>
-        <p style="margin:0;font-size:15px;color:#94a3b8">Check <strong style="color:#f1f5f9">${phone}</strong> for the<br/>M-Pesa payment prompt</p>
-        <p style="margin:0;font-size:12px;color:#64748b">Enter your M-Pesa PIN to confirm</p>
-        <div id="mpesa-dots" style="display:flex;gap:6px;margin-top:4px">
-          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0s infinite"></span>
-          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.2s infinite"></span>
-          <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.4s infinite"></span>
-        </div>
-      </div>
-      <style>
-        @keyframes mpesaSpin { to { transform: rotate(360deg); } }
-        @keyframes mpesaBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
-      </style>
-    `,
-    allowOutsideClick: false,
-    allowEscapeKey: false,
-    showConfirmButton: false,
-    showCancelButton: true,
-    cancelButtonText: '✕ Cancel Payment',
-  });
-}
-
-function closeMpesaLoader() {
-  Swal.close();
-}
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface CheckoutModalProps {
@@ -116,6 +81,50 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [searching, setSearching] = useState(false);
   const [noResults, setNoResults] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ── M-Pesa STK Push Loader Helpers ──
+  const showMpesaLoader = (phone: string) => {
+    mpesaSwal.fire({
+      title: '<span style="color:#4ade80">M-Pesa STK Push Sent</span>',
+      html: `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:8px 0">
+          <div style="position:relative;width:80px;height:80px">
+            <svg viewBox="0 0 80 80" style="position:absolute;top:0;left:0;animation:mpesaSpin 1.4s linear infinite" width="80" height="80">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="#16a34a" stroke-width="6" stroke-dasharray="160" stroke-dashoffset="40" stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px">📱</div>
+          </div>
+          <p style="margin:0;font-size:15px;color:#94a3b8">Check <strong style="color:#f1f5f9">${phone}</strong> for the<br/>M-Pesa payment prompt</p>
+          <p style="margin:0;font-size:12px;color:#64748b">Enter your M-Pesa PIN to confirm</p>
+          <div id="mpesa-dots" style="display:flex;gap:6px;margin-top:4px">
+            <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0s infinite"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.2s infinite"></span>
+            <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:mpesaBounce 1.2s ease-in-out 0.4s infinite"></span>
+          </div>
+        </div>
+        <style>
+          @keyframes mpesaSpin { to { transform: rotate(360deg); } }
+          @keyframes mpesaBounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+        </style>
+      `,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      showCancelButton: true,
+      cancelButtonText: '✕ Cancel Payment',
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+        setPaymentStatus('IDLE');
+        setLoading(false);
+      }
+    });
+  };
+
+  const closeMpesaLoader = () => {
+    Swal.close();
+  };
 
   const change = Number(cashTendered) - total;
   const isCashSufficient = paymentMethod !== 'CASH' || change >= 0;
@@ -123,6 +132,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   // ── Reset on open ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       setPaymentMethod('CASH');
       setCashTendered('');
       setLoading(false);
@@ -138,6 +148,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         .then(cfg => { if (cfg.success && cfg.publicKey) setPaystackKey(cfg.publicKey); })
         .catch(console.error);
     }
+    return () => {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+    };
   }, [isOpen]);
 
   // ── Paystack ───────────────────────────────────────────────────────────────
@@ -164,6 +177,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       title: '<span style="color:#facc15">Payment Cancelled</span>',
       html: '<p style="color:#94a3b8">You closed the payment window.<br/>The sale has not been completed.</p>',
       confirmButtonText: 'Try Again',
+      showCancelButton: true,
+      cancelButtonText: 'Close Checkout',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleSubmit();
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        onClose();
+      }
     });
   };
 
@@ -190,8 +211,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   // ── Polling (identical pattern to CheckoutPage) ────────────────────────────
   const pollPaymentStatus = (id: string) => {
+    if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
     let attempts = 0;
-    const maxAttempts = 24; // ~2 min at 5 s intervals
+    const maxAttempts = 24; 
 
     const intervalId = setInterval(async () => {
       attempts++;
@@ -199,7 +221,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         const response = await paymentService.checkPaymentStatus(id);
 
         if (response.success && response.data.status === 'SUCCESS') {
-          clearInterval(intervalId);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
           closeMpesaLoader();
           setSuccessOrder(response.data.order);
           setPaymentStatus('SUCCESS');
@@ -216,7 +238,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           });
           onClose();
         } else if (response.data.status === 'FAILED') {
-          clearInterval(intervalId);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
           closeMpesaLoader();
           setPaymentStatus('FAILED');
           setLoading(false);
@@ -231,9 +253,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             confirmButtonText: 'Try Again',
             showCancelButton: true,
             cancelButtonText: 'Close',
+          }).then((result) => {
+            if (result.isConfirmed) {
+              handleSubmit();
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+              setPaymentStatus('IDLE');
+            }
           });
         } else if (attempts >= maxAttempts) {
-          clearInterval(intervalId);
+          if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
           closeMpesaLoader();
           setPaymentStatus('FAILED');
           setLoading(false);
@@ -242,12 +270,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             title: '<span style="color:#f87171">Payment Timed Out</span>',
             html: `<p style="color:#94a3b8">No confirmation received from M-Pesa.<br/>Check your M-Pesa messages and retry.</p>`,
             confirmButtonText: 'Try Again',
+            showCancelButton: true,
+            cancelButtonText: 'Close',
+          }).then((result) => {
+            if (result.isConfirmed) handleSubmit();
           });
         }
       } catch (err) {
         console.error('Polling error:', err);
       }
     }, 5000);
+    pollingIntervalRef.current = intervalId;
   };
 
   // ── M-Pesa submit ──────────────────────────────────────────────────────────
@@ -307,6 +340,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         title: '<span style="color:#f87171">M-Pesa Error</span>',
         html: `<p style="color:#94a3b8">${error.response?.data?.message || error.message || 'Could not initiate payment.'}</p>`,
         confirmButtonText: 'Try Again',
+        showCancelButton: true,
+        cancelButtonText: 'Close',
+      }).then((result) => {
+        if (result.isConfirmed) handleMpesaSubmit();
       });
     }
   };
