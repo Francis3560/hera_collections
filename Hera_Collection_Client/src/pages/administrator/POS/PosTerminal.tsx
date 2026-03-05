@@ -253,10 +253,11 @@ const PosTerminal = () => {
 
   const handleCheckout = async (data) => {
     try {
-      const order = await posService.checkout(data);
+      const response = await posService.checkout(data);
+      const order = response.data || response;
       toast({ title: 'Sale Completed', description: `Order ${order.orderNumber} created successfully.` });
       await loadCart(); // Should be empty now
-      setIsCheckoutOpen(false);
+      return order; // Return order for the modal to use
     } catch (error) {
        console.error(error);
        toast({ title: 'Checkout Failed', description: 'Could not complete transaction', variant: 'destructive' });
