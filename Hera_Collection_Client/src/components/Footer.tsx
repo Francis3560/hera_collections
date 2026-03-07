@@ -320,6 +320,7 @@ export default function FreeFooter() {
               We Accept
             </h4>
             <div className="flex flex-wrap align-itens-center items-center justify-center gap-4">
+{/* 
               <Dialog>
                 <DialogTrigger asChild>
                   <button className="h-8 hover:scale-105 transition-transform rounded p-1">
@@ -359,6 +360,15 @@ export default function FreeFooter() {
                   </div>
                 </DialogContent>
               </Dialog>
+              */}
+              {/* Fallback Static M-Pesa Logo */}
+              <div className="h-8 rounded p-1">
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/commons/1/15/M-PESA_LOGO-01.svg" 
+                  alt="Mpesa" 
+                  className="h-full w-auto object-contain"
+                />
+              </div>
               <div className="h-14 hover:scale-105 transition-transform rounded p-1 flex items-center" title="All Major Credit & Debit Cards">
                  <img 
                    src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" 
