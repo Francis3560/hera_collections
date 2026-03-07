@@ -9,6 +9,7 @@ import Testimonials from '@/components/Sections/Testimonials';
 import FAQSection from '@/components/Sections/FAQSection';
 import Footer from '@/components/Footer';
 import { LiveChat } from '@/components/chat/LiveChat';
+import WhatsAppChat from '@/components/chat/WhatsAppChat';
 
 export default function Index() {
   return (
@@ -23,6 +24,7 @@ export default function Index() {
       <FAQSection/>
       <Footer/>
       <LiveChat />
+      <WhatsAppChat />
     </div>
   )
 }

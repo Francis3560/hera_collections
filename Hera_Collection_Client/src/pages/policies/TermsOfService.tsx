@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 
 export default function TermsOfService() {
   useEffect(() => {
@@ -135,6 +136,7 @@ export default function TermsOfService() {
 
       <Footer />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 }

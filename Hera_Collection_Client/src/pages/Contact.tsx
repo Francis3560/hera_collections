@@ -28,6 +28,7 @@ import emailService from "@/api/email.service";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 
 const Contact = () => {
   const { user } = useAuth();
@@ -380,6 +381,7 @@ const Contact = () => {
 
       <Footer />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 };

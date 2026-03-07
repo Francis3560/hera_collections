@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { QuickAddModal } from "@/components/shop/QuickAddModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 
 export default function CollectionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -746,6 +747,7 @@ export default function CollectionsPage() {
         onAddToCart={addToCart}
       />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 import { TypeAnimation } from "react-type-animation";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -257,7 +258,7 @@ const CustomOrders = () => {
                </h1>
                <div className="h-px w-24 bg-primary/30 mx-auto" />
                <p className="text-base text-muted-foreground font-normal max-w-lg mx-auto italic">
-                 "Bring your dream bag to life, from Guitor bags to bespoke luxury pieces."
+             From Guitar Bags to Drumstick Bags, bring out your creative self through us <span className="text-primary italic font-normal">Reach out for a custom bag design. Let’s create together !</span>
                </p>
             </motion.div>
           </div>
@@ -266,7 +267,24 @@ const CustomOrders = () => {
         {/* Features & Form Section */}
         <section className="py-24 bg-background border-t border-border/40">
           <div className="container mx-auto px-4">
-            {/* Features Grid */}
+            {/* Direct Inquiry Form Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="space-y-16"
+            >
+              <div className="text-center max-w-2xl mx-auto space-y-4">
+                <h3 className="text-3xl sm:text-4xl font-medium tracking-tight">Got a dream custom quote in mind?</h3>
+                <p className="text-muted-foreground font-normal italic">
+                  Complete the inquiry form below and let's start crafting your masterpiece.
+                </p>
+              </div>
+              
+              <InquiryForm />
+            </motion.div>
+          </div>
+                      {/* Features Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-32">
               {values.map((v, i) => (
                 <motion.div
@@ -286,23 +304,6 @@ const CustomOrders = () => {
               ))}
             </div>
 
-            {/* Direct Inquiry Form Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="space-y-16"
-            >
-              <div className="text-center max-w-2xl mx-auto space-y-4">
-                <h3 className="text-3xl sm:text-4xl font-medium tracking-tight">Got a dream custom quote in mind?</h3>
-                <p className="text-muted-foreground font-normal italic">
-                  Complete the inquiry form below and let's start crafting your masterpiece.
-                </p>
-              </div>
-              
-              <InquiryForm />
-            </motion.div>
-          </div>
         </section>
 
         {/* Decorative divider */}
@@ -311,6 +312,7 @@ const CustomOrders = () => {
 
       <Footer />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 };

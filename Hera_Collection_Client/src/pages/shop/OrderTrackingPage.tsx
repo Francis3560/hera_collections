@@ -8,6 +8,7 @@ import { Package, Truck, CheckCircle, Clock, MapPin, ChevronRight, ArrowLeft, Do
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams();
@@ -342,6 +343,7 @@ export default function OrderTrackingPage() {
         </main>
         <Footer />
         <LiveChat />
+        <WhatsAppChat />
       </div>
     </>
   );

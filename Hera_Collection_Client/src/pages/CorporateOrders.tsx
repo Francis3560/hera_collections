@@ -13,6 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 import { ContactModal } from "@/components/ContactModal";
 
 const CorporateOrders = () => {
@@ -117,6 +118,7 @@ const CorporateOrders = () => {
 
       <Footer />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 };

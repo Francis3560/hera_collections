@@ -191,7 +191,7 @@ export default function FreeFooter() {
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-primary dark:text-primary" />
                   <span className="text-foreground/80 dark:text-foreground/80">
-                   +254-718577608 / +254-707064827
+                   +254 119840661
                   </span>
                 </div>
                 <div className="flex items-center gap-3">

@@ -16,6 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LiveChat } from "@/components/chat/LiveChat";
+import WhatsAppChat from "@/components/chat/WhatsAppChat";
 
 const About = () => {
   useEffect(() => {
@@ -206,6 +207,7 @@ const About = () => {
 
       <Footer />
       <LiveChat />
+      <WhatsAppChat />
     </div>
   );
 };
