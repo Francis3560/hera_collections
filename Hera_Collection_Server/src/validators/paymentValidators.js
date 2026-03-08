@@ -39,12 +39,16 @@ export const paymentRequestSchema = Joi.object({
   shipping: Joi.object({
     address: Joi.string().optional().allow('', null),
     city: Joi.string().max(120).optional().allow('', null),
+    governorate: Joi.string().max(120).optional().allow('', null),
     country: Joi.string().max(120).optional().allow('', null),
     notes: Joi.string().optional().allow('', null),
   }).optional(),
 
+  isPos: Joi.boolean().optional(),
+
   amounts: Joi.object({
-    subtotal: Joi.number().precision(2).min(1).required(),
+    subtotal: Joi.number().precision(2).min(0).required(),
+    shipping: Joi.number().precision(2).min(0).optional(),
     total: Joi.number().precision(2).min(1).required(),
   }).required(),
 });

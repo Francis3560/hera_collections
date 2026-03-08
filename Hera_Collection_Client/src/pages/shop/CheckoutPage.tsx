@@ -380,7 +380,9 @@ export default function CheckoutPage() {
             productId: item.productId,
             variantId: item.variantId,
             quantity: item.quantity,
-            price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
+            price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0"),
+            variantName: item.variant?.name || item.product?.title || null,
+            variantValue: item.variant?.value || null,
           })),
           customer: {
             firstName: formData.firstName,
@@ -428,7 +430,9 @@ export default function CheckoutPage() {
           productId: item.productId,
           variantId: item.variantId,
           quantity: item.quantity,
-          price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0")
+          price: item.price !== undefined ? parseFloat(item.price) : parseFloat(item.variant?.price || "0"),
+          variantName: item.variant?.name || item.product?.title || null,
+          variantValue: item.variant?.value || null,
         })),
         customer: {
           firstName: formData.firstName,

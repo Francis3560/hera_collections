@@ -59,7 +59,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
     }
   }) : [];
 
-  if (products.length !== productIds.length) {
+  if (productIds.length > 0 && products.length !== productIds.length) {
     throw new Error('Some products are invalid or unavailable');
   }
   
@@ -145,6 +145,15 @@ export async function createOrder(userId, data, paymentIntentId = null) {
         shippingCost: new Prisma.Decimal(amounts.shipping || 0),
         totalAmount: new Prisma.Decimal(amounts.total),
         paymentIntentId,
+        paymentIntent: (!paymentIntentId && payment.method === 'CARD' && payment.paystackReference) ? {
+          create: {
+            buyerId: userId,
+            method: 'CARD',
+            status: 'SUCCESS',
+            amount: new Prisma.Decimal(amounts.total),
+            payload: JSON.stringify({ ...data, paystackReference: payment.paystackReference })
+          }
+        } : undefined,
         items: {
           create: items.map((item) => ({
             productId: item.productId || null,

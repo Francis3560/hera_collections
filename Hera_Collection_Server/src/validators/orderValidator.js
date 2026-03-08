@@ -46,6 +46,8 @@ export const createOrderSchema = Joi.object({
     shipping: Joi.number().precision(2).optional().default(0),
     total: Joi.number().precision(2).required(),
   }).required(),
+
+  isPos: Joi.boolean().optional(),
 });
 
 export const updateOrderStatusSchema = Joi.object({
