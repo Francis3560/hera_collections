@@ -18,6 +18,8 @@ COPY . .
 # Since the schema is in a capitalized directory 'Prisma', we specify it
 RUN npx prisma generate --schema=./Prisma/schema.prisma
 
+ENV TZ=Africa/Nairobi
+
 # Create uploads directory if it doesn't exist
 RUN mkdir -p uploads
 
