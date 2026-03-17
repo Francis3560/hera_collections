@@ -202,8 +202,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           role: 'USER'
         });
         userId = res.id || res.user?.id;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Auto-customer creation failed', err);
+        const errorMsg = err.response?.data?.message || err.message || 'Failed to create customer record.';
+        throw new Error(errorMsg);
       }
     }
     return userId;
@@ -373,6 +375,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       console.error('Card checkout error:', err);
       setLoading(false);
       setPaymentStatus('FAILED');
+      
+      const errorMsg = err.response?.data?.message || err.message || 'Card payment processing failed.';
+      mpesaSwal.fire({
+        icon: 'error',
+        title: '<span style="color:#f87171">Checkout Error</span>',
+        html: `<p style="color:#94a3b8">${errorMsg}</p>`,
+        confirmButtonText: 'Try Again',
+      });
     }
   };
 
@@ -393,8 +403,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setSuccessOrder(order);
       setPaymentStatus('SUCCESS');
       if (onPaymentSuccess) await onPaymentSuccess();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setLoading(false);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to complete checkout.';
+      mpesaSwal.fire({
+        icon: 'error',
+        title: '<span style="color:#f87171">Checkout Error</span>',
+        html: `<p style="color:#94a3b8">${errorMsg}</p>`,
+        confirmButtonText: 'Try Again',
+      });
     } finally {
       setLoading(false);
     }

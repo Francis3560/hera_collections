@@ -214,6 +214,7 @@ export async function salesAnalytics(req, res) {
       startDate: req.query.startDate || dates.startDate,
       endDate: req.query.endDate || dates.endDate
     };
+    
     const analytics = await orderService.getSalesAnalytics(timeframe, filters);
     
     return res.json({
@@ -222,9 +223,15 @@ export async function salesAnalytics(req, res) {
     });
   } catch (err) {
     console.error('salesAnalytics error:', err);
+    try {
+      const fs = await import('fs');
+      fs.appendFileSync('backend_error.log', `[${new Date().toISOString()}] salesAnalytics error: ${err.stack}\n`);
+    } catch (logErr) {}
+
     return res.status(500).json({ 
       success: false,
-      message: 'Failed to fetch analytics' 
+      message: 'Failed to fetch analytics',
+      error: err.message
     });
   }
 }
@@ -237,6 +244,7 @@ export async function salesTrends(req, res) {
       startDate: req.query.startDate || dates.startDate,
       endDate: req.query.endDate || dates.endDate
     };
+    
     const trends = await orderService.getSalesTrends(filters);
     
     return res.json({
@@ -245,9 +253,15 @@ export async function salesTrends(req, res) {
     });
   } catch (err) {
     console.error("salesTrends error:", err);
+    try {
+      const fs = await import('fs');
+      fs.appendFileSync('backend_error.log', `[${new Date().toISOString()}] salesTrends error: ${err.stack}\n`);
+    } catch (logErr) {}
+    
     return res.status(500).json({ 
       success: false,
-      message: "Failed to fetch sales trends" 
+      message: "Failed to fetch sales trends",
+      error: err.message
     });
   }
 }
@@ -267,6 +281,7 @@ export async function orderStats(req, res) {
       startDate: req.query.startDate || dates.startDate,
       endDate: req.query.endDate || dates.endDate
     };
+    
     const stats = await orderService.getOrderStats(filters);
     
     return res.json({
@@ -275,9 +290,15 @@ export async function orderStats(req, res) {
     });
   } catch (err) {
     console.error('orderStats error:', err);
+    try {
+      const fs = await import('fs');
+      fs.appendFileSync('backend_error.log', `[${new Date().toISOString()}] orderStats error: ${err.stack}\n`);
+    } catch (logErr) {}
+    
     return res.status(500).json({ 
       success: false,
-      message: 'Failed to fetch order statistics' 
+      message: 'Failed to fetch order statistics',
+      error: err.message
     });
   }
 }

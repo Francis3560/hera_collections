@@ -35,11 +35,14 @@ export async function startMpesaPayment(req, res) {
       }
     }) : [];
 
-    const nonCustomItemsCount = items.filter(item => item.productId).length;
-    if (products.length !== nonCustomItemsCount) {
+    const uniqueProductIds = [...new Set(productIds)];
+    if (products.length !== uniqueProductIds.length) {
+      const foundIds = products.map(p => p.id);
+      const missingIds = uniqueProductIds.filter(id => !foundIds.includes(id));
       return res.status(400).json({
         success: false,
-        message: "Some products are invalid or unavailable"
+        message: "Some products are invalid, unpublished, or unavailable",
+        missingIds
       });
     }
 

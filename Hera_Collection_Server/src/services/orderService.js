@@ -59,8 +59,12 @@ export async function createOrder(userId, data, paymentIntentId = null) {
     }
   }) : [];
 
-  if (productIds.length > 0 && products.length !== productIds.length) {
-    throw new Error('Some products are invalid or unavailable');
+  const uniqueProductIds = [...new Set(productIds)];
+  if (uniqueProductIds.length > 0 && products.length !== uniqueProductIds.length) {
+    const foundIds = products.map(p => p.id);
+    const missingIds = uniqueProductIds.filter(id => !foundIds.includes(id));
+    console.error(`[OrderService] Product validation failed. Requested: ${uniqueProductIds}, Found: ${foundIds}, Missing or Unpublished: ${missingIds}`);
+    throw new Error(`Some products are invalid, unpublished, or unavailable (IDs: ${missingIds.join(', ')})`);
   }
   
   const orderNumber = await generateOrderNumber();
@@ -592,7 +596,7 @@ export async function getSalesAnalytics(timeframe = 'monthly', filters = {}) {
   let startDate = filters.startDate ? new Date(filters.startDate) : null;
   let endDate = filters.endDate ? new Date(filters.endDate) : now;
 
-  if (!startDate) {
+  if (!startDate || isNaN(startDate.getTime())) {
     switch (timeframe) {
       case 'today':
       case 'daily': 
@@ -621,6 +625,10 @@ export async function getSalesAnalytics(timeframe = 'monthly', filters = {}) {
         startDate = subMonths(now, 1);
     }
   }
+
+  // Ensure valid dates before proceeding
+  if (isNaN(startDate.getTime())) startDate = subMonths(now, 1);
+  if (isNaN(endDate.getTime())) endDate = now;
 
   // Calculate Previous Period for Comparison
   const periodDuration = endDate.getTime() - startDate.getTime();
@@ -698,8 +706,9 @@ export async function getSalesAnalytics(timeframe = 'monthly', filters = {}) {
           orders: 0
         };
       }
-      categoryBreakdown[categoryName].quantity += item.quantity;
-      categoryBreakdown[categoryName].revenue += Number(item.price) * item.quantity;
+      categoryBreakdown[categoryName].quantity += (item.quantity || 0);
+      const price = Number(item.price) || 0;
+      categoryBreakdown[categoryName].revenue += price * (item.quantity || 0);
       categoryBreakdown[categoryName].orders += 1;
     });
   });
@@ -769,7 +778,10 @@ async function getTopProducts(startDate, endDate, limit = 5) {
     },
     take: limit
   });
-  const productIds = result.map(r => r.productId);
+  
+  if (!result || result.length === 0) return [];
+
+  const productIds = result.map(r => r.productId).filter(id => id !== null);
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     select: {
@@ -799,8 +811,17 @@ async function getTopProducts(startDate, endDate, limit = 5) {
 
 export async function getSalesTrends(filters = {}) {
   const now = new Date();
-  const yearStart = filters.startDate ? new Date(filters.startDate) : startOfYear(now);
-  const yearEnd = filters.endDate ? new Date(filters.endDate) : endOfYear(now);
+  let yearStart = filters.startDate ? new Date(filters.startDate) : startOfYear(now);
+  let yearEnd = filters.endDate ? new Date(filters.endDate) : endOfYear(now);
+
+  if (isNaN(yearStart.getTime())) yearStart = startOfYear(now);
+  if (isNaN(yearEnd.getTime())) yearEnd = endOfYear(now);
+
+  // Prevent eachMonthOfInterval from failing if range is invalid
+  if (yearStart > yearEnd) {
+    yearStart = startOfYear(yearEnd);
+  }
+
   const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
   const monthly = [];
 
@@ -889,8 +910,14 @@ export async function getOrderStats(filters = {}) {
 
   if (filters.startDate || filters.endDate) {
     whereBase.createdAt = {};
-    if (filters.startDate) whereBase.createdAt.gte = new Date(filters.startDate);
-    if (filters.endDate) whereBase.createdAt.lte = new Date(filters.endDate);
+    if (filters.startDate) {
+      const d = new Date(filters.startDate);
+      if (!isNaN(d.getTime())) whereBase.createdAt.gte = d;
+    }
+    if (filters.endDate) {
+      const d = new Date(filters.endDate);
+      if (!isNaN(d.getTime())) whereBase.createdAt.lte = d;
+    }
   }
 
   const [

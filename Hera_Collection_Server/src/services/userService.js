@@ -101,9 +101,15 @@ export const registerUser = async ({ email, password, name, full_name, phone, ph
     status: status ? status.toUpperCase() : 'OFFLINE', 
   });
 
-  console.log('Creating user with payload:', payload); 
-
-  return prisma.user.create({ data: payload });
+  try {
+    return await prisma.user.create({ data: payload });
+  } catch (e) {
+    if (e.code === 'P2002') {
+      const field = e.meta?.target?.[0] || 'email';
+      throw new Error(`User with this ${field} already exists`);
+    }
+    throw e;
+  }
 };
 
 export const createUser = async ({ email, password, name, full_name, phone, phone_number, role, status, passwordHash }) => {
@@ -119,7 +125,15 @@ export const createUser = async ({ email, password, name, full_name, phone, phon
     status,
   });
 
-  return prisma.user.create({ data: payload });
+  try {
+    return await prisma.user.create({ data: payload });
+  } catch (e) {
+    if (e.code === 'P2002') {
+      const field = e.meta?.target?.[0] || 'email';
+      throw new Error(`User with this ${field} already exists`);
+    }
+    throw e;
+  }
 };
 
 export const updateUser = async (id, data) => {
