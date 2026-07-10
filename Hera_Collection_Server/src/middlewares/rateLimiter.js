@@ -13,6 +13,14 @@ function makeStore(prefix) {
   });
 }
 
+// express-rate-limit's default (passOnStoreError: false) THROWS and fails the
+// whole request if the Redis store errors — since these limiters sit in front
+// of every route, a Redis outage would otherwise take down the entire API.
+// passOnStoreError: true logs the error and lets the request through
+// unlimited instead, matching the graceful-degradation behavior already used
+// in src/utils/cache.js.
+const FAIL_OPEN = { passOnStoreError: true };
+
 // General API traffic — generous enough for normal browsing/checkout flows.
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -20,6 +28,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: makeStore('api'),
+  ...FAIL_OPEN,
   message: { success: false, message: 'Too many requests. Please try again later.' },
 });
 
@@ -34,6 +43,7 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   store: makeStore('auth'),
+  ...FAIL_OPEN,
   message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
 });
 
@@ -45,6 +55,7 @@ export const passwordResetLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   store: makeStore('password-reset'),
+  ...FAIL_OPEN,
   message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
 });
 
@@ -56,6 +67,7 @@ export const verificationLimiter = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   store: makeStore('verification'),
+  ...FAIL_OPEN,
   message: { success: false, message: 'Too many attempts. Please try again in 15 minutes.' },
 });
 
@@ -66,6 +78,7 @@ export const contactFormLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: makeStore('contact'),
+  ...FAIL_OPEN,
   message: { success: false, message: 'Too many messages sent. Please try again later.' },
 });
 
@@ -76,5 +89,6 @@ export const paymentCallbackLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   store: makeStore('payment'),
+  ...FAIL_OPEN,
   message: { ResultCode: 1, ResultDesc: 'Too many requests' },
 });

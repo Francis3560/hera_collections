@@ -241,6 +241,8 @@ function runWorker() {
   // pub/sub connections SHOULD wait/retry indefinitely rather than reject.
   const pubClient = redis.duplicate({ maxRetriesPerRequest: null });
   const subClient = redis.duplicate({ maxRetriesPerRequest: null });
+  pubClient.on('error', (err) => console.error('Redis pub client error:', err.message));
+  subClient.on('error', (err) => console.error('Redis sub client error:', err.message));
   io.adapter(createAdapter(pubClient, subClient));
 
   if (CLUSTER_ENABLED) {
@@ -478,10 +480,12 @@ function runWorker() {
     });
   }
 
-  // Global error handler (minimal logging)
+  // Global error handler
   app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
+
+    console.error(`Unhandled error on ${req.method} ${req.originalUrl}:`, err.stack || err);
 
     res.status(statusCode).json({
       success: false,
