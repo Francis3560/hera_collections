@@ -80,7 +80,7 @@ const InquiryForm = () => {
               <div className="relative group">
                 <div className="absolute -inset-1 bg-primary/20 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
                 <img
-                  src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1772656455/20260304_1233_Contemplating_Custom_Bag_Order_remix_01kjx8ss8jehas87s1nfh19s76_eafjl4.png"
+                  src="https://res.cloudinary.com/fffb5ery/image/upload/v1783681036/20260304_1233_Contemplating_Custom_Bag_Order_remix_01kjx8ss8jehas87s1nfh19s76_xafd3h.png"
                   alt="Custom Order Illustration"
                   className="w-[280px] relative opacity-95 transition-all duration-500 hover:scale-105"
                 />

@@ -96,7 +96,7 @@ const About = () => {
                   className="relative rounded-[2rem] overflow-hidden border border-border/50 bg-secondary/20 aspect-video flex items-center justify-center p-12"
                 >
                   <img 
-                    src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769772723/DSC03037-removebg-preview_s0pa5d.png" 
+                    src="https://res.cloudinary.com/fffb5ery/image/upload/v1783681185/DSC03037-removebg-preview_cnahcs.png" 
                     alt="Premium Craftsmanship"
                     className="max-h-full object-contain filter brightness-90 hover:brightness-110 transition-all duration-700"
                   />
