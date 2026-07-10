@@ -22,15 +22,15 @@ import { OrbitProgress } from "react-loading-indicators";
 
 const SLIDES = [
   {
-    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784615/Ekalale_Backpack_2_1_glnfr0.jpg",
+    image: "https://res.cloudinary.com/fffb5ery/image/upload/v1783680369/Ekalale_Backpack_2_1_trbcw3.jpg",
     quote: "It's the fact that they make out time to teach and walk me through the process of being a better entrepreneur.",
   },
   {
-    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771784681/Nyathii_Baby_Bag_Brown_1_blxhpj.png",
+    image: "https://res.cloudinary.com/fffb5ery/image/upload/v1783680490/Nyathii_Baby_Bag_Brown_1_ebdpbb.png",
     quote: "Hera has completely transformed how I source luxury pieces for my collection. The quality is unmatched.",
   },
   {
-    image: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771785863/Naitore_Handbag_2_cukq0s.jpg",
+    image: "https://res.cloudinary.com/fffb5ery/image/upload/v1783680567/Naitore_Handbag_2_l5vc3o.jpg",
     quote: "The attention to detail and personalized service makes every purchase a world-class experience.",
   }
 ];
