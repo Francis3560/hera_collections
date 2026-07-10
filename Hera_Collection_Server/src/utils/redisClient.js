@@ -2,11 +2,17 @@ import Redis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-// Shared connection used for caching, rate limiting, and the Socket.io adapter.
-// maxRetriesPerRequest: null is required for the Socket.io adapter's
-// subscriber connection (it does its own long-lived subscribe loop).
+// Shared connection used for caching and rate limiting (request-path
+// commands, run on every /api request via the global rate limiter). This
+// MUST fail fast if Redis is unreachable — maxRetriesPerRequest: null tells
+// ioredis to queue and retry forever instead of rejecting, which would hang
+// every single request indefinitely if Redis is down or misconfigured,
+// rather than degrading gracefully. The Socket.io adapter's pub/sub
+// connections (which DO need maxRetriesPerRequest: null) are separate
+// duplicated clients created in main.js with that override applied there.
 export const redis = new Redis(redisUrl, {
-  maxRetriesPerRequest: null,
+  maxRetriesPerRequest: 3,
+  retryStrategy: (times) => Math.min(times * 200, 2000),
   lazyConnect: false,
 });
 

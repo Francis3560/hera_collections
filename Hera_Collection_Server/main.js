@@ -237,8 +237,10 @@ function runWorker() {
 
   // Redis adapter: fans out room broadcasts (admin:room, user:*, chat:*, etc.)
   // across every worker/instance, not just the one holding the target socket.
-  const pubClient = redis.duplicate();
-  const subClient = redis.duplicate();
+  // Unlike the shared `redis` client (used on the request path), these
+  // pub/sub connections SHOULD wait/retry indefinitely rather than reject.
+  const pubClient = redis.duplicate({ maxRetriesPerRequest: null });
+  const subClient = redis.duplicate({ maxRetriesPerRequest: null });
   io.adapter(createAdapter(pubClient, subClient));
 
   if (CLUSTER_ENABLED) {
