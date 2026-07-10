@@ -886,7 +886,7 @@ export default function CheckoutPage() {
                            onClick={() => setPaymentMethod("CARD")}
                            className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${paymentMethod === "CARD" ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
                         >
-                           <img src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" className="h-8 object-contain" alt="Mastercard" />
+                           <img src="https://res.cloudinary.com/fffb5ery/image/upload/v1783678789/visa-mastercard-logos_itizl5.jpg" className="h-8 object-contain" alt="Mastercard" />
                            <span className="font-bold">Credit / Debit Card</span>
                         </div>
                      </div>

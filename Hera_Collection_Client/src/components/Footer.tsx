@@ -371,7 +371,7 @@ export default function FreeFooter() {
               </div>
               <div className="h-14 hover:scale-105 transition-transform rounded p-1 flex items-center" title="All Major Credit & Debit Cards">
                  <img 
-                   src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771364735/visa-mastercard-logos_pra3y7.jpg" 
+                   src="https://res.cloudinary.com/fffb5ery/image/upload/v1783678789/visa-mastercard-logos_itizl5.jpg" 
                    alt="Visa & Mastercard" 
                    className="h-full w-auto object-contain rounded"
                  />
