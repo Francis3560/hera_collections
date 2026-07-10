@@ -3,6 +3,9 @@ import { config } from '../configs/config.js';
 import { updateUserLastSeen } from '../services/userService.js';
 import { verifyAccessToken } from '../utils/tokenUtils.js';
 import prisma from '../database.js';
+import { getOrSet } from '../utils/cache.js';
+
+const USER_ACCOUNT_CACHE_TTL_MS = 30 * 1000;
 
 // Helper function to extract bearer token
 function getBearerToken(req) {
@@ -13,28 +16,24 @@ function getBearerToken(req) {
   return token;
 }
 
-// Helper function to get client IP
-function getClientIp(req) {
-  return req.ip || 
-         req.headers['x-forwarded-for']?.split(',')[0] || 
-         req.connection.remoteAddress || 
-         'unknown';
-}
-
-// Helper to validate user account status
+// Helper to validate user account status. The DB lookup is cached briefly since
+// it otherwise runs on every single authenticated request; lock/delete changes
+// take up to USER_ACCOUNT_CACHE_TTL_MS to be reflected for already-issued tokens.
 async function validateUserAccount(userId) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      isVerified: true,
-      status: true,
-      lockedUntil: true,
-      deletedAt: true,
-    },
-  });
+  const user = await getOrSet(`user-account:${userId}`, USER_ACCOUNT_CACHE_TTL_MS, () =>
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isVerified: true,
+        status: true,
+        lockedUntil: true,
+        deletedAt: true,
+      },
+    })
+  );
 
   if (!user) {
     throw new Error('User not found');
@@ -45,9 +44,11 @@ async function validateUserAccount(userId) {
     throw new Error('Account has been deleted');
   }
 
-  // Check if account is locked
-  if (user.lockedUntil && user.lockedUntil > new Date()) {
-    const lockTime = Math.ceil((user.lockedUntil - new Date()) / 1000 / 60);
+  // Check if account is locked. lockedUntil may be a Date instance (fresh from
+  // Prisma) or an ISO string (round-tripped through the Redis cache as JSON) —
+  // wrap in `new Date(...)` so the comparison/arithmetic works either way.
+  if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+    const lockTime = Math.ceil((new Date(user.lockedUntil) - new Date()) / 1000 / 60);
     throw new Error(`Account is locked. Please try again in ${lockTime} minutes`);
   }
 
@@ -120,47 +121,6 @@ export const protect = async (req, res, next) => {
         code: error.message.includes('locked') ? 'ACCOUNT_LOCKED' : 
               error.message.includes('deleted') ? 'ACCOUNT_DELETED' : 'ACCOUNT_INVALID'
       });
-    }
-    
-    // Simple session management - just track active sessions without complex upsert
-    try {
-      // Check if session exists
-      const existingSession = await prisma.session.findFirst({
-        where: {
-          userId: decoded.id,
-          accessToken: token,
-        },
-      });
-
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-      
-      if (existingSession) {
-        // Update existing session
-        const session = await prisma.session.update({
-          where: { id: existingSession.id },
-          data: {
-            expiresAt,
-            updatedAt: new Date(),
-          },
-        });
-        req.sessionId = session.id;
-      } else {
-        // Create new session only if we want to track sessions
-        // For now, let's skip creation to avoid errors
-        // const session = await prisma.session.create({
-        //   data: {
-        //     userId: decoded.id,
-        //     accessToken: token,
-        //     userAgent: req.headers['user-agent'] || null,
-        //     ipAddress: getClientIp(req),
-        //     expiresAt,
-        //   },
-        // });
-        // req.sessionId = session.id;
-      }
-    } catch (sessionError) {
-      console.error('Session management error:', sessionError);
-      // Don't fail auth if session management fails
     }
     
     // Set user information in request
@@ -382,38 +342,6 @@ export const protectUserVerified = [
   requireVerified
 ];
 
-// Simple token authentication (legacy support)
-export const authenticateToken = (req, res, next) => {
-  const token = getBearerToken(req);
-  
-  if (!token) {
-    return res.status(401).json({ 
-      success: false,
-      message: 'Access token required',
-      code: 'TOKEN_MISSING'
-    });
-  }
-
-  try {
-    const decoded = verifyAccessToken(token);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    const msg = error.name === 'TokenExpiredError'
-      ? 'Token expired'
-      : 'Invalid token';
-    
-    return res.status(403).json({ 
-      success: false,
-      message: msg,
-      code: error.name === 'TokenExpiredError' ? 'TOKEN_EXPIRED' : 'TOKEN_INVALID'
-    });
-  }
-};
-
-// Alias for requireRoles (for consistency)
-export const authorizeRoles = (...allowedRoles) => requireRoles(...allowedRoles);
-
 export default {
   protect,
   requireRoles,
@@ -424,7 +352,5 @@ export default {
   requireVerifiedRoles,
   protectAdminVerified,
   protectUserVerified,
-  authenticateToken,
-  authorizeRoles,
   getBearerToken
 };

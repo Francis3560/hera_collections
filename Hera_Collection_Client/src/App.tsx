@@ -1,71 +1,80 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import Index from "./pages/Index";
-import Registration from "./pages/authentication/SignUp";
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import NotFound from "./pages/NotFound";
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CartProvider } from './context/CartProvider';
 import { WishlistProvider } from './context/WishlistProvider';
-import VerifyEmailCode from './pages/authentication/Verification';
-import SignIn from "./pages/authentication/Login";
-import Unauthorized from "./pages/Unauthorozed"; 
-import ProfilePage from "./pages/authentication/ProfilePage";
-import ProfileOverview from "./pages/authentication/ProfileOverview";
 import { ProtectedRoute } from "./context/ProtectedRoute";
-import { AdminLayout } from "./components/layout/AdminLayout";
-import ResendVerification from "./pages/authentication/ResendVerification";
-import ForgotPassword from "./pages/authentication/ForgotPassword";
-import ResetPassword from "./pages/authentication/ResetPassword";
-import SecurityPage from "./pages/authentication/SecurityPage";
-import UsersManagement from "./pages/administrator/UserManagement/UsersPage";
-import DashboardPage from "./pages/administrator/Dashboard";
-import CreateProduct from "./pages/administrator/Products/CreateProduct";
-import CategoryModule from "./pages/administrator/CategoryModule/CategoryModule";
-import SubCategoryModule from "./pages/administrator/CategoryModule/SubCategoryModule";
-import ProductsDisplay from "./pages/administrator/Products/ProductsDisplay";
-import ExpenseCategoryModule from "./pages/administrator/ExpenseCategoryModule/ExpenseCategoryModule";
-import Expenses from "./pages/administrator/Expenses/Expenses";
-import StockMovements from "./pages/administrator/StockManagement/StockMovements/StockMovements";
-import StockAlerts from "./pages/administrator/StockManagement/StockAlerts/StockAlerts";
-import StockTakes from "./pages/administrator/StockManagement/StockTakes/StockTakes";
-import StockTakeDetail from "./pages/administrator/StockManagement/StockTakes/StockTakeDetail";
-import StockTakeItems from "./pages/administrator/StockManagement/StockTakes/StockTakeItems";
-import PosTerminal from "./pages/administrator/POS/PosTerminal";
-import TransactionHistory from "./pages/administrator/POS/TransactionHistory";
-import OrdersList from "./pages/administrator/Orders/OrdersList";
-import OrderDetails from "./pages/administrator/Orders/OrderDetails";
-import CustomersList from "./pages/administrator/Orders/CustomersList";
-import OrderItemsList from "./pages/administrator/Orders/OrderItemsList";
-import NotificationsPage from "./pages/administrator/Notifications/NotificationsPage";
-import DiscountList from "./pages/administrator/Discounts/DiscountList";
-import DiscountForm from "./pages/administrator/Discounts/DiscountForm";
-import UserOrders from "./pages/authentication/UserOrders";
-import CartPage from "./pages/shop/CartPage";
-import CheckoutPage from "./pages/shop/CheckoutPage";
-import OrderTrackingPage from "./pages/shop/OrderTrackingPage";
-import WishlistPage from "./pages/shop/WishlistPage";
-import ProductDetailsPage from "./pages/shop/ProductDetailsPage";
-import CollectionsPage from "./pages/shop/CollectionsPage";
-import CollectionPage from "./pages/shop/CollectionPage";
-import ThankYouPage from "./pages/shop/ThankYouPage";
-import ShippingFeesPage from "./pages/administrator/Shipping/ShippingFeesPage";
-import About from "./pages/About";
-import InquiryDashboard from "./pages/admin/InquiryDashboard";
-import Contact from "./pages/Contact";
-import CorporateOrders from "./pages/CorporateOrders";
-import CustomOrders from "./pages/CustomOrders";
-import TermsOfService from "./pages/policies/TermsOfService";
-import RefundPolicy from "./pages/policies/RefundPolicy";
-import ShippingPolicy from "./pages/policies/ShippingPolicy";
-import PrivacyPolicy from "./pages/policies/PrivacyPolicy";
-import CareInstructions from "./pages/policies/CareInstructions";
-import { ProfileWishlist, ProfileAddresses, ProfilePayments, ProfileNotifications } from "./pages/authentication/ProfileSubPages";
+import { PageLoader } from "@/components/shared/PageLoader";
+
+// All page/layout components are lazy-loaded so each route ships as its own
+// chunk instead of one monolithic bundle containing admin/POS/reporting code
+// that most visitors never touch.
+const Index = lazy(() => import("./pages/Index"));
+const Registration = lazy(() => import("./pages/authentication/SignUp"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const VerifyEmailCode = lazy(() => import('./pages/authentication/Verification'));
+const SignIn = lazy(() => import("./pages/authentication/Login"));
+const Unauthorized = lazy(() => import("./pages/Unauthorozed"));
+const ProfilePage = lazy(() => import("./pages/authentication/ProfilePage"));
+const ProfileOverview = lazy(() => import("./pages/authentication/ProfileOverview"));
+const AdminLayout = lazy(() => import("./components/layout/AdminLayout").then(m => ({ default: m.AdminLayout })));
+const ResendVerification = lazy(() => import("./pages/authentication/ResendVerification"));
+const ForgotPassword = lazy(() => import("./pages/authentication/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/authentication/ResetPassword"));
+const SecurityPage = lazy(() => import("./pages/authentication/SecurityPage"));
+const UsersManagement = lazy(() => import("./pages/administrator/UserManagement/UsersPage"));
+const DashboardPage = lazy(() => import("./pages/administrator/Dashboard"));
+const CreateProduct = lazy(() => import("./pages/administrator/Products/CreateProduct"));
+const CategoryModule = lazy(() => import("./pages/administrator/CategoryModule/CategoryModule"));
+const SubCategoryModule = lazy(() => import("./pages/administrator/CategoryModule/SubCategoryModule"));
+const ProductsDisplay = lazy(() => import("./pages/administrator/Products/ProductsDisplay"));
+const ExpenseCategoryModule = lazy(() => import("./pages/administrator/ExpenseCategoryModule/ExpenseCategoryModule"));
+const Expenses = lazy(() => import("./pages/administrator/Expenses/Expenses"));
+const StockMovements = lazy(() => import("./pages/administrator/StockManagement/StockMovements/StockMovements"));
+const StockAlerts = lazy(() => import("./pages/administrator/StockManagement/StockAlerts/StockAlerts"));
+const StockTakes = lazy(() => import("./pages/administrator/StockManagement/StockTakes/StockTakes"));
+const StockTakeDetail = lazy(() => import("./pages/administrator/StockManagement/StockTakes/StockTakeDetail"));
+const StockTakeItems = lazy(() => import("./pages/administrator/StockManagement/StockTakes/StockTakeItems"));
+const PosTerminal = lazy(() => import("./pages/administrator/POS/PosTerminal"));
+const TransactionHistory = lazy(() => import("./pages/administrator/POS/TransactionHistory"));
+const OrdersList = lazy(() => import("./pages/administrator/Orders/OrdersList"));
+const OrderDetails = lazy(() => import("./pages/administrator/Orders/OrderDetails"));
+const CustomersList = lazy(() => import("./pages/administrator/Orders/CustomersList"));
+const OrderItemsList = lazy(() => import("./pages/administrator/Orders/OrderItemsList"));
+const NotificationsPage = lazy(() => import("./pages/administrator/Notifications/NotificationsPage"));
+const DiscountList = lazy(() => import("./pages/administrator/Discounts/DiscountList"));
+const DiscountForm = lazy(() => import("./pages/administrator/Discounts/DiscountForm"));
+const UserOrders = lazy(() => import("./pages/authentication/UserOrders"));
+const CartPage = lazy(() => import("./pages/shop/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/shop/CheckoutPage"));
+const OrderTrackingPage = lazy(() => import("./pages/shop/OrderTrackingPage"));
+const WishlistPage = lazy(() => import("./pages/shop/WishlistPage"));
+const ProductDetailsPage = lazy(() => import("./pages/shop/ProductDetailsPage"));
+const CollectionsPage = lazy(() => import("./pages/shop/CollectionsPage"));
+const CollectionPage = lazy(() => import("./pages/shop/CollectionPage"));
+const ThankYouPage = lazy(() => import("./pages/shop/ThankYouPage"));
+const ShippingFeesPage = lazy(() => import("./pages/administrator/Shipping/ShippingFeesPage"));
+const About = lazy(() => import("./pages/About"));
+const InquiryDashboard = lazy(() => import("./pages/admin/InquiryDashboard"));
+const Contact = lazy(() => import("./pages/Contact"));
+const CorporateOrders = lazy(() => import("./pages/CorporateOrders"));
+const CustomOrders = lazy(() => import("./pages/CustomOrders"));
+const TermsOfService = lazy(() => import("./pages/policies/TermsOfService"));
+const RefundPolicy = lazy(() => import("./pages/policies/RefundPolicy"));
+const ShippingPolicy = lazy(() => import("./pages/policies/ShippingPolicy"));
+const PrivacyPolicy = lazy(() => import("./pages/policies/PrivacyPolicy"));
+const CareInstructions = lazy(() => import("./pages/policies/CareInstructions"));
+const ProfileWishlist = lazy(() => import("./pages/authentication/ProfileSubPages").then(m => ({ default: m.ProfileWishlist })));
+const ProfileAddresses = lazy(() => import("./pages/authentication/ProfileSubPages").then(m => ({ default: m.ProfileAddresses })));
+const ProfilePayments = lazy(() => import("./pages/authentication/ProfileSubPages").then(m => ({ default: m.ProfilePayments })));
+const ProfileNotifications = lazy(() => import("./pages/authentication/ProfileSubPages").then(m => ({ default: m.ProfileNotifications })));
 
 
 const queryClient = new QueryClient({
@@ -92,16 +101,17 @@ const App = () => (
               <NotificationProvider>
                 <CartProvider>
                   <WishlistProvider>
+                    <Suspense fallback={<PageLoader />}>
                     <Routes>
                   {/* Public routes - NO ProtectedRoute */}
                   <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<SignIn />} /> 
-                  <Route path="/register" element={<Registration />} /> 
+                  <Route path="/login" element={<SignIn />} />
+                  <Route path="/register" element={<Registration />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/corporate-orders" element={<CorporateOrders />} />
                   <Route path="/custom-orders" element={<CustomOrders />} />
-                  
+
                   {/* Policies */}
                   <Route path="/terms-of-service" element={<TermsOfService />} />
                   <Route path="/refund-policy" element={<RefundPolicy />} />
@@ -112,7 +122,7 @@ const App = () => (
 
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password/:token" element={<ResetPassword />} />
-                  
+
                   {/* Shop routes */}
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
@@ -126,7 +136,7 @@ const App = () => (
                   } />
                   <Route path="/thank-you" element={<ThankYouPage />} />
                   <Route path="/order-tracking/:orderNumber" element={<OrderTrackingPage />} />
-                  
+
                   {/* Verification routes */}
                   <Route path="/verify" element={<VerifyEmailCode />} />
                   <Route path="/verify-email" element={<VerifyEmailCode />} />
@@ -150,7 +160,7 @@ const App = () => (
                       </ProtectedRoute>
                     } />
                   </Route>
-                  
+
                   {/* Admin routes - nested within AdminLayout */}
                   <Route path="/admin" element={
                     <ProtectedRoute adminOnly requireVerified>
@@ -170,7 +180,7 @@ const App = () => (
                     <Route path="discounts/new" element={<DiscountForm />} />
                     <Route path="discounts/:id" element={<DiscountForm />} />
                     <Route path="expenses-categories" element={<ExpenseCategoryModule />} />
-                    
+
                     {/* Stock Management */}
                     <Route path="inventory/movements" element={<StockMovements />} />
                     <Route path="inventory/alerts" element={<StockAlerts />} />
@@ -192,17 +202,18 @@ const App = () => (
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="messaging/inbox" element={<InquiryDashboard />} />
                   </Route>
-                  
+
                   {/* Redirect old /dashboard route to /admin/dashboard for backward compatibility */}
                   <Route path="/dashboard" element={
                     <Navigate to="/admin/dashboard" replace />
                   } />
-                  
+
                   <Route path="/unauthorized" element={<Unauthorized />} />
-                  
+
                   {/* Catch all */}
                   <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </Suspense>
                   </WishlistProvider>
                 </CartProvider>
               </NotificationProvider>

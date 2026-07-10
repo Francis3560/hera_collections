@@ -1,9 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
+import { fileTypeFromBuffer } from 'file-type';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const FORMAT_EXTENSIONS = { webp: '.webp', jpeg: '.jpg', png: '.png' };
 
 class ImageService {
   constructor() {
@@ -23,12 +26,13 @@ class ImageService {
     return uploadDir;
   }
 
-  generateFilename(originalname, prefix = 'img') {
+  generateFilename(originalname, prefix = 'img', outputExtension = null) {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
-    const extension = path.extname(originalname).toLowerCase();
-    const baseName = path.basename(originalname, extension).replace(/[^a-zA-Z0-9]/g, '_');
-    
+    const sourceExtension = path.extname(originalname).toLowerCase();
+    const extension = outputExtension || sourceExtension;
+    const baseName = path.basename(originalname, sourceExtension).replace(/[^a-zA-Z0-9]/g, '_');
+
     return `${prefix}_${baseName}_${timestamp}_${random}${extension}`;
   }
 
@@ -44,8 +48,12 @@ class ImageService {
     const uploadDir = await this.getUploadDir(subDir);
 
     try {
-      this.validateImage(file);
-      const originalFilename = this.generateFilename(file.originalname, prefix);
+      await this.validateImage(file);
+      // The "original" output is always re-encoded (default webp) regardless of the
+      // uploaded file's format, so its filename must carry the OUTPUT format's
+      // extension, not the source file's — otherwise the extension lies about the
+      // actual content (and Express would serve it with the wrong Content-Type).
+      const originalFilename = this.generateFilename(file.originalname, prefix, FORMAT_EXTENSIONS[format] || '.webp');
       const filepath = path.join(uploadDir, originalFilename);
       
       let imageProcessor = sharp(file.buffer);
@@ -71,50 +79,51 @@ class ImageService {
           imageProcessor = imageProcessor.webp({ quality });
       }
 
-      await imageProcessor.toFile(filepath);
-
       const thumbnailFilename = `thumb_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
       const thumbnailPath = path.join(uploadDir, thumbnailFilename);
-      
-      await sharp(file.buffer)
-        .resize(400, 400, { 
-          fit: 'cover', 
-          position: 'center',
-          withoutEnlargement: true 
-        })
-        .webp({ 
-          quality: 70,
-          effort: 3 
-        })
-        .toFile(thumbnailPath);
 
       const mediumFilename = `medium_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
       const mediumPath = path.join(uploadDir, mediumFilename);
-      
-      await sharp(file.buffer)
-        .resize(800, 800, { 
-          fit: 'cover',
-          withoutEnlargement: true 
-        })
-        .webp({ 
-          quality: 75,
-          effort: 3 
-        })
-        .toFile(mediumPath);
 
       const smallFilename = `small_${path.basename(originalFilename, path.extname(originalFilename))}.webp`;
       const smallPath = path.join(uploadDir, smallFilename);
-      
-      await sharp(file.buffer)
-        .resize(300, 300, { 
-          fit: 'cover',
-          withoutEnlargement: true 
-        })
-        .webp({ 
-          quality: 65,
-          effort: 2 
-        })
-        .toFile(smallPath);
+
+      // Run all size variants concurrently — each is an independent encode, so
+      // wall-clock time is bounded by the slowest one instead of their sum.
+      await Promise.all([
+        imageProcessor.toFile(filepath),
+        sharp(file.buffer)
+          .resize(400, 400, {
+            fit: 'cover',
+            position: 'center',
+            withoutEnlargement: true
+          })
+          .webp({
+            quality: 70,
+            effort: 3
+          })
+          .toFile(thumbnailPath),
+        sharp(file.buffer)
+          .resize(800, 800, {
+            fit: 'cover',
+            withoutEnlargement: true
+          })
+          .webp({
+            quality: 75,
+            effort: 3
+          })
+          .toFile(mediumPath),
+        sharp(file.buffer)
+          .resize(300, 300, {
+            fit: 'cover',
+            withoutEnlargement: true
+          })
+          .webp({
+            quality: 65,
+            effort: 2
+          })
+          .toFile(smallPath),
+      ]);
 
       const basePath = `/uploads/${subDir}`;
 
@@ -139,12 +148,9 @@ class ImageService {
 
   async processMultipleImages(files, subDir = 'products', options = {}) {
     try {
-      const results = [];
-      for (const file of files) {
-        const result = await this.processAndSaveImage(file, subDir, options);
-        results.push(result);
-      }
-      return results;
+      return await Promise.all(
+        files.map((file) => this.processAndSaveImage(file, subDir, options))
+      );
     } catch (error) {
       throw new Error(`Failed to process multiple images: ${error.message}`);
     }
@@ -205,7 +211,7 @@ class ImageService {
     }
   }
 
-  validateImage(file) {
+  async validateImage(file) {
     if (!file) {
       throw new Error('No file provided');
     }
@@ -214,13 +220,20 @@ class ImageService {
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 
     const fileExtension = path.extname(file.originalname).toLowerCase();
-    
+
     if (!allowedMimes.includes(file.mimetype) || !allowedExtensions.includes(fileExtension)) {
       throw new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
     }
 
     if (file.size > 20 * 1024 * 1024) { // 20MB
       throw new Error('File size too large. Maximum size is 20MB.');
+    }
+
+    // Client-declared mimetype/extension can be spoofed — verify the actual file
+    // content (magic bytes) matches one of the allowed image types.
+    const detected = await fileTypeFromBuffer(file.buffer);
+    if (!detected || !allowedMimes.includes(detected.mime)) {
+      throw new Error('File content does not match a supported image type.');
     }
 
     return true;

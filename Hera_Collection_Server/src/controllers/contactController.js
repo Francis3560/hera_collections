@@ -25,7 +25,6 @@ export const handleContactForm = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to send message. Please try again later.',
-      error: error.message,
     });
   }
 };

@@ -1,6 +1,7 @@
 import prisma from '../database.js';
 import bcrypt from 'bcrypt';
 import { Role } from '@prisma/client';
+import { config } from '../configs/config.js';
 
 const normalizeRole = (role) => {
   if (!role) return 'USER'; 
@@ -20,7 +21,7 @@ const buildCreatePayload = async (data) => {
   const phone = data.phone ?? data.phone_number;
   let passwordHash = null;
   if (data.password) {
-    passwordHash = await bcrypt.hash(data.password, 10);
+    passwordHash = await bcrypt.hash(data.password, config.security.bcryptRounds);
   } else if (data.passwordHash) {
     passwordHash = data.passwordHash;
   }
@@ -70,7 +71,7 @@ const buildUpdatePayload = async (data) => {
   if (lastSeen !== undefined && lastSeenDate !== undefined) out.lastSeen = lastSeenDate;
 
   if (data.password) {
-    out.passwordHash = await bcrypt.hash(data.password, 10);
+    out.passwordHash = await bcrypt.hash(data.password, config.security.bcryptRounds);
   } else if (data.passwordHash) {
     out.passwordHash = data.passwordHash;
   }
@@ -78,11 +79,38 @@ const buildUpdatePayload = async (data) => {
   return out;
 };
 
+const LOGIN_LOCK_THRESHOLD = 5;
+const LOGIN_LOCK_DURATION_MS = 15 * 60 * 1000;
+
 export const authenticateUser = async (email, password) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.passwordHash) throw new Error('Invalid credentials');
+
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const minutesLeft = Math.ceil((user.lockedUntil - new Date()) / 60000);
+    throw new Error(`Account is locked. Please try again in ${minutesLeft} minutes`);
+  }
+
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) throw new Error('Invalid credentials');
+
+  if (!ok) {
+    const attempts = user.loginAttempts + 1;
+    const data = { loginAttempts: attempts };
+    if (attempts >= LOGIN_LOCK_THRESHOLD) {
+      data.loginAttempts = 0;
+      data.lockedUntil = new Date(Date.now() + LOGIN_LOCK_DURATION_MS);
+    }
+    await prisma.user.update({ where: { id: user.id }, data }).catch(() => {});
+    throw new Error('Invalid credentials');
+  }
+
+  if (user.loginAttempts > 0 || user.lockedUntil) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { loginAttempts: 0, lockedUntil: null },
+    }).catch(() => {});
+  }
+
   return user;
 };
 
@@ -154,7 +182,7 @@ export const deleteUserById = (id) =>
 
 // service/userService.js
 export const getAllUsers = async (params = {}) => {
-  const { search, role, status } = params;
+  const { search, role, status, page = 1, limit = 200 } = params;
   const where = {};
   
   if (role) {
@@ -177,6 +205,8 @@ export const getAllUsers = async (params = {}) => {
   const users = await prisma.user.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    skip: (parseInt(page) - 1) * parseInt(limit),
+    take: parseInt(limit),
     select: {
       id: true,
       email: true,

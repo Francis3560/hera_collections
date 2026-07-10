@@ -16,10 +16,11 @@ import {
   validatePaymentIntentsQuery,
   validateRetryPayment
 } from '../validators/paymentValidators.js';
+import { paymentCallbackLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
-router.post('/mpesa/callback', validateMpesaCallback, mpesaCallback);
-router.post('/paystack/webhook', paystackWebhook);
+router.post('/mpesa/callback', paymentCallbackLimiter, validateMpesaCallback, mpesaCallback);
+router.post('/paystack/webhook', paymentCallbackLimiter, paystackWebhook);
 
 // Public route to get paystack config if needed? 
 // Or protect it? If it's for checkout, maybe protect it.

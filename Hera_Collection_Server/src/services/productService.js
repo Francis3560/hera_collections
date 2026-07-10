@@ -1,7 +1,15 @@
 import prisma from '../database.js';
 import imageService from './images/imageService.js';
+import { getOrSet, invalidatePrefix } from '../utils/cache.js';
 
-export const searchProducts = async ({
+const PRODUCT_CACHE_TTL_MS = 20 * 1000;
+
+export const searchProducts = async (params) => {
+  const cacheKey = `products:search:${JSON.stringify(params)}`;
+  return getOrSet(cacheKey, PRODUCT_CACHE_TTL_MS, () => searchProductsUncached(params));
+};
+
+const searchProductsUncached = async ({
   categoryId,
   minPrice,
   maxPrice,
@@ -151,6 +159,10 @@ export const getProduct = async (id) => {
   const productId = Number(id);
   if (!Number.isInteger(productId)) return null;
 
+  return getOrSet(`products:id:${productId}`, PRODUCT_CACHE_TTL_MS, () => getProductUncached(productId));
+};
+
+const getProductUncached = async (productId) => {
   return prisma.product.findFirst({
     where: { id: productId, isPublished: true },
     include: { 
@@ -191,6 +203,10 @@ export const getProduct = async (id) => {
 };
 
 export const getProductBySlug = async (slug) => {
+  return getOrSet(`products:slug:${slug}`, PRODUCT_CACHE_TTL_MS, () => getProductBySlugUncached(slug));
+};
+
+const getProductBySlugUncached = async (slug) => {
   return prisma.product.findUnique({
     where: { slug, isPublished: true },
     include: { 
@@ -254,27 +270,31 @@ export const adminGetProduct = async (id) => {
   });
 };
 
-export const getProductsBySeller = async (sellerId) => {
+export const getProductsBySeller = async (sellerId, page = 1, pageSize = 50) => {
   return prisma.product.findMany({
-    where: { 
+    where: {
       sellerId,
-      isPublished: true 
+      isPublished: true
     },
-    include: { 
+    include: {
       photos: true,
       category: true
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
   });
 };
 
-export const getProductsByCategory = async (categoryId) => {
+export const getProductsByCategory = async (categoryId, page = 1, pageSize = 50) => {
   return prisma.product.findMany({
-    where: { 
+    where: {
       categoryId,
-      isPublished: true 
+      isPublished: true
     },
-    include: { 
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    include: {
       photos: true,
       category: true,
       seller: {
@@ -289,7 +309,7 @@ export const getProductsByCategory = async (categoryId) => {
 };
 
 export const createProduct = async (data, sellerUserId, processedImages = []) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Create Product
     const product = await tx.product.create({
       data: {
@@ -394,13 +414,16 @@ export const createProduct = async (data, sellerUserId, processedImages = []) =>
       }
     });
   });
+
+  invalidatePrefix('products:');
+  return result;
 };
 
 export const updateProduct = async (id, data, processedImages = []) => {
   const productId = Number(id);
   if (!Number.isInteger(productId)) throw new Error('Invalid product id');
 
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. Handle image management
     if (Array.isArray(data.removeImageUrls) && data.removeImageUrls.length) {
       await tx.photo.deleteMany({
@@ -552,13 +575,16 @@ export const updateProduct = async (id, data, processedImages = []) => {
         photos: true,
         category: true,
         options: { include: { values: true } },
-        variants: { 
+        variants: {
           where: { isActive: true },
-          include: { optionValues: { include: { optionValue: { include: { option: true } } } } } 
+          include: { optionValues: { include: { optionValue: { include: { option: true } } } } }
         }
       }
     });
   });
+
+  invalidatePrefix('products:');
+  return result;
 };
 
 export const deleteProduct = async (id) => {
@@ -574,11 +600,12 @@ export const deleteProduct = async (id) => {
       photos.map(photo => imageService.deleteImage(photo.url))
     );
   }
-  await prisma.product.delete({ 
-    where: { id: productId } 
+  await prisma.product.delete({
+    where: { id: productId }
   });
 
-  return { 
+  invalidatePrefix('products:');
+  return {
     message: 'Product deleted successfully',
     deletedImages: photos.length
   };

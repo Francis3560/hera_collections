@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import prisma from '../database.js';
+import { config } from '../configs/config.js';
 
 export const generateResetToken = async (email) => {
   const user = await prisma.user.findUnique({ where: { email } });
@@ -65,7 +66,7 @@ export const resetPassword = async (token, newPassword) => {
   if (!user) {
     throw new Error('Invalid or expired reset token');
   }
-  const passwordHash = await bcrypt.hash(newPassword, 10);
+  const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
   
   await prisma.user.update({
     where: { id: user.id },
@@ -120,7 +121,7 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
     throw new Error('New password must be different from current password');
   }
   
-  const passwordHash = await bcrypt.hash(newPassword, 10);
+  const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
   
   await prisma.user.update({
     where: { id: user.id },

@@ -7,6 +7,39 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
+// Pure function — no component state involved, so it lives outside the
+// component instead of being recreated (and needing a dependency) every render.
+const calculateItemPrice = (item) => {
+    const product = item.product || {};
+    const variant = item.variant || {};
+
+    const originalPrice = parseFloat(variant.price || 0);
+    let finalPrice = originalPrice;
+    let appliedDiscount = null;
+
+    // Check for active discounts on product (Guest logic mirroring backend)
+    const activeDiscount = product.discounts?.find(d => d.isActive !== false);
+
+    if (activeDiscount) {
+       const percentage = parseFloat(activeDiscount.discountPercentage);
+       const discountAmount = (originalPrice * percentage) / 100;
+       finalPrice = originalPrice - discountAmount;
+       appliedDiscount = {
+          id: activeDiscount.id,
+          name: activeDiscount.name,
+          percentage: percentage,
+          amountSaved: discountAmount
+       };
+    }
+
+    return {
+        ...item,
+        price: finalPrice,
+        originalPrice,
+        appliedDiscount
+    };
+};
+
 const cartReducer = (state, action) => {
   switch (action.type) {
     case 'SET_CART':
@@ -52,50 +85,19 @@ export const CartProvider = ({ children }) => {
     }
   }, [user]);
 
-  const calculateItemPrice = (item) => {
-      const product = item.product || {};
-      const variant = item.variant || {};
-      
-      const originalPrice = parseFloat(variant.price || 0);
-      let finalPrice = originalPrice;
-      let appliedDiscount = null;
-
-      // Check for active discounts on product (Guest logic mirroring backend)
-      const activeDiscount = product.discounts?.find(d => d.isActive !== false);
-
-      if (activeDiscount) {
-         const percentage = parseFloat(activeDiscount.discountPercentage);
-         const discountAmount = (originalPrice * percentage) / 100;
-         finalPrice = originalPrice - discountAmount;
-         appliedDiscount = {
-            id: activeDiscount.id,
-            name: activeDiscount.name,
-            percentage: percentage,
-            amountSaved: discountAmount
-         };
-      }
-
-      return {
-          ...item,
-          price: finalPrice,
-          originalPrice,
-          appliedDiscount
-      };
-  };
-
-  const saveGuestCart = (items) => {
+  const saveGuestCart = useCallback((items) => {
     // Process items to ensure prices are up to date with discounts
     const processedItems = items.map(calculateItemPrice);
 
     const total = processedItems.reduce((sum, item) => {
       return sum + (item.price * item.quantity);
     }, 0);
-    
+
     const cartData = { items: processedItems, totalAmount: total };
     localStorage.setItem('guest_cart', JSON.stringify(cartData));
     dispatch({ type: 'SET_CART', payload: cartData });
     return cartData;
-  };
+  }, []);
 
   const fetchCart = useCallback(async () => {
     if (!userId) {
@@ -124,7 +126,7 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, [fetchCart]);
 
-  const addToCart = async (productId, variantId, quantity = 1, productData = null, variantData = null) => {
+  const addToCart = useCallback(async (productId, variantId, quantity = 1, productData = null, variantData = null) => {
     // Check local stock if item exists in cart
     const existingItem = state.items.find(
       item => item.productId === productId && item.variantId === variantId
@@ -177,9 +179,9 @@ export const CartProvider = ({ children }) => {
       toast.error(error.response?.data?.message || "Failed to add to cart");
       throw error;
     }
-  };
+  }, [state.items, user, saveGuestCart]);
 
-  const updateQuantity = async (itemId, quantity) => {
+  const updateQuantity = useCallback(async (itemId, quantity) => {
     const item = state.items.find(i => i.id === itemId);
     if (!item) return;
 
@@ -206,9 +208,9 @@ export const CartProvider = ({ children }) => {
       toast.error(error.response?.data?.message || "Failed to update quantity");
       throw error;
     }
-  };
+  }, [state.items, user, saveGuestCart]);
 
-  const removeItem = async (itemId) => {
+  const removeItem = useCallback(async (itemId) => {
     if (!user) {
         // Guest Mode
         const newItems = state.items.filter(i => i.id !== itemId);
@@ -223,9 +225,9 @@ export const CartProvider = ({ children }) => {
       console.error('Failed to remove item:', error);
       toast.error("Failed to remove item");
     }
-  };
+  }, [state.items, user, saveGuestCart]);
 
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     if (!user) {
         localStorage.removeItem('guest_cart');
         dispatch({ type: 'CLEAR_CART' });
@@ -239,22 +241,24 @@ export const CartProvider = ({ children }) => {
       console.error('Failed to clear cart:', error);
       toast.error("Failed to clear cart");
     }
-  };
+  }, [user]);
 
   const cartCount = useMemo(() => {
     return state.items.reduce((acc, item) => acc + item.quantity, 0);
   }, [state.items]);
 
+  const value = useMemo(() => ({
+    ...state,
+    cartCount,
+    addToCart,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    refreshCart: fetchCart
+  }), [state, cartCount, addToCart, updateQuantity, removeItem, clearCart, fetchCart]);
+
   return (
-    <CartContext.Provider value={{ 
-      ...state, 
-      cartCount,
-      addToCart, 
-      updateQuantity, 
-      removeItem, 
-      clearCart,
-      refreshCart: fetchCart 
-    }}>
+    <CartContext.Provider value={value}>
       {children}
     </CartContext.Provider>
   );

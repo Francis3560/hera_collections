@@ -218,7 +218,7 @@ export const createExpense = async (data, userId) => {
   return expense;
 };
 
-export const updateExpense = async (id, data, userId) => {
+export const updateExpense = async (id, data, userId, isAdmin = false) => {
   const expenseId = Number(id);
   if (!Number.isInteger(expenseId)) {
     throw new Error('Invalid expense ID');
@@ -233,8 +233,10 @@ export const updateExpense = async (id, data, userId) => {
     throw new Error('Expense not found');
   }
 
-  // Check if user is authorized (only creator or admin can update)
-  // You'll need to check the user's role in the controller
+  // Only the creator or an admin can update
+  if (!isAdmin && existing.createdById !== userId) {
+    throw new Error('Not authorized to update this expense');
+  }
 
   // Check if category exists (if being updated)
   if (data.categoryId) {
@@ -303,7 +305,7 @@ export const updateExpense = async (id, data, userId) => {
   return expense;
 };
 
-export const deleteExpense = async (id) => {
+export const deleteExpense = async (id, userId, isAdmin = false) => {
   const expenseId = Number(id);
   if (!Number.isInteger(expenseId)) {
     throw new Error('Invalid expense ID');
@@ -316,6 +318,11 @@ export const deleteExpense = async (id) => {
 
   if (!expense) {
     throw new Error('Expense not found');
+  }
+
+  // Only the creator or an admin can delete
+  if (!isAdmin && expense.createdById !== userId) {
+    throw new Error('Not authorized to delete this expense');
   }
 
   // Soft delete by marking as cancelled
@@ -657,6 +664,7 @@ export const exportExpenses = async (filters = {}) => {
     where.categoryId = parseInt(categoryId);
   }
 
+  const EXPORT_LIMIT = 10000;
   const expenses = await prisma.expense.findMany({
     where,
     include: {
@@ -673,7 +681,11 @@ export const exportExpenses = async (filters = {}) => {
       },
     },
     orderBy: { date: 'desc' },
+    take: EXPORT_LIMIT + 1, // +1 so we can detect truncation without a separate count() query
   });
+
+  const truncated = expenses.length > EXPORT_LIMIT;
+  if (truncated) expenses.length = EXPORT_LIMIT;
 
   if (format === 'csv') {
     const headers = ['ID', 'Title', 'Description', 'Amount', 'Date', 'Category', 'Payment Method', 'Reference', 'Created By', 'Status'];
@@ -699,6 +711,7 @@ export const exportExpenses = async (filters = {}) => {
       format: 'csv',
       data: csvContent,
       filename: `expenses_${new Date().toISOString().split('T')[0]}.csv`,
+      truncated,
     };
   }
 
@@ -706,6 +719,7 @@ export const exportExpenses = async (filters = {}) => {
     format: 'json',
     data: expenses,
     count: expenses.length,
+    truncated,
     generatedAt: new Date().toISOString(),
   };
 };

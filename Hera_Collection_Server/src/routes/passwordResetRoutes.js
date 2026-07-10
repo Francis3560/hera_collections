@@ -4,11 +4,12 @@ import {
   validateResetTokenController,
   resetPasswordController,
 } from '../controllers/passwordResetController.js';
+import { passwordResetLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
-router.post('/request', requestPasswordResetController);
+router.post('/request', passwordResetLimiter, requestPasswordResetController);
 router.get('/validate/:token', validateResetTokenController);
-router.post('/reset', resetPasswordController);
+router.post('/reset', passwordResetLimiter, resetPasswordController);
 
 export default router;

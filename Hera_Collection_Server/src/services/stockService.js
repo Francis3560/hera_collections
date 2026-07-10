@@ -99,28 +99,40 @@ export const adjustStock = async (variantId, data, userId) => {
     throw new Error('Product variant not found');
   }
 
-  if (quantity < 0 && Math.abs(quantity) > variant.stock) {
-    throw new Error('Insufficient stock for deduction');
-  }
-
   const result = await prisma.$transaction(async (tx) => {
-    const updatedVariant = await tx.productVariant.update({
-      where: { id: parseInt(variantId) },
-      data: {
-        stock: { increment: quantity },
-      },
-      include: {
-        product: true
+    let updatedVariant;
+
+    if (quantity < 0) {
+      // Atomic, conditional deduction — a plain read-then-write here would let
+      // two concurrent adjustments both pass a stale stock check and drive
+      // stock negative.
+      const deduction = await tx.productVariant.updateMany({
+        where: { id: parseInt(variantId), stock: { gte: Math.abs(quantity) } },
+        data: { stock: { increment: quantity } },
+      });
+      if (deduction.count === 0) {
+        throw new Error('Insufficient stock for deduction');
       }
-    });
+      updatedVariant = await tx.productVariant.findUnique({
+        where: { id: parseInt(variantId) },
+        include: { product: true },
+      });
+    } else {
+      updatedVariant = await tx.productVariant.update({
+        where: { id: parseInt(variantId) },
+        data: { stock: { increment: quantity } },
+        include: { product: true },
+      });
+    }
 
     const movementType = quantity > 0 ? 'ADJUSTMENT' : 'CORRECTION';
+    const previousStock = updatedVariant.stock - quantity;
     const movement = await tx.stockMovement.create({
       data: {
         variantId: parseInt(variantId),
         movementType,
         quantity: quantity,
-        previousStock: variant.stock,
+        previousStock,
         newStock: updatedVariant.stock,
         reason: reason || `Stock ${quantity > 0 ? 'increase' : 'decrease'} adjustment`,
         notes,
@@ -175,14 +187,30 @@ export const recordSaleMovement = async (orderId, orderItems, userId, tx = null)
       continue;
     }
 
-    const previousStock = variant.stock;
-    const newStock = previousStock - item.quantity;
+    // Atomic, conditional decrement — a plain read-then-write here would let two
+    // concurrent sales both pass a stale stock check and oversell the same variant.
+    // The WHERE clause makes this a compare-and-swap enforced by the DB row lock.
+    const result = await db.productVariant.updateMany({
+      where: { id: item.variantId, stock: { gte: item.quantity } },
+      data: { stock: { decrement: item.quantity } },
+    });
+
+    if (result.count === 0) {
+      throw new Error(`Insufficient stock for "${variant.sku}". Available: ${variant.stock}, Requested: ${item.quantity}`);
+    }
+
+    const updatedVariant = await db.productVariant.findUnique({
+      where: { id: item.variantId },
+      select: { stock: true },
+    });
+    const newStock = updatedVariant.stock;
+    const previousStock = newStock + item.quantity;
 
     const movement = await db.stockMovement.create({
       data: {
         variantId: item.variantId,
         movementType: 'SALE',
-        quantity: -item.quantity, 
+        quantity: -item.quantity,
         previousStock,
         newStock,
         referenceId: parseInt(orderId),
@@ -194,11 +222,7 @@ export const recordSaleMovement = async (orderId, orderItems, userId, tx = null)
     });
 
     movements.push(movement);
-    await db.productVariant.update({
-      where: { id: item.variantId },
-      data: { stock: newStock },
-    });
-    
+
     // Broadcast stock update
     webSocketService.sendStockUpdate({
       variantId: item.variantId,
@@ -293,27 +317,29 @@ export const recordDamageMovement = async (variantId, data, userId) => {
     throw new Error('Product variant not found');
   }
 
-  if (quantity > variant.stock) {
-    throw new Error('Damage quantity cannot exceed available stock');
-  }
-
   const result = await prisma.$transaction(async (tx) => {
-    const updatedVariant = await tx.productVariant.update({
+    // Atomic, conditional decrement — a plain read-then-write here would let
+    // two concurrent damage reports both pass a stale stock check and drive
+    // stock negative.
+    const decrement = await tx.productVariant.updateMany({
+      where: { id: parseInt(variantId), stock: { gte: quantity } },
+      data: { stock: { decrement: quantity } },
+    });
+    if (decrement.count === 0) {
+      throw new Error('Damage quantity cannot exceed available stock');
+    }
+    const updatedVariant = await tx.productVariant.findUnique({
       where: { id: parseInt(variantId) },
-      data: {
-        stock: { decrement: quantity },
-      },
-      include: {
-        product: true
-      }
+      include: { product: true },
     });
 
+    const previousStock = updatedVariant.stock + quantity;
     const movement = await tx.stockMovement.create({
       data: {
         variantId: parseInt(variantId),
         movementType: 'DAMAGE',
-        quantity: -quantity, 
-        previousStock: variant.stock,
+        quantity: -quantity,
+        previousStock,
         newStock: updatedVariant.stock,
         reason: reason || 'Damaged goods',
         notes,
@@ -782,29 +808,36 @@ export const bulkStockUpdate = async (updates, userId) => {
         continue;
       }
 
-      if (quantity < 0 && Math.abs(quantity) > variant.stock) {
-        errors.push({
-          update,
-          error: `Insufficient stock for variant ${variantId}`,
-        });
-        continue;
-      }
-
       const result = await prisma.$transaction(async (tx) => {
-        const updatedVariant = await tx.productVariant.update({
-          where: { id: parseInt(variantId) },
-          data: {
-            stock: { increment: quantity },
-          },
-        });
+        let updatedVariant;
 
+        if (quantity < 0) {
+          // Atomic, conditional deduction — a plain read-then-write here would
+          // let concurrent bulk updates both pass a stale stock check and
+          // drive stock negative.
+          const deduction = await tx.productVariant.updateMany({
+            where: { id: parseInt(variantId), stock: { gte: Math.abs(quantity) } },
+            data: { stock: { increment: quantity } },
+          });
+          if (deduction.count === 0) {
+            throw new Error(`Insufficient stock for variant ${variantId}`);
+          }
+          updatedVariant = await tx.productVariant.findUnique({ where: { id: parseInt(variantId) } });
+        } else {
+          updatedVariant = await tx.productVariant.update({
+            where: { id: parseInt(variantId) },
+            data: { stock: { increment: quantity } },
+          });
+        }
+
+        const previousStock = updatedVariant.stock - quantity;
         const movementTypeToUse = movementType || (quantity > 0 ? 'ADDITION' : 'ADJUSTMENT');
         const movement = await tx.stockMovement.create({
           data: {
             variantId: parseInt(variantId),
             movementType: movementTypeToUse,
             quantity: quantity,
-            previousStock: variant.stock,
+            previousStock,
             newStock: updatedVariant.stock,
             reason: reason || 'Bulk stock update',
             notes,
@@ -817,7 +850,7 @@ export const bulkStockUpdate = async (updates, userId) => {
 
         return {
           variantId,
-          previousStock: variant.stock,
+          previousStock,
           newStock: updatedVariant.stock,
           movementId: movement.id,
         };

@@ -27,7 +27,7 @@ export const getMySession = async (req, res) => {
  */
 export const sendMessage = async (req, res) => {
   try {
-    const { sessionId, content } = req.body;
+    const { sessionId, content, guestId } = req.body;
     const senderId = req.user?.id;
 
     if (!sessionId || !content) {
@@ -37,6 +37,7 @@ export const sendMessage = async (req, res) => {
     const message = await InquiryService.addMessage({
       sessionId,
       senderId,
+      guestId,
       isFromAdmin: false,
       content
     });
@@ -44,6 +45,12 @@ export const sendMessage = async (req, res) => {
     res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);
+    if (error.message === 'Not authorized to post to this session') {
+      return res.status(403).json({ message: error.message });
+    }
+    if (error.message === 'Session not found') {
+      return res.status(404).json({ message: error.message });
+    }
     res.status(500).json({ message: 'Failed to send message' });
   }
 };

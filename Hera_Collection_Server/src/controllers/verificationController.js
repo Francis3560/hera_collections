@@ -122,7 +122,7 @@ export const resendVerificationPublicController = async (req, res) => {
       success: true,
       message: 'New verification code sent successfully',
       email: userEmail,
-      expiresIn: '30 minutes'
+      expiresIn: '10 minutes'
     });
   } catch (error) {
     console.error('Public resend verification error:', error);
@@ -168,7 +168,7 @@ export const sendVerificationController = async (req, res) => {
     res.status(200).json({ 
       success: true,
       message: 'Verification email sent successfully',
-      expiresIn: '30 minutes'
+      expiresIn: '10 minutes'
     });
   } catch (error) {
     console.error('Error sending verification email:', error);
@@ -259,7 +259,7 @@ export const resendVerificationController = async (req, res) => {
     res.status(200).json({ 
       success: true,
       message: 'New verification code sent successfully',
-      expiresIn: '30 minutes'
+      expiresIn: '10 minutes'
     });
   } catch (error) {
     console.error('Protected resend verification error:', error);

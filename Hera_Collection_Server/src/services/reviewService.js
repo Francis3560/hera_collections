@@ -2,14 +2,16 @@ import prisma from '../database.js';
 
 class ReviewService {
   async createReview(data) {
-    const { productId, userId, rating, title, comment, isVerified } = data;
+    const { productId, userId, rating, title, comment } = data;
+    const parsedProductId = parseInt(productId);
+    const parsedUserId = parseInt(userId);
 
     // Check if user already reviewed this product
     const existingReview = await prisma.review.findUnique({
       where: {
         productId_userId: {
-          productId: parseInt(productId),
-          userId: parseInt(userId)
+          productId: parsedProductId,
+          userId: parsedUserId
         }
       }
     });
@@ -18,14 +20,27 @@ class ReviewService {
       throw new Error('You have already reviewed this product.');
     }
 
+    // "Verified purchase" is derived server-side from actual order history —
+    // never trust a client-supplied isVerified flag.
+    const purchase = await prisma.orderItem.findFirst({
+      where: {
+        productId: parsedProductId,
+        order: {
+          buyerId: parsedUserId,
+          status: { in: ['PAID', 'PROCESSING', 'FULFILLED', 'SHIPPED', 'COMPLETED'] },
+        },
+      },
+      select: { id: true },
+    });
+
     return await prisma.review.create({
       data: {
-        productId: parseInt(productId),
-        userId: parseInt(userId),
+        productId: parsedProductId,
+        userId: parsedUserId,
         rating: parseInt(rating),
         title,
         comment,
-        isVerified: isVerified || false,
+        isVerified: Boolean(purchase),
         isApproved: false,
         isPublished: false
       },
@@ -42,7 +57,7 @@ class ReviewService {
   }
 
   async getAllReviews(filters = {}) {
-    const { productId, userId, isApproved, isPublished } = filters;
+    const { productId, userId, isApproved, isPublished, page = 1, limit = 100 } = filters;
     const where = {};
 
     if (productId) where.productId = parseInt(productId);
@@ -52,6 +67,8 @@ class ReviewService {
 
     return await prisma.review.findMany({
       where,
+      skip: (parseInt(page) - 1) * parseInt(limit),
+      take: parseInt(limit),
       include: {
         user: {
           select: {
@@ -73,13 +90,15 @@ class ReviewService {
     });
   }
 
-  async getPublishedReviewsByProduct(productId) {
+  async getPublishedReviewsByProduct(productId, page = 1, limit = 100) {
     return await prisma.review.findMany({
       where: {
         productId: parseInt(productId),
         isApproved: true,
         isPublished: true
       },
+      skip: (parseInt(page) - 1) * parseInt(limit),
+      take: parseInt(limit),
       include: {
         user: {
           select: {
@@ -117,9 +136,15 @@ class ReviewService {
   }
 
   async updateReview(id, data) {
+    const allowedFields = ['rating', 'title', 'comment', 'isApproved', 'isPublished'];
+    const updateData = {};
+    for (const field of allowedFields) {
+      if (data[field] !== undefined) updateData[field] = data[field];
+    }
+
     return await prisma.review.update({
       where: { id: parseInt(id) },
-      data
+      data: updateData
     });
   }
 

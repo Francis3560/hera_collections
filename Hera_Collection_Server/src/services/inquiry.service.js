@@ -68,9 +68,31 @@ class InquiryService {
   }
 
   /**
-   * Add a message to a session
+   * Add a message to a session. Non-admin senders must own the session
+   * (matching userId, or matching guestId for guest sessions) — otherwise
+   * any caller could inject messages into (and read, via the returned
+   * session) someone else's chat.
    */
-  async addMessage({ sessionId, senderId, isFromAdmin, content }) {
+  async addMessage({ sessionId, senderId, guestId, isFromAdmin, content }) {
+    if (!isFromAdmin) {
+      const session = await prisma.inquirySession.findUnique({
+        where: { id: sessionId },
+        select: { userId: true, guestId: true },
+      });
+
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      const ownsSession =
+        (senderId && session.userId === Number(senderId)) ||
+        (guestId && session.guestId === guestId);
+
+      if (!ownsSession) {
+        throw new Error('Not authorized to post to this session');
+      }
+    }
+
     const message = await prisma.inquiryMessage.create({
       data: {
         sessionId,

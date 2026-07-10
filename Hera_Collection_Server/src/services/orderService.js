@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import prisma from '../database.js';
 import { Prisma } from '@prisma/client';
 import * as stockService from './stockService.js';
@@ -22,22 +23,6 @@ import {
   sendOrderShippedEmail
 } from './emails/emailService.js';
 import NotificationService from './notification.service.js';
-
-async function generateOrderNumber() {
-  const lastOrder = await prisma.order.findFirst({
-    orderBy: { createdAt: 'desc' },
-    select: { orderNumber: true },
-  });
-
-  if (!lastOrder || !lastOrder.orderNumber) {
-    return 'HERA001';
-  }
-
-  // Fix: Replace the correct prefix 'HERA' (or 'VZG' for legacy support)
-  const lastNum = parseInt(lastOrder.orderNumber.replace(/^(HERA|VZG)/, ''), 10) || 0;
-  const nextNum = (lastNum + 1).toString().padStart(3, '0');
-  return `HERA${nextNum}`;
-}
 
 export async function createOrder(userId, data, paymentIntentId = null) {
   const { items, customer, payment, amounts, shipping } = data;
@@ -67,10 +52,12 @@ export async function createOrder(userId, data, paymentIntentId = null) {
     throw new Error(`Some products are invalid, unpublished, or unavailable (IDs: ${missingIds.join(', ')})`);
   }
   
-  const orderNumber = await generateOrderNumber();
+  // Temporary unique placeholder — the real, collision-free order number is
+  // derived from the row's own auto-increment id right after insert (see below).
+  const tempOrderNumber = crypto.randomUUID().replace(/-/g, '');
 
   const order = await prisma.$transaction(async (tx) => {
-    console.log(`[OrderService] Starting transaction for Order #${orderNumber}`);
+    console.log(`[OrderService] Starting transaction for new order`);
     
     // Check stock availability
     for (const item of items) {
@@ -130,7 +117,7 @@ export async function createOrder(userId, data, paymentIntentId = null) {
 
     const newOrder = await tx.order.create({
       data: {
-        orderNumber,
+        orderNumber: tempOrderNumber,
         buyerId: userId,
         status: isPaid ? 'PAID' : 'PENDING',
         paidAt: isPaid ? new Date() : null,
@@ -189,7 +176,13 @@ export async function createOrder(userId, data, paymentIntentId = null) {
       },
     });
     
-    console.log("Recording stock movements and clearing cart...");
+    // Assign the final, collision-free order number from the row's own
+    // auto-increment id (no app-level counter to race on).
+    const orderNumber = `HERA${newOrder.id.toString().padStart(3, '0')}`;
+    await tx.order.update({ where: { id: newOrder.id }, data: { orderNumber } });
+    newOrder.orderNumber = orderNumber;
+
+    console.log(`[OrderService] Order #${orderNumber} created. Recording stock movements and clearing cart...`);
     // Record stock movements (this also updates variant stock and broadcasts)
     await stockService.recordSaleMovement(newOrder.id, items, userId, tx);
 
@@ -262,9 +255,9 @@ export async function getUserOrders(userId, filters = {}) {
 }
 
 export async function getAllOrderItems(filters = {}) {
-  const { search } = filters;
+  const { search, page = 1, limit = 100 } = filters;
   const where = {};
-  
+
   if (search) {
       where.product = {
           title: { contains: search }
@@ -274,6 +267,8 @@ export async function getAllOrderItems(filters = {}) {
   return prisma.orderItem.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    skip: (parseInt(page) - 1) * parseInt(limit),
+    take: parseInt(limit),
     include: {
         order: {
             select: { 
@@ -313,8 +308,8 @@ export async function getAllOrderItems(filters = {}) {
 }
 
 export async function getAllOrders(filters = {}) {
-  const { status, startDate, endDate, paymentMethod, search } = filters;
-  
+  const { status, startDate, endDate, paymentMethod, search, page = 1, limit = 100 } = filters;
+
   const where = {};
   
   if (status) where.status = status;
@@ -335,24 +330,26 @@ export async function getAllOrders(filters = {}) {
 
   return prisma.order.findMany({
     where,
+    skip: (parseInt(page) - 1) * parseInt(limit),
+    take: parseInt(limit),
     include: {
-      buyer: { 
-        select: { 
-          id: true, 
-          name: true, 
-          email: true, 
-          phone: true 
-        } 
+      buyer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true
+        }
       },
-      items: { 
-        include: { 
+      items: {
+        include: {
           product: {
             include: {
               photos: true,
               category: true
             }
           }
-        } 
+        }
       },
     },
     orderBy: { createdAt: 'desc' },
@@ -449,18 +446,14 @@ export async function updateOrderStatus(orderId, status, adminUserId, trackingNu
   if (!order) throw new Error('Order not found');
 
   const oldStatus = order.status;
-  
-  // Validation for Manual Payment Workflow
-  // PENDING -> PAID
-  if (oldStatus === 'PENDING' && status === 'PAID') {
-      // If updating to PAID and it's a manual payment, ensure we have a reference code
-      // Either in the existing order or provided in this update
-      if (!order.mpesaReference && !mpesaReference && order.paymentMethod === 'MPESA_MANUAL') {
-             // For now, we will just warn but proceed, or enforce strictness? 
-             // Let's enforce strictness:
-             // throw new Error("Please provide the M-Pesa Reference Code to verify payment.");
-             // Actually, let's just log it for now as strict enforcement might break quick-fixes
-      }
+
+  // PENDING -> PAID requires a payment reference for non-cash orders (cash
+  // orders are already marked PAID at creation time in createOrder, so this
+  // path is for MPESA/CARD/OTHER orders being manually reconciled).
+  if (oldStatus === 'PENDING' && status === 'PAID' && order.paymentMethod !== 'CASH') {
+    if (!order.mpesaReference && !mpesaReference) {
+      throw new Error('Please provide a payment reference code to verify payment before marking this order as PAID.');
+    }
   }
 
   const updateData = { status };

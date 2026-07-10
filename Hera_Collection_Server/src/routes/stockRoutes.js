@@ -45,9 +45,11 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get('/low-stock', validateLowStockQuery, getLowStockProducts);
+// Cost prices, supplier/internal notes, and staff identity in these responses
+// are business-sensitive — not for regular customer accounts.
+router.get('/low-stock', protectAdmin, validateLowStockQuery, getLowStockProducts);
 
-router.get('/movements/:variantId', validateStockMovementsQuery, getProductStockMovements);
+router.get('/movements/:variantId', protectAdmin, validateStockMovementsQuery, getProductStockMovements);
 
 router.get('/analytics/value', protectAdmin, getStockValueAnalytics);
 

@@ -1,0 +1,38 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CLUSTER_WORKERS=${CLUSTER_WORKERS:-2}
+    env_file:
+      - .env
+    volumes:
+      # Uploaded images live on local disk (see src/services/images/imageService.js).
+      # A shared volume keeps them visible across `docker compose up --scale app=N`
+      # replicas on THIS host. It does NOT help across separate hosts/machines —
+      # true multi-host scaling needs object storage (S3-compatible) instead of
+      # local disk; flagging this as a known boundary, not fixing it here.
+      - uploads-data:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  uploads-data:

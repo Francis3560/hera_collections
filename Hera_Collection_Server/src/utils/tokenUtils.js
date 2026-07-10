@@ -52,33 +52,3 @@ export const autoRefreshToken = async (req, res, next) => {
     next();
   }
 };
-export const rotateRefreshToken = async (oldRefreshToken, userId) => {
-  try {
-    verifyRefreshToken(oldRefreshToken);
-    
-    const user = await prisma.user.findUnique({ 
-      where: { id: userId },
-      select: { id: true, email: true, role: true }
-    });
-    
-    if (!user) {
-      throw new Error('User not found');
-    }
-    
-    const newRefreshToken = generateRefreshToken(user);
-    
-    await prisma.refreshToken.create({
-      data: {
-        token: newRefreshToken,
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 
-        userAgent: req?.headers['user-agent'],
-        ipAddress: req?.ip,
-      },
-    });
-    
-    return newRefreshToken;
-  } catch (error) {
-    throw new Error('Invalid refresh token');
-  }
-};

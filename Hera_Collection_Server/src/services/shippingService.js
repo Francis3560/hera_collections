@@ -17,22 +17,33 @@ export async function getRegionById(id) {
   });
 }
 
+const ALLOWED_FIELDS = ['name', 'description', 'fee', 'isActive', 'estimatedDays'];
+
+function whitelist(data) {
+  const out = {};
+  for (const field of ALLOWED_FIELDS) {
+    if (data[field] !== undefined) out[field] = data[field];
+  }
+  return out;
+}
+
 export async function createRegion(data) {
+  const payload = whitelist(data);
   return prisma.shippingRegion.create({
     data: {
-      ...data,
-      fee: parseFloat(data.fee)
-    }
+      ...payload,
+      fee: parseFloat(payload.fee),
+    },
   });
 }
 
 export async function updateRegion(id, data) {
-  const updateData = { ...data };
-  if (data.fee !== undefined) updateData.fee = parseFloat(data.fee);
+  const updateData = whitelist(data);
+  if (updateData.fee !== undefined) updateData.fee = parseFloat(updateData.fee);
 
   return prisma.shippingRegion.update({
     where: { id: parseInt(id) },
-    data: updateData
+    data: updateData,
   });
 }
 

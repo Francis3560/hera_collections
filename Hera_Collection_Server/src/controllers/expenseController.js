@@ -91,7 +91,8 @@ export const createExpense = async (req, res) => {
 export const updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const expense = await expenseService.updateExpense(id, req.body, req.auth.userId);
+    const isAdmin = req.auth.role === 'ADMIN';
+    const expense = await expenseService.updateExpense(id, req.body, req.auth.userId, isAdmin);
 
     return res.status(200).json({
       success: true,
@@ -100,7 +101,7 @@ export const updateExpense = async (req, res) => {
     });
   } catch (error) {
     console.error('Failed to update expense:', error);
-    
+
     if (error.message === 'Expense not found') {
       return res.status(404).json({
         success: false,
@@ -108,7 +109,14 @@ export const updateExpense = async (req, res) => {
       });
     }
 
-    if (error.message.includes('not found') || 
+    if (error.message === 'Not authorized to update this expense') {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.message.includes('not found') ||
         error.message.includes('already exists')) {
       return res.status(400).json({
         success: false,
@@ -126,7 +134,8 @@ export const updateExpense = async (req, res) => {
 export const deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await expenseService.deleteExpense(id);
+    const isAdmin = req.auth.role === 'ADMIN';
+    const result = await expenseService.deleteExpense(id, req.auth.userId, isAdmin);
 
     return res.status(200).json({
       success: true,
@@ -139,9 +148,16 @@ export const deleteExpense = async (req, res) => {
     });
   } catch (error) {
     console.error('Failed to delete expense:', error);
-    
+
     if (error.message === 'Expense not found') {
       return res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.message === 'Not authorized to delete this expense') {
+      return res.status(403).json({
         success: false,
         message: error.message,
       });
@@ -214,6 +230,7 @@ export const exportExpenses = async (req, res) => {
     if (result.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('X-Export-Truncated', String(result.truncated));
       return res.send(result.data);
     }
 
@@ -221,6 +238,7 @@ export const exportExpenses = async (req, res) => {
       success: true,
       data: result.data,
       count: result.count,
+      truncated: result.truncated,
       generatedAt: result.generatedAt,
     });
   } catch (error) {

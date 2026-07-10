@@ -23,6 +23,7 @@ import {
 } from '../services/emails/emailService.js';
 import { generateVerificationCode, saveVerificationCode } from '../services/emails/emailVerificationService.js';
 import NotificationService from '../services/notification.service.js';
+import { generateCsrfToken, setCsrfCookie } from '../middlewares/csrf.middleware.js';
 
 const googleClient = config.google.clientId ? new OAuth2Client(config.google.clientId) : null;
 const cookieName = config.cookies.refreshName;
@@ -30,6 +31,12 @@ const cookieOptions = config.cookies.options;
 
 function setRefreshCookie(res, token) {
   res.cookie(cookieName, token, cookieOptions);
+}
+
+function issueCsrfToken(res) {
+  const csrfToken = generateCsrfToken();
+  setCsrfCookie(res, csrfToken);
+  return csrfToken;
 }
 
 export const loginController = async (req, res) => {
@@ -61,19 +68,24 @@ export const loginController = async (req, res) => {
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
+    const csrfToken = issueCsrfToken(res);
 
     // 🔔 Notify on low stock if admin
     if (user.role === 'ADMIN') {
       NotificationService.checkLowStockAndNotify(user.id).catch(console.error);
     }
 
-    res.status(200).json({ 
-      accessToken, 
-      role: user.role, 
+    res.status(200).json({
+      accessToken,
+      csrfToken,
+      role: user.role,
       user,
       redirectTo: user.role === 'ADMIN' ? '/dashboard' : '/'
     });
-  } catch {
+  } catch (error) {
+    if (error.message?.includes('locked')) {
+      return res.status(403).json({ message: error.message, code: 'ACCOUNT_LOCKED' });
+    }
     res.status(400).json({ message: 'Invalid email or password' });
   }
 };
@@ -121,13 +133,15 @@ export const googleRegistrationController = async (req, res) => {
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
+    const csrfToken = issueCsrfToken(res);
 
-    return res.status(201).json({ 
-      accessToken, 
-      role: user.role, 
+    return res.status(201).json({
+      accessToken,
+      csrfToken,
+      role: user.role,
       user: {
         ...user,
-        isVerified: false 
+        isVerified: false
       },
       message: 'Registration successful. Please check your email for verification code.',
       isVerified: false,
@@ -174,17 +188,19 @@ export const googleLoginController = async (req, res) => {
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
+    const csrfToken = issueCsrfToken(res);
 
     // 🔔 Notify on low stock if admin
     if (user.role === 'ADMIN') {
       NotificationService.checkLowStockAndNotify(user.id).catch(console.error);
     }
 
-    return res.status(200).json({ 
-      accessToken, 
-      role: user.role, 
+    return res.status(200).json({
+      accessToken,
+      csrfToken,
+      role: user.role,
       user,
-      verificationRequired: !user.isVerified, 
+      verificationRequired: !user.isVerified,
       redirectTo: user.isVerified ? 
         (user.role === 'ADMIN' ? '/dashboard' : '/') : 
         '/verify-email'
@@ -213,8 +229,9 @@ export const refreshTokenController = async (req, res) => {
     const newAccess = generateToken(user);
     const newRefresh = generateRefreshToken(user);
     setRefreshCookie(res, newRefresh);
+    const csrfToken = issueCsrfToken(res);
 
-    return res.status(200).json({ accessToken: newAccess });
+    return res.status(200).json({ accessToken: newAccess, csrfToken });
   } catch (e) {
     if (e.name === 'TokenExpiredError') {
       return res.status(403).json({ message: 'Refresh token expired' });
@@ -356,13 +373,15 @@ export const registerController = async (req, res) => {
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
     setRefreshCookie(res, refreshToken);
+    const csrfToken = issueCsrfToken(res);
 
-    res.status(201).json({ 
-      accessToken, 
-      role: user.role, 
+    res.status(201).json({
+      accessToken,
+      csrfToken,
+      role: user.role,
       user: {
         ...user,
-        isVerified: false 
+        isVerified: false
       },
       message: 'Registration successful. Please check your email for verification code.',
       verificationRequired: true,
@@ -441,7 +460,12 @@ export const logoutController = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
     });
-    
+    res.clearCookie(config.cookies.csrfName, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Logged out successfully',

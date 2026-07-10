@@ -1,6 +1,7 @@
 import multer from 'multer';
 import prisma from '../database.js';
 import imageService from '../services/images/imageService.js';
+import { getOrSet, invalidatePrefix } from '../utils/cache.js';
 
 const storage = multer.memoryStorage();
 const fileFilter = (_req, file, cb) => {
@@ -17,16 +18,19 @@ export const upload = multer({
 export const getAllCategories = async (req, res) => {
   try {
     const { tree } = req.query;
-    const categories = await prisma.category.findMany({
-      orderBy: { name: 'asc' },
-      include: tree === 'true' ? {
-        subCategories: true,
-      } : {
-        _count: {
-          select: { products: true, subCategories: true }
-        }
-      },
-    });
+    const cacheKey = `categories:all:${tree === 'true' ? 'tree' : 'flat'}`;
+    const categories = await getOrSet(cacheKey, 60 * 1000, () =>
+      prisma.category.findMany({
+        orderBy: { name: 'asc' },
+        include: tree === 'true' ? {
+          subCategories: true,
+        } : {
+          _count: {
+            select: { products: true, subCategories: true }
+          }
+        },
+      })
+    );
     res.status(200).json(categories);
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -128,6 +132,7 @@ export const createCategory = async (req, res) => {
       },
     });
 
+    invalidatePrefix('categories:');
     res.status(201).json(category);
   } catch (error) {
     console.error('Failed to create category:', error);
@@ -189,6 +194,7 @@ export const updateCategory = async (req, res) => {
       },
     });
 
+    invalidatePrefix('categories:');
     res.status(200).json(updated);
   } catch (error) {
     console.error('Failed to update category:', error);
@@ -232,6 +238,7 @@ export const deleteCategory = async (req, res) => {
       where: { id: parseInt(id) },
     });
 
+    invalidatePrefix('categories:');
     res.status(200).json({ message: 'Category deleted successfully' });
   } catch (error) {
     console.error('Failed to delete category:', error);

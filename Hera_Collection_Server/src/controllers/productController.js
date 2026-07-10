@@ -81,8 +81,9 @@ export const getProductBySlugController = async (req, res) => {
  */
 export const getProductsBySellerController = async (req, res) => {
   const { sellerId } = req.params;
+  const { page = 1, limit = 50 } = req.query;
   try {
-    const products = await getProductsBySeller(parseInt(sellerId));
+    const products = await getProductsBySeller(parseInt(sellerId), parseInt(page), parseInt(limit));
     res.status(200).json(products);
   } catch (e) {
     console.error('Failed to fetch seller products:', e);
@@ -95,8 +96,9 @@ export const getProductsBySellerController = async (req, res) => {
  */
 export const getProductsByCategoryController = async (req, res) => {
   const { categoryId } = req.params;
+  const { page = 1, limit = 50 } = req.query;
   try {
-    const products = await getProductsByCategory(parseInt(categoryId));
+    const products = await getProductsByCategory(parseInt(categoryId), parseInt(page), parseInt(limit));
     res.status(200).json(products);
   } catch (e) {
     console.error('Failed to fetch category products:', e);

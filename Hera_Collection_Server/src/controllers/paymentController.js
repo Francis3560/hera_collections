@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { initiateStkPush } from "../services/paymentService.js";
+import { initiateStkPush, queryTransactionStatus } from "../services/paymentService.js";
 import prisma from "../database.js";
 import * as orderService from "../services/orderService.js";
 import { 
@@ -228,17 +228,54 @@ export async function mpesaCallback(req, res) {
     }
 
     if (resultCode === 0) {
-      // Payment successful
-      console.log(`Payment successful for intent ${intent.id}. Proceeding to create order...`);
-      
+      // The callback body itself is unauthenticated and can be forged by anyone who
+      // knows/guesses a CheckoutRequestID. Never trust it directly — independently
+      // confirm the transaction with Safaricom (server-to-server, using our own
+      // credentials) before crediting anything.
+      let verification;
+      try {
+        verification = await queryTransactionStatus(checkoutId);
+      } catch (verifyErr) {
+        console.error(`Callback verification query failed for intent ${intent.id}:`, verifyErr.message);
+        verification = null;
+      }
+
+      const verifiedResultCode = parseInt(verification?.ResultCode);
+      const mpesaAmount = transactionData['Amount'] || null;
+      const amountMismatch = mpesaAmount != null && Number(mpesaAmount) !== Number(intent.amount);
+
+      if (verifiedResultCode !== 0 || amountMismatch) {
+        console.warn(
+          `Callback for intent ${intent.id} could NOT be independently verified (verifiedResultCode=${verifiedResultCode}, amountMismatch=${amountMismatch}). Refusing to credit — possible forged/replayed callback.`
+        );
+
+        await prisma.paymentIntent.update({
+          where: { id: intent.id },
+          data: {
+            status: "FAILED",
+            payload: JSON.stringify({
+              ...JSON.parse(intent.payload),
+              failureReason: "Callback could not be independently verified with Safaricom",
+              mpesaTransaction: transactionData,
+              verification,
+              failedAt: new Date().toISOString(),
+            }),
+          },
+        });
+
+        return res.json({ ResultCode: 0, ResultDesc: "Callback processed successfully" });
+      }
+
+      // Payment successful and independently verified
+      console.log(`Payment verified for intent ${intent.id}. Proceeding to create order...`);
+
       try {
         const payload = JSON.parse(intent.payload);
-        
+
         // Extract the real M-Pesa receipt number from Safaricom callback metadata
         const mpesaReceiptNumber = transactionData['MpesaReceiptNumber'] || null;
-        const mpesaAmount = transactionData['Amount'] || null;
         const mpesaTransactionDate = transactionData['TransactionDate'] || null;
-        
+
         // Create order
         const order = await orderService.createOrder(
           intent.buyerId,
@@ -726,9 +763,13 @@ export async function getPaystackConfig(req, res) {
 export async function paystackWebhook(req, res) {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
-    
+
     if (!secret) {
-      console.warn("PAYSTACK_SECRET_KEY not found. Webhook verification skipped (NOT SECURE).");
+      if (process.env.NODE_ENV === 'production') {
+        console.error("PAYSTACK_SECRET_KEY not configured. Rejecting webhook in production.");
+        return res.status(503).json({ message: "Payment webhook not configured" });
+      }
+      console.warn("PAYSTACK_SECRET_KEY not found. Webhook verification skipped (NOT SECURE, dev only).");
     } else {
       const hash = crypto
         .createHmac('sha512', secret)
@@ -746,7 +787,7 @@ export async function paystackWebhook(req, res) {
 
     if (event.event === 'charge.success') {
       const { reference, amount } = event.data;
-      
+
       console.log(`[Paystack Webhook] Payment successful for ref: ${reference}, amount: ${amount}`);
 
       const order = await prisma.order.findFirst({
@@ -754,7 +795,10 @@ export async function paystackWebhook(req, res) {
       });
 
       if (order) {
-        if (order.status !== 'PAID') {
+        const amountMismatch = amount != null && Number(amount) / 100 !== Number(order.totalAmount);
+        if (amountMismatch) {
+          console.warn(`[Paystack Webhook] Amount mismatch for order ${order.orderNumber}: webhook=${amount / 100}, order total=${order.totalAmount}. Refusing to mark as PAID.`);
+        } else if (order.status !== 'PAID') {
           await orderService.updateOrderStatus(order.id, 'PAID', null, null, null, reference);
           console.log(`[Paystack Webhook] Order ${order.orderNumber} status updated to PAID.`);
         }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import WishlistService from '../api/wishlist.service';
 import { useAuth } from './AuthContext';
 
@@ -48,7 +48,7 @@ export const WishlistProvider = ({ children }) => {
     fetchWishlist();
   }, [fetchWishlist]);
 
-  const addToWishlist = async (productId, variantId) => {
+  const addToWishlist = useCallback(async (productId, variantId) => {
     if (!user) {
       // Handle guest wishlist if needed, but for now let's focus on logged in users
       return;
@@ -60,32 +60,34 @@ export const WishlistProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to add to wishlist:', error);
     }
-  };
+  }, [user]);
 
-  const removeFromWishlist = async (id) => {
+  const removeFromWishlist = useCallback(async (id) => {
     try {
       await WishlistService.removeFromWishlist(id);
       dispatch({ type: 'REMOVE_ITEM', payload: id });
     } catch (error) {
       console.error('Failed to remove from wishlist:', error);
     }
-  };
+  }, []);
 
-  const isInWishlist = (productId) => {
+  const isInWishlist = useCallback((productId) => {
     return state.items.some(item => item.productId === productId);
-  };
+  }, [state.items]);
 
   const wishlistCount = state.items.length;
 
+  const value = useMemo(() => ({
+    ...state,
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+    wishlistCount,
+    refreshWishlist: fetchWishlist
+  }), [state, addToWishlist, removeFromWishlist, isInWishlist, wishlistCount, fetchWishlist]);
+
   return (
-    <WishlistContext.Provider value={{ 
-      ...state, 
-      addToWishlist, 
-      removeFromWishlist, 
-      isInWishlist, 
-      wishlistCount,
-      refreshWishlist: fetchWishlist 
-    }}>
+    <WishlistContext.Provider value={value}>
       {children}
     </WishlistContext.Provider>
   );

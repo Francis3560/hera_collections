@@ -1,5 +1,5 @@
 // src/context/NotificationContext.tsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { notificationService, Notification } from '../api/notification.service';
 import { socketService } from '../utils/socket';
 import { useAuth } from './AuthContext';
@@ -38,21 +38,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [isAuthenticated]);
 
-  const markAsRead = async (ids: number | number[]) => {
+  const markAsRead = useCallback(async (ids: number | number[]) => {
     try {
       await notificationService.markAsRead(ids);
       const idArray = Array.isArray(ids) ? ids : [ids];
-      
-      setNotifications(prev => 
+
+      setNotifications(prev =>
         prev.map(n => idArray.includes(n.id) ? { ...n, isRead: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - idArray.length));
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
-  };
+  }, []);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
@@ -60,16 +60,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
-  };
+  }, []);
 
-  const deleteNotifications = async (ids: number | number[]) => {
+  const deleteNotifications = useCallback(async (ids: number | number[]) => {
     try {
       await notificationService.deleteNotifications(ids);
       const idArray = Array.isArray(ids) ? ids : [ids];
       setNotifications(prev => prev.filter(n => !idArray.includes(n.id)));
-      
+
       // Recollect unread count if we deleted unread ones
-      const wasUnreadDeleted = idArray.some(id => 
+      const wasUnreadDeleted = idArray.some(id =>
         notifications.find(n => n.id === id && !n.isRead)
       );
       if (wasUnreadDeleted) {
@@ -78,7 +78,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to delete notifications:', error);
     }
-  };
+  }, [notifications]);
 
   // WebSocket Setup
   const queryClient = useQueryClient();
@@ -180,16 +180,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [isAuthenticated, user?.role, user?.id, fetchNotifications, queryClient]);
 
+  const value = useMemo(() => ({
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotifications
+  }), [notifications, unreadCount, loading, fetchNotifications, markAsRead, markAllAsRead, deleteNotifications]);
+
   return (
-    <NotificationContext.Provider value={{
-      notifications,
-      unreadCount,
-      loading,
-      fetchNotifications,
-      markAsRead,
-      markAllAsRead,
-      deleteNotifications
-    }}>
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

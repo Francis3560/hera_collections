@@ -9,7 +9,8 @@
     "start": "node main.js",
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "fix:image-extensions": "node scripts/fixImageExtensions.js"
   },
   "keywords": [
     "express",
@@ -23,26 +24,36 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@socket.io/sticky": "^1.0.4",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
-    "cloudinary": "^1.41.3",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "file-type": "^22.0.1",
     "google-auth-library": "^10.2.1",
+    "helmet": "^8.2.0",
+    "ioredis": "^5.11.1",
     "joi": "^17.12.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.11",
+    "nodemailer": "^9.0.3",
+    "rate-limit-redis": "^5.0.0",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.0",
     "prisma": "^5.20.0"
+  },
+  "overrides": {
+    "tar": "^7.5.19"
   }
 }

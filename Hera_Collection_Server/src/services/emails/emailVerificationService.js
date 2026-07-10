@@ -1,4 +1,8 @@
 import prisma from '../../database.js';
+import { redis } from '../../utils/redisClient.js';
+
+const MAX_VERIFY_ATTEMPTS = 5;
+const VERIFY_ATTEMPTS_WINDOW_SEC = 10 * 60; // matches the code's own expiry window
 
 export const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -18,6 +22,18 @@ export const saveVerificationCode = async (userId, code) => {
 };
 
 export const verifyUserCode = async (userId, code) => {
+  // Per-account attempt lockout — independent of (and tighter than) the
+  // IP-based rate limiter on the route, so a distributed attacker rotating
+  // IPs still can't brute-force one account's 6-digit code.
+  const attemptsKey = `hera:verify-attempts:${userId}`;
+  const attempts = await redis.incr(attemptsKey);
+  if (attempts === 1) {
+    await redis.expire(attemptsKey, VERIFY_ATTEMPTS_WINDOW_SEC);
+  }
+  if (attempts > MAX_VERIFY_ATTEMPTS) {
+    throw new Error('Too many incorrect attempts. Please request a new verification code.');
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -40,7 +56,7 @@ export const verifyUserCode = async (userId, code) => {
   }
   const expiresAtUnix = Number(user.verificationCodeExpiresUnix);
   const currentTime = Date.now();
-  
+
   if (currentTime > expiresAtUnix) {
     const minutesExpired = (currentTime - expiresAtUnix) / (1000 * 60);
     throw new Error(`Verification code has expired ${minutesExpired.toFixed(0)} minutes ago`);
@@ -49,12 +65,15 @@ export const verifyUserCode = async (userId, code) => {
   if (user.verificationCode !== code) {
     throw new Error('Invalid verification code');
   }
+
+  await redis.del(attemptsKey);
+
   return await prisma.user.update({
     where: { id: userId },
     data: {
       isVerified: true,
       verificationCode: null,
-      verificationCodeExpiresUnix: null, 
+      verificationCodeExpiresUnix: null,
     },
   });
 };

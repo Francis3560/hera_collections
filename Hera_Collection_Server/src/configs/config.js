@@ -4,6 +4,10 @@ dotenv.config();
 export const config = {
   db: { url: process.env.DATABASE_URL },
 
+  security: {
+    bcryptRounds: 12,
+  },
+
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN || '30m',
@@ -22,7 +26,19 @@ export const config = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+    // CSRF token cookie: intentionally NOT httpOnly — the frontend must be able
+    // to read it and echo it back in the X-CSRF-Token header (double-submit
+    // pattern). Needed because the refresh cookie uses SameSite=None in
+    // production (required for a cross-origin frontend), which forfeits the
+    // browser's built-in SameSite CSRF protection.
+    csrfName: 'csrfToken',
+    csrfOptions: {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   },
     email: {

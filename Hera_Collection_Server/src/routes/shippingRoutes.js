@@ -1,6 +1,7 @@
 import express from 'express';
 import * as shippingController from '../controllers/shippingController.js';
 import { protect, requireRoles } from '../middlewares/authMiddleware.js';
+import { validateCreateRegion, validateUpdateRegion } from '../validators/shippingValidators.js';
 
 const router = express.Router();
 
@@ -9,8 +10,8 @@ router.get('/', shippingController.getAllRegions);
 
 // Admin-only routes for CRUD
 router.get('/:id', protect, requireRoles('ADMIN'), shippingController.getRegionById);
-router.post('/', protect, requireRoles('ADMIN'), shippingController.createRegion);
-router.patch('/:id', protect, requireRoles('ADMIN'), shippingController.updateRegion);
+router.post('/', protect, requireRoles('ADMIN'), validateCreateRegion, shippingController.createRegion);
+router.patch('/:id', protect, requireRoles('ADMIN'), validateUpdateRegion, shippingController.updateRegion);
 router.delete('/:id', protect, requireRoles('ADMIN'), shippingController.deleteRegion);
 
 export default router;
