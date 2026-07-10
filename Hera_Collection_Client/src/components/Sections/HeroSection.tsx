@@ -9,8 +9,8 @@ import { useTheme } from "@/components/ThemeProvider";
 const heroSlides = [
   {
     id: 1,
-    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375593/3_f5csiv.png",
-    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375591/4_g4hcer.png",
+    lightBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783675981/3_ou4tfj.png",
+    darkBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783675981/4_drheeu.png",
     title: "SUSTAINABLE LUXURY",
     subtitle: "Ethical Style",
     description: "Eco-friendly materials, ethical production. Redefining premium accessories.",
@@ -19,8 +19,8 @@ const heroSlides = [
   },
   {
     id: 2,
-    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_len3pf.png",
-    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769464029/Hera_Hero_B_uol1cn.png",
+    lightBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783677947/Hera_Hero_nu9n6q.png",
+    darkBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783677524/Hera_Hero_B_vhpdxt.png",
     title: "LUXURIOUS BRAND",
     subtitle: "Executive Excellence",
     description: "Premium professional bags for modern leaders. Precision-crafted for excellence.",
@@ -29,8 +29,8 @@ const heroSlides = [
   },
   {
     id: 3,
-    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465243/7_yxmssx.png",
-    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769465244/8_tmqduj.png",
+    lightBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783676570/7_de7kkr.png",
+    darkBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783676571/8_dkb93n.png",
     title: "EXECUTIVE ELEGANCE",
     subtitle: "Luxury & Function",
     description: "Handcrafted leather bags built for corporate life. Make a statement without saying a word.",
@@ -39,8 +39,8 @@ const heroSlides = [
   },
   {
     id: 4,
-    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467638/Hera_Hero_B_jsm0uf.png",
-    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769467637/Hera_Hero_W_kalxmy.png",
+    lightBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783676240/Hera_Hero_B_zosx27.png",
+    darkBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783676180/Hera_Hero_W_y4xcuv.png",
     title: "PERFECT PARTNER",
     subtitle: "Smart Organization",
     description: "Intelligent design meets elegant aesthetics. Your perfect partner for travel and daily commutes.",
@@ -49,8 +49,8 @@ const heroSlides = [
   },
   {
     id: 4,
-    lightBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375593/3_f5csiv.png",
-    darkBackground: "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1769375591/4_g4hcer.png",
+    lightBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783675981/3_ou4tfj.png",
+    darkBackground: "https://res.cloudinary.com/fffb5ery/image/upload/v1783675981/4_drheeu.png",
     title: "SUSTAINABLE LUXURY",
     subtitle: "Ethical Style",
     description: "Eco-friendly materials, ethical production. Redefining premium accessories.",

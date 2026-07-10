@@ -93,7 +93,7 @@ export default function OrderTrackingPage() {
         <div className="flex justify-between items-start border-b-2 border-zinc-100 pb-8 mb-8">
           <div className="flex gap-4 items-center">
             <img 
-              src="https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771745617/HERA-logo-black_o0ulzi.png" 
+              src="https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/Hera-logo-white_zauldy.png" 
               alt="Hera Collection Logo" 
               className="w-24 h-auto object-contain"
             />
