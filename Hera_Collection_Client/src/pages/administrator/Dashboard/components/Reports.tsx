@@ -17,7 +17,7 @@ interface DashboardReportsProps {
 
 const BRAND_INFO = {
   name: 'HERA COLLECTION',
-  logo: 'https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/Hera-logo-white_zauldy.png',
+  logo: 'https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/HERA-logo-black_up39qn.png',
   email: 'admin@heracollections.com',
   phone: '+254 718 577 608 / +254 707 064 827',
   location: 'Nairobi, Kenya'

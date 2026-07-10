@@ -39,8 +39,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 
-const darkLogo = "https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/HERA-logo-black_up39qn.png";
-const lightLogo = "https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/Hera-logo-white_zauldy.png";
+const darkLogo = "https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/Hera-logo-white_zauldy.png";
+const lightLogo = "https://res.cloudinary.com/fffb5ery/image/upload/v1783675392/HERA-logo-black_up39qn.png";
 
 const AUTH_BG_IMAGE = "https://res.cloudinary.com/dvkt0lsqb/image/upload/v1771783520/hera_auth_sidesection_bg_1771783520130.png"; // Note: Use the generated image path or a hosted version if needed. Actually I will use the local path if possible or just assuming a high-quality placeholder for now, but I'll use the one I just "generated" conceptually. Wait, I should use the path provided in the previous step. 
 // Actually, I'll use a high-quality Cloudinary URL if I had one, but I'll use the local generated one via the tool output if it's served. 
